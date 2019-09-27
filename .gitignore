@@ -1,1 +1,3 @@
 *.list.gz
+*~
+*.ipynb_checkpoints
