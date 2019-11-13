@@ -1,0 +1,23 @@
+Bolshoi Catalogs Public Release, version 1.53.  (6/20/2015).
+
+Each "hlist" file is a catalog which contains all the halos and subhalos at a
+single simulation output, in ASCII format.
+
+The numbers in the filename (e.g., hlist_0.XYZ) refer to the scale factor of the
+output.  Each halo record is a single line, which has many space-separated columns.
+The details of what is in each column is contained in the first few lines of each
+catalog, and includes halo positions, velocities, masses, and many other useful
+properties.  Some columns contain indices (e.g., depthFirstIndex) which are only
+relevant for merger trees---these are kept only for consistency with the merger
+tree format.
+
+Note: Previous issues concerning T/|U|, the Peebles spin parameter, and the
+next_coprogenitor_depthfirst_id have been corrected in these catalogs.
+This version also corrects an issue affecting the MMP flag and includes a new field
+(last_mainleaf_depthfirst_ID) to help with extracting main progenitor histories.
+
+If you use these catalogs, please cite the following three papers:
+
+The original Bolshoi simulation paper: http://arxiv.org/abs/1002.3660 (Klypin, Trujillo-Gomez, and Primack, 2011).
+The Rockstar halo finder paper: http://arxiv.org/abs/1110.4372 (Behroozi, Wechsler, and Wu, 2012).
+The consistent merger trees paper: http://arxiv.org/abs/1110.4370 (Behroozi et al. 2012).
