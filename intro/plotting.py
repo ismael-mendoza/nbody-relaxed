@@ -1,8 +1,12 @@
+"""
+Plotting functions that are useful for visualizing things like correlations.
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 
 # params we actually care about and we include in our table.
-params = ['mvir', 'rvir', 'cvir' , 'T/|U|', 'Xoff', 'Voff', 'Spin', 'q', 'phi_l', 'Acc_Rate_1*Tdyn',
+params = ['mvir', 'rvir', 'cvir', 'T/|U|', 'Xoff', 'Voff', 'Spin', 'q', 'phi_l', 'Acc_Rate_1*Tdyn',
           'Acc_Rate_Inst', 'scale_of_last_MM', 
          ]
 
