@@ -25,7 +25,7 @@ log_file = "/home/imendoza/alcca/nbody-relaxed/intro/log.txt"
 # arrs = []
 
 with open(results_file.as_posix(), mode='w') as csvfile:
-    fieldnames = ['root_id', 'mvir2', 'zform']
+    fieldnames = ['root_id', 'mvir2', 'zform']  # mvir2 refers to the second largest virial mass.
     writer = csv.DictWriter(csvfile, fieldnames)
     writer.writeheader()
     csvfile.flush()
@@ -45,7 +45,7 @@ with open(results_file.as_posix(), mode='w') as csvfile:
             'zform': scales[zform_idx]
         }
         writer.writerow(dct)
-        csvfile.flush()
+        csvfile.flush()  # make sure we are not storing info but actually write to file.
 
         # arr = []
         #

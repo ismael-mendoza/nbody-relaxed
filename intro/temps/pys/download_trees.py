@@ -1,3 +1,6 @@
+"""
+Download all the bolshoi trees from the listed url.
+"""
 import subprocess
 import os
 

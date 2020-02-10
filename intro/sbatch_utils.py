@@ -1,4 +1,6 @@
-import os
+"""
+Useful functions for submitting sbatch jobs.
+"""
 import subprocess
 from pathlib import Path
 import numpy as np

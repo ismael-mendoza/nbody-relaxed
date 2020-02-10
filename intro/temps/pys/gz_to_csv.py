@@ -5,7 +5,7 @@ Convert a hlist file to a .csv file.
 import gzip
 import csv
 
-base_file = '/home/imendoza/alcca/nbody-relaxed/intro/data/multidark/hlist_1.00109'
+base_file = '/home/imendoza/alcca/nbody-relaxed/intro/data/bolshoi/hlist_1.00035'
 
 filename=f'{base_file}.list.gz'
 new_filename = f'{base_file}.csv'

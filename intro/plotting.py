@@ -21,12 +21,12 @@ latex_units=['[h^{-1} \, M_{\\odot}]', '', '', '', '',
 ]
 
 
-def binning3d_mass(cat, ax, plot_func, param1, param2, mods=[], plot_kwargs={}, legend_size=18):
+def binning3d_mass(cat, ax, param1, param2, mods=[], plot_kwargs={}, legend_size=18):
     """
     * plot_kwargs are additional keyword arguments to pass into the plotting_func
     * mods: lambda functinos that modify plotting arrays, e.g. lambda x: np.log10(x)
     """
-    mass_bins =[(12, 13), (13, 14), (14, 15)] #decades 
+    mass_bins =[(12, 13), (13, 14), (14, 15)] # decades
     colors = ['b', 'r', 'g'] 
     for mass_bin, color in zip(mass_bins, colors): 
         log_mvir = np.log10(cat['mvir'])
