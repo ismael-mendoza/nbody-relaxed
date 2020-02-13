@@ -4,8 +4,9 @@ Useful functions for submitting sbatch jobs.
 import subprocess
 from pathlib import Path
 import numpy as np
+from intro.src import utils
 
-batch_dir = Path("/home/imendoza/alcca/nbody-relaxed/intro/temps/batches")
+batch_dir = utils.root_dir.join("/home/imendoza/alcca/nbody-relaxed/intro/temps/batches")
 logs = Path("/home/imendoza/alcca/nbody-relaxed/intro/temps/batches/logs")
 
 

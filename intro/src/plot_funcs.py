@@ -5,26 +5,11 @@ Plotting functions that are useful for visualizing things like correlations.
 import numpy as np
 import matplotlib.pyplot as plt
 
-# params we actually care about and we include in our table.
-params = ['mvir', 'rvir', 'cvir', 'T/|U|', 'Xoff', 'Voff', 'Spin', 'q', 'phi_l', 'Acc_Rate_1*Tdyn',
-          'Acc_Rate_Inst', 'scale_of_last_MM', 
-         ]
-
-inv_lookup = {params[i]:i for i in range(len(params))}
-
-latex_params = ['M_{\\rm vir}',  'R_{\\rm vir}', 'c_{\\rm vir}', 'T/|U|', 'X_{\\rm off}', 
-                'V_{\\rm off}', '\\lambda', 'q', '\\Phi_{l}', '\\alpha_{\\tau_{\\rm dyn}}', 
-                '\\alpha_{\\rm inst}', '\\delta_{\\rm MM}']
-latex_units=['[h^{-1} \, M_{\\odot}]', '', '', '', '', 
-'', '', '', '', '', 
-'', '',
-]
-
 
 def binning3d_mass(cat, ax, param1, param2, mods=[], plot_kwargs={}, legend_size=18):
     """
     * plot_kwargs are additional keyword arguments to pass into the plotting_func
-    * mods: lambda functinos that modify plotting arrays, e.g. lambda x: np.log10(x)
+    * mods: lambda functions that modify plotting arrays, e.g. lambda x: np.log10(x)
     """
     mass_bins =[(12, 13), (13, 14), (14, 15)] # decades
     colors = ['b', 'r', 'g'] 
@@ -82,16 +67,11 @@ def scatter_binning(x, y, ax, nxbins=10, title=None, xlabel=None, ylabel=None, c
     if legend_label:
         ax.legend(loc='best', prop={'size':legend_size})
 
+def cov_plot(ax):
+    mask = np.tri(corrs.shape[0], k=-1)
+    A = np.ma.array(corrs, mask=mask)
+    im = ax.matshow(A, cmap='bwr', vmin=-1, vmax=1)
+    plt.colorbar(im, ax=ax)
+    ax.set_xticklabels([''] + latex_params, size=16);
+    ax.set_yticklabels([''] + latex_params, size=16);
 
-def to_latex(param,  use_logs=False, use_units=False): 
-    template = '${}{}{}$'
-    log_tex = ''
-    units_tex = ''
-    if use_logs:
-        log_tex = '\\log_{10}'
-    if use_units: 
-        units_tex = '\\; {}'.format(latex_units[inv_lookup[param]])
-    
-    latex_param = latex_params[inv_lookup[param]]
-
-    return template.format(log_tex, latex_param, units_tex)
