@@ -4,6 +4,12 @@
 from pathlib import Path
 import sbatch_utils
 
+# ToDo: Update to the new method of saving main line progenitors and add function to expand the catalogs to
+#  contain the relevant information that will be extracted from the main line progenitors. Iterate through main line
+#  progenitor file and extract each one by one into a numpy array (one for masses and another one for scales).
+#  Then, write a bunch of functions to get zform, etc.
+
+
 tree_path = Path(f"/home/imendoza/alcca/nbody-relaxed/intro/data/trees/")
 process_file = "/home/imendoza/alcca/nbody-relaxed/intro/save_one_progenitor.py"
 progenitor_path = tree_path.joinpath("progenitors")

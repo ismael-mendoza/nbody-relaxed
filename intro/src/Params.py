@@ -65,6 +65,11 @@ class Param(object):
         self.values = None
 
     def get_values(self, cat):
+        if self.values is not None:
+            return self.values
+
+        # ToDo: add option to check whether catalog has that entry and just fetch from there
+        #  (catalog will be a class with option to add new entries, and maybe rewrite to disk that new way)
         if self.derive is None:
             values = cat[self.key]
         else:

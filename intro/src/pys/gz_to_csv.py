@@ -5,6 +5,7 @@ Convert a hlist file to a .csv file.
 import gzip
 import csv
 
+# ToDo: Turn into a function in utils. Can then run from ipython or a separate python file for example.
 base_file = '/home/imendoza/alcca/nbody-relaxed/intro/data/bolshoi/hlist_1.00035'
 
 filename=f'{base_file}.list.gz'

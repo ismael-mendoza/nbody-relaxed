@@ -15,7 +15,6 @@ class Plot(object):
         """
         Represents a single plot to draw and produce. Each plot will be outputted in a single page of a pdf.
         :param params: Represents a list of :class:`Param`: in the order of axs.flatten() that will be plotted.
-        :param xs: Range of x to plot the params.
         """
 
         self.title = title
