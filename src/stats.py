@@ -1,4 +1,6 @@
 import numpy as np
+from scipy.stats import spearmanr
+
 
 def get_corrs(params, cat):
     """
@@ -11,3 +13,5 @@ def get_corrs(params, cat):
         for j, param2 in enumerate(params):
             corr, p = spearmanr(cat[param1], cat[param2])
             corrs[i, j] = corr
+
+

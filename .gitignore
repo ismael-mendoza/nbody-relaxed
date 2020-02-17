@@ -1,5 +1,4 @@
 *.list.gz
 *~
 *.ipynb_checkpoints
-sftp-config*.json
 *data

@@ -67,11 +67,3 @@ def scatter_binning(x, y, ax, nxbins=10, title=None, xlabel=None, ylabel=None, c
     if legend_label:
         ax.legend(loc='best', prop={'size':legend_size})
 
-def cov_plot(ax):
-    mask = np.tri(corrs.shape[0], k=-1)
-    A = np.ma.array(corrs, mask=mask)
-    im = ax.matshow(A, cmap='bwr', vmin=-1, vmax=1)
-    plt.colorbar(im, ax=ax)
-    ax.set_xticklabels([''] + latex_params, size=16);
-    ax.set_yticklabels([''] + latex_params, size=16);
-

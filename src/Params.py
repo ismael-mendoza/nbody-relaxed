@@ -47,7 +47,6 @@ params_dict = {
 
 class Param(object):
 
-    # ToDo: Add filters to select only a range of values to return.
     def __init__(self, key, log=False):
         """
 
@@ -68,8 +67,9 @@ class Param(object):
         if self.values is not None:
             return self.values
 
-        # ToDo: add option to check whether catalog has that entry and just fetch from there
-        #  (catalog will be a class with option to add new entries, and maybe rewrite to disk that new way)
+        if self.key in cat.colnames:
+            return cat[self.key]
+
         if self.derive is None:
             values = cat[self.key]
         else:
