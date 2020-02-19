@@ -65,5 +65,5 @@ def scatter_binning(x, y, ax, nxbins=10, title=None, xlabel=None, ylabel=None, c
     ax.tick_params(axis='both', which='major', labelsize=tick_size)
 
     if legend_label:
-        ax.legend(loc='best', prop={'size':legend_size})
+        ax.legend(loc='best', prop={'size': legend_size})
 

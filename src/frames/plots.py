@@ -53,10 +53,10 @@ class BiPlot(Plot):
         self.plot_func = plot_func
         super(BiPlot, self).__init__(*args, **kwargs)
 
-    def run(self, **kwargs):
+    def run(self, cat, **kwargs):
         for (ax, param_pair) in zip(self.axes, self.params):
             param1, param2 = param_pair
-            self.plot_func(param1.get_values(), param2.get_values(), ax, xlabel=param1.text, ylabel=param2.text,
+            self.plot_func(param1.get_values(cat), param2.get_values(cat), ax, xlabel=param1.text, ylabel=param2.text,
                            **kwargs)
 
 

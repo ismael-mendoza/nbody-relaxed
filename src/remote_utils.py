@@ -4,9 +4,9 @@ Useful functions for submitting sbatch jobs.
 import subprocess
 from pathlib import Path
 import numpy as np
-from intro.src import utils
+from src import utils
 
-#ToDo: use the main directoy from utils.py
+#ToDo: use the main directory from utils.py
 batch_dir = utils.root_dir.join("/home/imendoza/alcca/nbody-relaxed/intro/temps/batches")
 logs = Path("/home/imendoza/alcca/nbody-relaxed/intro/temps/batches/logs")
 
@@ -32,13 +32,13 @@ def run_sbatch_job(cmd, jobs_dir_name, jobname, time='01:00', memory='5GB', iter
         f.writelines(f"#SBATCH --mem={memory}\n")
         f.writelines(f"#SBATCH --mail-type=END,FAIL\n")
         f.writelines(f"#SBATCH --mail-user=imendoza@umich.edu\n")
-        f.writelines(f"#SBATCH --account=cavestru\n")
+        f.writelines(f"#SBATCH --account=cavestru1\n")
         f.writelines(f"{cmd}\n")
         # f.writelines(f"#SBATCH --array=1-{iterations}%1000\n")
 
     subprocess.run(f"sbatch {jobfile.as_posix()}", shell=True)
 
-# ToDo: Finish later.
+# ToDo: Finish later also look into Luigi.
 class RemoteJob(object):
     def __init__(self):
         pass
