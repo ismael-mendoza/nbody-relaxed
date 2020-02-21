@@ -2,6 +2,7 @@ import astropy
 from astropy.table import Table
 from astropy.io import ascii
 import numpy as np
+from typing import List
 
 from src.frames import params
 
@@ -15,7 +16,8 @@ catalog_properties = {
 
 class HaloCatalog(object):
 
-    def __init__(self, filename, catalog_name, filters=None, use_generator=False):
+    def __init__(self, filename, catalog_name, filters=None, params_to_include: List[str] = None,
+                 use_generator=False, verbose=False, subhalos=False):
         """
 
         :param filename:
@@ -28,23 +30,23 @@ class HaloCatalog(object):
 
         self.filename = filename
         self.catalog_name = catalog_name
+        self.verbose = verbose
+        self.subhalos = subhalos
         self.particle_mass, self.total_particles, self.box_size = catalog_properties[self.catalog_name]
 
-        # name of all fundamental params.
-        self.required_params = params.fundamental_params
+        # name of all params.
+        self.param_names = params.param_names
+        self.params_to_include = params_to_include if params_to_include else params.default_params_to_include
 
         self.use_generator = use_generator
-        # self.param_names = param_names if param_names else self.get_default_param_names()
         self.filters = filters if filters else self.get_default_filters()
+        assert set(self.filters.keys()).issubset(set(self.param_names)), "filtering will fail."
 
         self.cat = self.get_cat()  # could be a generator or an astropy.Table object.
-        assert set(self.required_params).issubset(set(self.cat.colnames)), "Required parameters are not contained " \
-                                                                           "in catalog provided."
-
-        if not self.use_generator:
-            self.cat = self.filter_cat(self.cat)
 
         # ToDo: For the generator case we want to returned a modified generator with the filtered values.
+        # ToDo: Add assert that all fundamental params are in catalog.
+        # ToDo: Make everything work together property if not default filters or params to include.
 
     def get_cat_generator(self):
         """
@@ -65,23 +67,59 @@ class HaloCatalog(object):
             return gcats
 
         else:
+            if self.verbose:
+                print("Ignoring dividing by zero and invalid errors that should be filtered out anyways.")
+
             # actually extract the data from gcats and read it into memory.
+            # do filtering on the fly so don't actually ever read unfiltered catalog.
             cats = []
+
             for i, cat in enumerate(gcats):
-                cats.append(cat[self.required_params])
+                new_cat = Table()
+
+                # ignore warning of possible parameters that are divided by zero, this will be filtered out later.
+                with np.errstate(divide='ignore', invalid='ignore'):
+                    for param in self.param_names:
+                        new_cat.add_column(self.get_values(cat, param), name=param)
+
+                new_cat = self.filter_cat(new_cat)
+
+                cats.append(new_cat)
+
+                if self.verbose:
+                    if i % 10 == 0:
+                        print(i)
 
             return astropy.table.vstack(cats)
 
     def get_default_filters(self):
+        """
+        NOTE: Always assume that the values of the catalog are returned without log10ing first.
+        :return:
+        """
         return {
             'mvir': lambda cat: np.log10(self.get_values(cat, 'mvir')) > np.log10(self.particle_mass * 1e3),
             'Spin': lambda cat: self.get_values(cat, 'Spin') != 0,
-            'q': lambda cat: self.get_values(cat, 'q') != 0
+            'q': lambda cat: self.get_values(cat, 'q') != 0,
+            'vrms': lambda cat: self.get_values(cat, 'vrms') != 0,
+            'mag2_A': lambda cat: self.get_values(cat, 'mag2_A') != 0,
+            'mag2_J': lambda cat: self.get_values(cat, 'mag2_J') != 0,
+            'upid': lambda cat: (self.get_values(cat, 'upid') == -1 if self.subhalos else
+                                 self.get_values(cat, 'upid') >= 0)
         }
 
     def filter_cat(self, cat):
+        """
+        Do all the appropriate filtering required when not reading the generator expression , in particular cat is
+        assumed to contain all the parameter in param_names before value filters are applied. Not all parameters are
+        actually required once filtering is complete so they are removed according to self.params_to_include.
+        :param cat:
+        :return:
+        """
         for my_filter in self.filters.values():
             cat = cat[my_filter(cat)]
+
+        cat = cat[self.params_to_include]
         return cat
 
     # ToDo: Implement this in some way?
@@ -95,12 +133,12 @@ class HaloCatalog(object):
     @staticmethod
     def get_values(cat, key):
         """
-        Always return without using logs.
+        NOTE: Always return without using logs.
         :param cat:
         :param key:
         :return:
         """
-        # ToDo: maybe this a module level function?
+        # ToDo: maybe this can be a module level function?
         return params.Param(key, log=False).get_values(cat)
 
 

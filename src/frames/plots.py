@@ -18,7 +18,10 @@ class Plot(object):
         self.title = title
         self.params = params
         self.fig, axs = plt.subplots(nrows, ncols, figsize=figsize)
-        self.axes = axs.flatten()
+        if nrows > 1 or ncols > 1:
+            self.axes = axs.flatten()
+        else:
+            self.axes = [axs]
 
     def generate(self, **kwargs):
         """
@@ -32,7 +35,6 @@ class Plot(object):
     @staticmethod
     def preamble():
         plt.ioff()
-        plt.rc("text", usetex=True)
 
     def finale(self):
         self.fig.tight_layout()
@@ -41,6 +43,7 @@ class Plot(object):
         pass
 
     def save(self, fname):
+        plt.rc("text", usetex=True)
         self.fig.savefig(utils.figure_path.joinpath(fname))
 
 
@@ -71,7 +74,7 @@ class MatrixPlot(Plot):
         self.matrix_func = matrix_func
         self.symmetric = symmetric
         super(MatrixPlot, self).__init__(*args, ncols=1, nrows=1, **kwargs)
-        self.ax = self.axes
+        self.ax = self.axes[0]
 
     def run(self, **kwargs):
         matrix_values = self.matrix_func(self.params)

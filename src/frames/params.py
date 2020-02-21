@@ -3,6 +3,12 @@ import numpy as np
 
 # functions to get derived quantities.
 def get_phi_l(cat):
+    """
+    * JX/JY/JZ: Halo angular momenta ((Msun/h) * (Mpc/h) * km/s (physical))
+    * A[x],A[y],A[z]: Largest shape ellipsoid axis (kpc/h comoving)
+    :param cat:
+    :return:
+    """
     return np.arccos(
         ((cat['A[x]'] * cat['Jx'] + cat['A[y]'] * cat['Jy'] + cat['A[z]'] * cat['Jz'])
          /
@@ -84,13 +90,19 @@ info_params = {
     'scale_of_last_MM': (None, '', '', '\\delta_{\\rm MM}'),
 
     # derived quantities.
-    'tdyn': (lambda cat: np.sqrt(2) * cat['rvir'] / cat['vrms'], 'kpc/h / km/s', '', '\\tau_{\\rm dyn}'),  # see notesheet.
     'cvir': (lambda cat: cat['rvir'] / cat['rs'], '', '', 'c_{\\rm vir}'),
     'q': (lambda cat: (1/2)*(cat['b_to_a'] + cat['c_to_a']), '', '', 'q'),
     'phi_l': (get_phi_l, '', '', '\\Phi_{l}'),
     'xoff': (lambda cat: cat['Xoff']/cat['rvir'], '', '', 'x_{\\rm off}'),
     'voff': (lambda cat: cat['Voff']/cat['vrms'], '', '', 'v_{\\rm off}'),
+    # 'tdyn': (lambda cat: np.sqrt(2) * cat['rvir'] / cat['vrms'], 'kpc/h / km/s', '', '\\tau_{\\rm dyn}'), (notesheet)
+
+    # usually excluded quantities necessary for filtering
+    'upid': (None, '', '', ''),
+    'mag2_A': (lambda cat: cat['A[x]'] ** 2 + cat['A[y]'] ** 2 + cat['A[z]'] ** 2, '', '', ''),
+    'mag2_J': (lambda cat: cat['Jx'] ** 2 + cat['Jy'] ** 2 + cat['Jz'] ** 2, '', '', ''),
 }
+
 
 # nicer format.
 params_dict = {
@@ -98,6 +110,8 @@ params_dict = {
     for (key, value) in info_params.items()
 }
 
-fundamental_params = [param for param in params_dict if params_dict[param]['derive'] is None]
+param_names = params_dict.keys()
+default_params_to_exclude = {'upid', 'mag2_A', 'mag2_J'}
+default_params_to_include = [param for param in param_names if param not in default_params_to_exclude]
 
 
