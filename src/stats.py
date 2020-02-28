@@ -6,6 +6,7 @@ def get_corrs(params, cat):
     """
     This function returns the correlation matrix of a list of
     :param params:
+    :param cat:
     :return:
     """
     corrs = np.zeros((len(params), len(params)))

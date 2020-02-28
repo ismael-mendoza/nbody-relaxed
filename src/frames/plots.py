@@ -3,19 +3,24 @@ This file contains classes that represent the different plots that are produced.
 reproducible plots and separate the plotting procedure from the images produced.
 """
 import matplotlib.pyplot as plt
-from src import utils
+from src.utils import const
 import numpy as np
 
 
 class Plot(object):
 
-    def __init__(self, params, nrows=1, ncols=1, figsize=(10, 10), title=''):
+    def __init__(self, params, nrows=1, ncols=1, figsize=(10, 10), title='', title_size=20, tick_size=16):
         """
         Represents a single plot to draw and produce. Each plot will be outputted in a single page of a pdf.
+
+        * To overlay a different plot (say relaxed), just call self.run() again w/ the relaxed catalog and color!
         :param params: Represents a list of :class:`Param`:, could be tuples of params too depending on the plot_func.
         """
 
         self.title = title
+        self.title_size = title_size
+        self.tick_size = tick_size
+
         self.params = params
         self.fig, axs = plt.subplots(nrows, ncols, figsize=figsize)
         if nrows > 1 or ncols > 1:
@@ -32,21 +37,30 @@ class Plot(object):
         self.run(**kwargs)
         self.finale()
 
-    @staticmethod
-    def preamble():
+    def preamble(self):
+        self.fig.suptitle(self.title, fontsize=self.title_size)
         plt.ioff()
 
     def finale(self):
+
+        for ax in zip(self.axes):
+            ax.tick_params(axis='both', which='major', labelsize=self.tick_size)
+
         self.fig.tight_layout()
 
     def run(self, **kwargs):
         pass
 
-    def save(self, fname):
+    def save(self, fname=None, pdf=None):
         plt.rc("text", usetex=True)
-        self.fig.savefig(utils.figure_path.joinpath(fname))
+        if fname is not None:
+            self.fig.savefig(const.figure_path.joinpath(fname))
+
+        elif pdf is not None:
+            pdf.savefig(self.fig)
 
 
+# ToDo: Change to accommodate reading chunkified code.
 class BiPlot(Plot):
     """
     Class that creates the standard x vs. y plots.
@@ -59,7 +73,23 @@ class BiPlot(Plot):
     def run(self, cat, **kwargs):
         for (ax, param_pair) in zip(self.axes, self.params):
             param1, param2 = param_pair
-            self.plot_func(param1.get_values(cat), param2.get_values(cat), ax, xlabel=param1.text, ylabel=param2.text,
+            self.plot_func(cat, param1, param2, ax, xlabel=param1.text, ylabel=param2.text,
+                           **kwargs)
+
+
+# Todo: Accomodate chunkified code
+class UniPlot(Plot):
+    """
+    Creates plot that only depend on one variable at a time, like histograms.
+    """
+
+    def __init__(self, plot_func, *args, **kwargs):
+        self.plot_func = plot_func
+        super(UniPlot, self).__init__(*args, **kwargs)
+
+    def run(self, cat, **kwargs):
+        for (ax, param) in zip(self.axes, self.params):
+            self.plot_func(param.get_values(cat), ax, xlabel=param.text,
                            **kwargs)
 
 

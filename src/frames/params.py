@@ -62,11 +62,12 @@ class Param(object):
         """
         template = '${}{}{}$'
         log_tex = ''
+        units_tex = ''
 
-        units_tex = '\\; [{}]'.format(self.latex_units)
         if self.log:
             log_tex = '\\log_{10}'
-            units_text = ''
+        elif self.latex_units is not None:
+            units_tex = '\\; [{}]'.format(self.latex_units)
 
         return template.format(log_tex, self.latex_param, units_tex)
 

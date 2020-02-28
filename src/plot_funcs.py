@@ -4,30 +4,58 @@ Plotting functions that are useful for visualizing things like correlations.
 
 import numpy as np
 import matplotlib.pyplot as plt
+from src.frames import params
 
 
-def binning3d_mass(cat, ax, param1, param2, mods=[], plot_kwargs={}, legend_size=18):
+def general_settings(ax, title='', xlabel=None, ylabel=None, xlabel_size=18, ylabel_size=18, legend_label=None,
+                     legend_size=18, title_size=18):
+
+    ax.set_title(title, fontsize=title_size)
+
+    if xlabel is not None and ylabel is not None:
+        ax.set_xlabel(xlabel, size=xlabel_size)
+        ax.set_ylabel(ylabel, size=ylabel_size)
+
+    if legend_label:
+        ax.legend(loc='best', prop={'size': legend_size})
+
+
+def histogram(cat, param, ax, bins=30, histtype='step', color='r', legend_label=None, hist_kwargs=None,
+              **general_kwargs):
+    if hist_kwargs is None:
+        hist_kwargs = {}
+
+    values = param.get_values(cat)
+    ax.hist(values, bins=bins, histtype=histtype, color=color, label=legend_label, **hist_kwargs)
+
+    general_settings(ax)
+
+
+def binning3d_mass(cat, param1, param2, ax, mass_decades=range(11, 15), legend_size=18, **plot_kwargs):
     """
     * plot_kwargs are additional keyword arguments to pass into the plotting_func
     * mods: lambda functions that modify plotting arrays, e.g. lambda x: np.log10(x)
     """
-    mass_bins =[(12, 13), (13, 14), (14, 15)] # decades
+    mass_bins = [(x, y) for x, y in zip(mass_decades, mass_decades[1:])]
     colors = ['b', 'r', 'g'] 
     for mass_bin, color in zip(mass_bins, colors): 
-        log_mvir = np.log10(cat['mvir'])
+        log_mvir = params.Param('mvir', log=True).get_values(cat)
         mmask = (log_mvir > mass_bin[0]) & (log_mvir < mass_bin[1])
         mcat = cat[mmask]
         label = "$" + str(mass_bin[0]) + "< M_{\\rm vir} <" + str(mass_bin[1]) + "$"
-        scatter_binning(mods[0](mcat[param1]), 
-                        mods[1](mcat[param2]), 
+        scatter_binning(mcat,
+                        param1, param2,
                         color=color, legend_label=label, ax=ax, **plot_kwargs)
     
-    ax.legend(prop={"size":legend_size}, loc='best')
+    ax.legend(prop={"size": legend_size}, loc='best')
 
 
-def scatter_binning(x, y, ax, nxbins=10, title=None, xlabel=None, ylabel=None, color='r', legend_label=None,
-                   tick_size=14, xlabel_size=18, ylabel_size=18, no_bars=False, show_lines=False, show_bands=False,
-                   legend_size=18):
+def scatter_binning(cat, param1, param2, ax, xlabel=None, ylabel=None, nxbins=10, color='r', no_bars=False,
+                    show_lines=False, show_bands=False, legend_label=None, **general_kwargs):
+
+    x = param1.get_values(cat)
+    y = param2.get_values(cat)
+
     xs = np.linspace(np.min(x), np.max(x), nxbins)
     xbbins = [(xs[i], xs[i+1]) for i in range(len(xs)-1)]
 
@@ -38,8 +66,10 @@ def scatter_binning(x, y, ax, nxbins=10, title=None, xlabel=None, ylabel=None, c
     xmeds = [np.median(xbin) for xbin in binned_x]
     ymeds = [np.median(ybin) for ybin in binned_y]
 
-    xqs = np.array([[xmed - np.quantile(xbin, 0.25), np.quantile(xbin,0.75) - xmed] for (xmed,xbin) in zip(xmeds,binned_x)]).T
-    yqs = np.array([[ymed - np.quantile(ybin, 0.25), np.quantile(ybin,0.75) - ymed] for (ymed,ybin) in zip(ymeds,binned_y)]).T
+    xqs = np.array([[xmed - np.quantile(xbin, 0.25), np.quantile(xbin, 0.75) - xmed] for (xmed, xbin)
+                    in zip(xmeds, binned_x)]).T
+    yqs = np.array([[ymed - np.quantile(ybin, 0.25), np.quantile(ybin, 0.75) - ymed] for (ymed, ybin)
+                    in zip(ymeds, binned_y)]).T
 
     if not no_bars:
         ax.errorbar(xmeds, ymeds, xerr=xqs, yerr=yqs, fmt='o--', capsize=10, color=color, label=legend_label)
@@ -56,14 +86,6 @@ def scatter_binning(x, y, ax, nxbins=10, title=None, xlabel=None, ylabel=None, c
     if show_bands:
         ax.fill_between(xmeds, y1, y2, alpha=0.2, linewidth=0.001, color=color)
 
-    if title is not None:
-        ax.set_title(title)
-    if xlabel is not None and ylabel is not None:
-        ax.set_xlabel(xlabel, size=xlabel_size)
-        ax.set_ylabel(ylabel, size=ylabel_size)
+    general_settings(ax, xlabel=xlabel, ylabel=ylabel, legend_label=legend_label, **general_kwargs)
 
-    ax.tick_params(axis='both', which='major', labelsize=tick_size)
-
-    if legend_label:
-        ax.legend(loc='best', prop={'size': legend_size})
 

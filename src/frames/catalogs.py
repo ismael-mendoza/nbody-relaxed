@@ -16,8 +16,9 @@ catalog_properties = {
 
 class HaloCatalog(object):
 
-    def __init__(self, filename, catalog_name, filters=None, params_to_include: List[str] = None,
-                 use_generator=False, verbose=False, subhalos=False):
+    def __init__(self, filename, catalog_name, use_generator=False,
+                 subhalos=False, relaxed=False, filters=None, relaxed_filters=None,
+                 params_to_include: List[str] = None, verbose=False):
         """
 
         :param filename:
@@ -32,6 +33,7 @@ class HaloCatalog(object):
         self.catalog_name = catalog_name
         self.verbose = verbose
         self.subhalos = subhalos
+        self.relaxed = relaxed
         self.particle_mass, self.total_particles, self.box_size = catalog_properties[self.catalog_name]
 
         # name of all params.
@@ -43,6 +45,10 @@ class HaloCatalog(object):
         assert set(self.filters.keys()).issubset(set(self.param_names)), "filtering will fail."
 
         self.cat = self.get_cat()  # could be a generator or an astropy.Table object.
+
+        if self.relaxed:
+            self.relaxed_filters = relaxed_filters if relaxed_filters else self.get_default_relaxed()
+            self.cat = self.filter_cat(self.cat, self.relaxed_filters)
 
         # ToDo: For the generator case we want to returned a modified generator with the filtered values.
         # ToDo: Add assert that all fundamental params are in catalog.
@@ -82,7 +88,7 @@ class HaloCatalog(object):
                     for param in self.param_names:
                         new_cat.add_column(self.get_values(cat, param), name=param)
 
-                new_cat = self.filter_cat(new_cat)
+                new_cat = self.filter_cat(new_cat, self.filters)
 
                 cats.append(new_cat)
 
@@ -92,43 +98,68 @@ class HaloCatalog(object):
 
             return astropy.table.vstack(cats)
 
-    def get_default_filters(self):
+    @staticmethod
+    def get_default_relaxed():
         """
-        NOTE: Always assume that the values of the catalog are returned without log10ing first.
+        For now relaxed = (cat['xoff'] < 0.04), according to Power 2011
         :return:
         """
         return {
-            'mvir': lambda cat: np.log10(self.get_values(cat, 'mvir')) > np.log10(self.particle_mass * 1e3),
-            'Spin': lambda cat: self.get_values(cat, 'Spin') != 0,
-            'q': lambda cat: self.get_values(cat, 'q') != 0,
-            'vrms': lambda cat: self.get_values(cat, 'vrms') != 0,
-            'mag2_A': lambda cat: self.get_values(cat, 'mag2_A') != 0,
-            'mag2_J': lambda cat: self.get_values(cat, 'mag2_J') != 0,
-            'upid': lambda cat: (self.get_values(cat, 'upid') == -1 if self.subhalos else
-                                 self.get_values(cat, 'upid') >= 0)
+            'xoff': lambda self, cat: self.get_values(cat, 'xoff') < 0.04,
         }
 
-    def filter_cat(self, cat):
+    def filter_cat(self, cat, filters):
         """
         Do all the appropriate filtering required when not reading the generator expression , in particular cat is
         assumed to contain all the parameter in param_names before value filters are applied. Not all parameters are
         actually required once filtering is complete so they are removed according to self.params_to_include.
         :param cat:
+        :param filters:
         :return:
         """
-        for my_filter in self.filters.values():
-            cat = cat[my_filter(cat)]
+        for my_filter in filters.values():
+            cat = cat[my_filter(self, cat)]
 
         cat = cat[self.params_to_include]
         return cat
 
-    # ToDo: Implement this in some way?
-    def relaxed(self):
+    @staticmethod
+    def get_default_filters():
         """
-        For now relaxed = (cat['Xoff'] < 0.04)
+        NOTE: Always assume that the values of the catalog are returned without log10ing first.
+
+        * upid >=0 indicates a subhalo, upid=-1 indicates a distinct halo. Phil's comment: "This is -1 for distinct
+        halos and a halo ID for subhalos."
+        >> cat_distinct = cat[cat['upid'] == -1]
+        >> cat_sub = cat[cat['upid'] >= 0]
         :return:
         """
-        pass
+        return {
+            'mvir': HaloCatalog.mass_default_filter,
+            'Spin': lambda self, cat: self.get_values(cat, 'Spin') != 0,
+            'q': lambda self, cat: self.get_values(cat, 'q') != 0,
+            'vrms': lambda self, cat: self.get_values(cat, 'vrms') != 0,
+            'mag2_A': lambda self, cat: self.get_values(cat, 'mag2_A') != 0,
+            'mag2_J': lambda self, cat: self.get_values(cat, 'mag2_J') != 0,
+            'upid': lambda self, cat: (self.get_values(cat, 'upid') == -1 if not self.subhalos else
+                                       self.get_values(cat, 'upid') >= 0)
+        }
+
+    @staticmethod
+    def mass_default_filter(self, cat):
+        """
+        * The cuts on mvir are based on Phil's comment that Bolshoi/BolshoiP only give reasonable results up to
+        log10(Mvir) ~ 13.5 - 13.75.
+        :return:
+        """
+
+        # first, we need a minimum number of particles, this log mass is around 11.13 for Bolshoi.
+        conds = np.log10(self.get_values(cat, 'mvir')) > np.log10(self.particle_mass * 1e3)
+
+        if self.catalog_name == 'Bolshoi' or self.catalog_name == 'BolshoiP':
+            conds = conds & (np.log10(self.get_values(cat, 'mvir')) < 13.75)
+
+        return conds
 
     @staticmethod
     def get_values(cat, key):
