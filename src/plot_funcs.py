@@ -3,17 +3,18 @@ Plotting functions that are useful for visualizing things like correlations.
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
 from src.frames import params
 
 
-def general_settings(ax, title='', xlabel=None, ylabel=None, xlabel_size=18, ylabel_size=18, legend_label=None,
-                     legend_size=18, title_size=18):
+def general_ax_settings(ax, ax_title='', xlabel=None, ylabel=None, xlabel_size=18, ylabel_size=18, legend_label=None,
+                        legend_size=18, title_size=22):
 
-    ax.set_title(title, fontsize=title_size)
+    ax.set_title(ax_title, fontsize=title_size)
 
-    if xlabel is not None and ylabel is not None:
+    if xlabel is not None:
         ax.set_xlabel(xlabel, size=xlabel_size)
+
+    if ylabel is not None:
         ax.set_ylabel(ylabel, size=ylabel_size)
 
     if legend_label:
@@ -28,30 +29,29 @@ def histogram(cat, param, ax, bins=30, histtype='step', color='r', legend_label=
     values = param.get_values(cat)
     ax.hist(values, bins=bins, histtype=histtype, color=color, label=legend_label, **hist_kwargs)
 
-    general_settings(ax)
+    general_ax_settings(ax, **general_kwargs)
 
 
-def binning3d_mass(cat, param1, param2, ax, mass_decades=range(11, 15), legend_size=18, **plot_kwargs):
+def binning3d_mass(cat, param1, param2, ax, ax_title=None, mass_decades=np.arange(11, 15, 0.5),
+                   **scatter_binning_kwargs):
     """
     * plot_kwargs are additional keyword arguments to pass into the plotting_func
     * mods: lambda functions that modify plotting arrays, e.g. lambda x: np.log10(x)
     """
     mass_bins = [(x, y) for x, y in zip(mass_decades, mass_decades[1:])]
-    colors = ['b', 'r', 'g'] 
+    colors = ['b', 'r', 'g']
     for mass_bin, color in zip(mass_bins, colors): 
         log_mvir = params.Param('mvir', log=True).get_values(cat)
         mmask = (log_mvir > mass_bin[0]) & (log_mvir < mass_bin[1])
         mcat = cat[mmask]
         label = "$" + str(mass_bin[0]) + "< M_{\\rm vir} <" + str(mass_bin[1]) + "$"
         scatter_binning(mcat,
-                        param1, param2,
-                        color=color, legend_label=label, ax=ax, **plot_kwargs)
-    
-    ax.legend(prop={"size": legend_size}, loc='best')
+                        param1, param2, legend_label=label, ax_title=ax_title,
+                        color=color, ax=ax, **scatter_binning_kwargs)
 
 
-def scatter_binning(cat, param1, param2, ax, xlabel=None, ylabel=None, nxbins=10, color='r', no_bars=False,
-                    show_lines=False, show_bands=False, legend_label=None, **general_kwargs):
+def scatter_binning(cat, param1, param2, ax, nxbins=10, color='r', no_bars=False, show_lines=False, show_bands=False,
+                    xlabel=None, ylabel=None, legend_label=None, **general_kwargs):
 
     x = param1.get_values(cat)
     y = param2.get_values(cat)
@@ -86,6 +86,6 @@ def scatter_binning(cat, param1, param2, ax, xlabel=None, ylabel=None, nxbins=10
     if show_bands:
         ax.fill_between(xmeds, y1, y2, alpha=0.2, linewidth=0.001, color=color)
 
-    general_settings(ax, xlabel=xlabel, ylabel=ylabel, legend_label=legend_label, **general_kwargs)
+    general_ax_settings(ax, xlabel=xlabel, ylabel=ylabel, legend_label=legend_label, **general_kwargs)
 
 

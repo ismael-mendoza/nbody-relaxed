@@ -10,9 +10,11 @@ def get_corrs(params, cat):
     :return:
     """
     corrs = np.zeros((len(params), len(params)))
+
     for i, param1 in enumerate(params):
         for j, param2 in enumerate(params):
-            corr, p = spearmanr(cat[param1], cat[param2])
+            corr, p = spearmanr(param1.get_values(cat), param2.get_values(cat))
             corrs[i, j] = corr
 
+    return corrs
 

@@ -20,11 +20,13 @@ def get_phi_l(cat):
 
 class Param(object):
 
-    def __init__(self, key, log=False):
+    def __init__(self, key, log=False, modifiers=None, text=None):
         """
 
         :param key: is the actual string used to access the corresponding parameter from the catalogue.
-        :param log:
+        :param log: Whether to log the values when returning them and change the label to indicate that there is a log.
+        :param modifiers: Extra modifiers to the values passed in as a list of lambda functions. This will be applied
+                         after logging.
         """
         self.key = key
         self.latex_param = params_dict[key]['latex_param']
@@ -32,8 +34,9 @@ class Param(object):
         self.units = params_dict[key]['units']
         self.derive = params_dict[key]['derive']
         self.log = log
+        self.modifiers = None
 
-        self.text = self.get_text()
+        self.text = self.get_text() if not text else text
         self.values = None
 
     def get_values(self, cat):
@@ -49,6 +52,10 @@ class Param(object):
 
         if self.log:
             values = np.log(values)
+
+        if self.modifiers:
+            for modifier in self.modifiers:
+                values = modifier(values)
 
         return values
 
