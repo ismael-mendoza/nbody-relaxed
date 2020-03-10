@@ -4,13 +4,14 @@ Useful functions for submitting sbatch jobs.
 import subprocess
 from pathlib import Path
 import numpy as np
-from src import utils
+from src.utils import const
 
-#ToDo: use the main directory from utils.py
-batch_dir = utils.root_dir.join("/home/imendoza/alcca/nbody-relaxed/intro/temps/batches")
-logs = Path("/home/imendoza/alcca/nbody-relaxed/intro/temps/batches/logs")
+#ToDo: Create the directories below
+batch_dir = const.data_path.joinpath("batches")
+logs_dir = batch_dir.joinpath("logs")
 
 
+#ToDo: Implement iterations, make it clear
 def run_sbatch_job(cmd, jobs_dir_name, jobname, time='01:00', memory='5GB', iterations=1):
 
     # prepare files and directories
@@ -26,8 +27,8 @@ def run_sbatch_job(cmd, jobs_dir_name, jobname, time='01:00', memory='5GB', iter
     with open(jobfile.as_posix(), 'w') as f:
         f.writelines("#!/bin/bash\n")
         f.writelines(f"#SBATCH --job-name={identifier}\n")
-        f.writelines(f"#SBATCH --output={logs}/{identifier}.out\n")
-        f.writelines(f"#SBATCH --error={logs}/{identifier}.err\n")
+        f.writelines(f"#SBATCH --output={logs_dir}/{identifier}.out\n")
+        f.writelines(f"#SBATCH --error={logs_dir}/{identifier}.err\n")
         f.writelines(f"#SBATCH --time={time}:00\n")
         f.writelines(f"#SBATCH --mem={memory}\n")
         f.writelines(f"#SBATCH --mail-type=END,FAIL\n")
@@ -37,6 +38,7 @@ def run_sbatch_job(cmd, jobs_dir_name, jobname, time='01:00', memory='5GB', iter
         # f.writelines(f"#SBATCH --array=1-{iterations}%1000\n")
 
     subprocess.run(f"sbatch {jobfile.as_posix()}", shell=True)
+
 
 # ToDo: Finish later also look into Luigi.
 class RemoteJob(object):

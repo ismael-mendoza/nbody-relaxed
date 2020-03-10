@@ -35,7 +35,8 @@ class HaloCatalog(object):
         self.particle_mass, self.total_particles, self.box_size = catalog_properties[self.catalog_name]
         self.catalog_label = catalog_label  # for use in things like legends.
 
-        # name of all params.
+        # name of all params that will be needed for filtering and
+        # params we actually want to have at the end in the output catalog.
         self.param_names = params.param_names
         self.params_to_include = params_to_include if params_to_include else params.default_params_to_include
 
@@ -46,7 +47,7 @@ class HaloCatalog(object):
 
         # update filters from requested relaxed criteria
         if self.relaxed:
-            self.filters.update(self.get_relaxed_filters())
+            self.filters.update(self._get_relaxed_filters(self.relaxed))
             self.catalog_label = f"{self.relaxed} relaxed"
 
         # will be defined later.
@@ -54,18 +55,23 @@ class HaloCatalog(object):
         self.cat = None
 
         # ToDo: For the generator case we want to returned a modified generator with the filtered values.
-        # ToDo: Add assert that all fundamental params are in catalog.
         # ToDo: Make everything work together property if not default filters or params to include.
-        # ToDo: Create a filtered from cat method. (general filtering not only relaxed)
+        # ToDo: Create a filtered_from_cat method. (general filtering not only relaxed)
+        # ToDo: Delay obtaining filters so that we can use parameters of catalog in the user-defined filters. (Necessary?)
 
     def set_cat(self, use_generator=False):
+        """
+        This function is used to set the cat attribute in the hcat to the catalog so it can be used in the future.
+        :param use_generator:
+        :return:
+        """
         assert use_generator is False, "Not implemented this functionality yet, for now just return full catalog."
         assert self.cat is None, "Overriding catalog that is already created. (probably wasteful)"
 
         self.use_generator = use_generator
-        self.cat = self.get_cat()  # could be a generator or an astropy.Table object.
+        self.cat = self._load_cat()  # could be a generator or an astropy.Table object.
 
-    def get_cat_generator(self):
+    def _get_cat_generator(self):
         """
         This will eventually contain all the complexities of Phil's code and return a generator to access
         the catalog in chunks. For now it offers the chunkified version of my catalog how I've been doing it.
@@ -77,8 +83,12 @@ class HaloCatalog(object):
         return ascii.read(self.filename, format='csv', guess=False,
                           fast_reader={'chunk_size': 100 * 1000000, 'chunk_generator': True})
 
-    def get_cat(self):
-        gcats = self.get_cat_generator()
+    def _load_cat(self):
+        """
+        Return either the catalog as a table or as a generator. Should only be called by set_cat.
+        :return:
+        """
+        gcats = self._get_cat_generator()
 
         if self.use_generator:
             return gcats
@@ -116,34 +126,38 @@ class HaloCatalog(object):
 
         * Not all parameters are actually required once filtering is complete so they are removed according
         to self.params_to_include.
+
+        * All filters assumed no logging is done.
         :param cat:
         :param filters:
         :return:
         """
-        for my_filter in filters.values():
-            cat = cat[my_filter(self, cat)]
+        for param_name, my_filter in filters.items():
+            cat = cat[my_filter(self._get_not_log_value(cat, param_name))]
 
         cat = cat[self.params_to_include]
         return cat
 
-    def get_relaxed_filters(self):
+    @staticmethod
+    def _get_relaxed_filters(relaxed_name):
         """
         For now only relaxed criteria is (cat['xoff'] < 0.04), according to Power 2011
         :return:
         """
 
-        if self.relaxed == 'power2011':
+        if relaxed_name == 'power2011':
             return {
-                'xoff': lambda self, cat: self.get_values(cat, 'xoff') < 0.04,
+                'xoff': lambda x: x < 0.04,
             }
 
         else:
             raise ValueError("The required relaxed_name has not be specified.")
 
-    @staticmethod
-    def get_default_filters():
+    def get_default_filters(self):
         """
         NOTE: Always assume that the values of the catalog are returned without log10ing first.
+
+        * x in the lambda functions represents the values of the keys.
 
         * upid >=0 indicates a subhalo, upid=-1 indicates a distinct halo. Phil's comment: "This is -1 for distinct
         halos and a halo ID for subhalos."
@@ -152,41 +166,46 @@ class HaloCatalog(object):
         :return:
         """
         return {
-            'mvir': HaloCatalog.mass_default_filter,
-            'upid': lambda self, cat: (self.get_values(cat, 'upid') == -1 if not self.subhalos else
-                                       self.get_values(cat, 'upid') >= 0),
-            'Spin': lambda self, cat: self.get_values(cat, 'Spin') != 0,  # the ones after upid seem to have no effect...
-            'q': lambda self, cat: self.get_values(cat, 'q') != 0,
-            'vrms': lambda self, cat: self.get_values(cat, 'vrms') != 0,
-            'mag2_A': lambda self, cat: self.get_values(cat, 'mag2_A') != 0,
-            'mag2_J': lambda self, cat: self.get_values(cat, 'mag2_J') != 0,
+            'mvir': HaloCatalog.mass_default_filter(self.particle_mass, self.catalog_name),
+            'upid': lambda x: (x == -1 if not self.subhalos else x >= 0),
+            # the ones after seem to have no effect after.
+            'Spin': lambda x: x != 0,
+            'q': lambda x: x != 0,
+            'vrms': lambda x: x != 0,
+            'mag2_A': lambda x: x != 0,
+            'mag2_J': lambda x: x != 0,
         }
 
     @staticmethod
-    def mass_default_filter(self, cat):
+    def mass_default_filter(particle_mass, catalog_name):
         """
         * The cuts on mvir are based on Phil's comment that Bolshoi/BolshoiP only give reasonable results up to
         log10(Mvir) ~ 13.5 - 13.75.
         :return:
         """
 
-        # first, we need a minimum number of particles, this log mass is around 11.13 for Bolshoi.
-        conds = np.log10(self.get_values(cat, 'mvir')) > np.log10(self.particle_mass * 1e3)
+        def mass_filter(mvirs):
+            # first, we need a minimum number of particles, this log mass is around 11.13 for Bolshoi.
+            conds = np.log10(mvirs) > np.log10(particle_mass * 1e3)
 
-        if self.catalog_name == 'Bolshoi' or self.catalog_name == 'BolshoiP':
-            conds = conds & (np.log10(self.get_values(cat, 'mvir')) < 13.75)
+            if catalog_name == 'Bolshoi' or catalog_name == 'BolshoiP':
+                conds = conds & (np.log10(mvirs) < 13.75)
 
-        return conds
+            else:
+                raise NotImplementedError("Implemented other catalogs yet.")
+
+            return conds
+
+        return mass_filter
 
     @staticmethod
-    def get_values(cat, key):
+    def _get_not_log_value(cat, key):
         """
-        NOTE: Always return without using logs.
+        Only purpose is for the filters.
         :param cat:
         :param key:
         :return:
         """
-        # ToDo: maybe this can be a module level function?
         return params.Param(key, log=False).get_values(cat)
 
     @classmethod

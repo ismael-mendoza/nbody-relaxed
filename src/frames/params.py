@@ -7,7 +7,7 @@ def get_phi_l(cat):
     * JX/JY/JZ: Halo angular momenta ((Msun/h) * (Mpc/h) * km/s (physical))
     * A[x],A[y],A[z]: Largest shape ellipsoid axis (kpc/h comoving)
     :param cat:
-    :return:
+    :return: Value of phi_l for each row of the catalog cat.
     """
     return np.arccos(
         ((cat['A[x]'] * cat['Jx'] + cat['A[y]'] * cat['Jy'] + cat['A[z]'] * cat['Jz'])
@@ -22,6 +22,9 @@ class Param(object):
 
     def __init__(self, key, log=False, modifiers=None, text=None):
         """
+        Class implementing a Param object which manages how data is accessed from catalog and attributes like its name
+        and its text representation for plots.
+
 
         :param key: is the actual string used to access the corresponding parameter from the catalogue.
         :param log: Whether to log the values when returning them and change the label to indicate that there is a log.
