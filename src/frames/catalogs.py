@@ -57,7 +57,8 @@ class HaloCatalog(object):
         # ToDo: For the generator case we want to returned a modified generator with the filtered values.
         # ToDo: Make everything work together property if not default filters or params to include.
         # ToDo: Create a filtered_from_cat method. (general filtering not only relaxed)
-        # ToDo: Delay obtaining filters so that we can use parameters of catalog in the user-defined filters. (Necessary?)
+        # ToDo: Delay obtaining filters so that we can use parameters of catalog in the user-defined filters.
+        #  (Necessary?)
 
     def set_cat(self, use_generator=False):
         """
