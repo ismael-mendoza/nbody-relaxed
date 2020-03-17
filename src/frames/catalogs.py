@@ -5,6 +5,7 @@ import numpy as np
 from typing import List
 
 from src.frames import params
+from src.frames import filters
 
 # particle mass (Msun/h), total particles, box size (Mpc/h).
 catalog_properties = {
@@ -16,22 +17,21 @@ catalog_properties = {
 
 class HaloCatalog(object):
 
-    def __init__(self, filename, catalog_name, subhalos=False, relaxed=None, filters=None,
+    def __init__(self, filepath, catalog_name, subhalos=False, base_filters=None,
                  params_to_include: List[str] = None, verbose=False, catalog_label='all halos'):
         """
 
-        :param filename:
-        :param catalog_name: Bolshoi / BolshoiP / MDPL2
-        :param filters:
+        :param filepath:
+        :param catalog_name: Should be one of `Bolshoi / BolshoiP / MDPL2`
+        :param base_filters:
         """
         assert catalog_name in catalog_properties, "Catalog name is not recognized."
         assert subhalos is False, "Not implemented subhalo functionality."
 
-        self.filename = filename
+        self.filepath = filepath
         self.catalog_name = catalog_name
         self.verbose = verbose
         self.subhalos = subhalos
-        self.relaxed = relaxed
         self.particle_mass, self.total_particles, self.box_size = catalog_properties[self.catalog_name]
         self.catalog_label = catalog_label  # for use in things like legends.
 
@@ -40,37 +40,56 @@ class HaloCatalog(object):
         self.param_names = params.param_names
         self.params_to_include = params_to_include if params_to_include else params.default_params_to_include
 
-        self.filters = filters if filters else self.get_default_filters()
-        assert set(self.filters.keys()).issubset(set(self.param_names)), "filtering will fail since " \
-                                                                         "not all params are in self.param_names" \
-                                                                         "need to update params.py"
+        self._cfilters = base_filters if base_filters else filters.get_default_base_filters(self.particle_mass,
+                                                                                           self.subhalos)
+        if not set(self._cfilters.keys()).issubset(set(self.param_names)):
+            raise ValueError("filtering will fail since not all params are in self.param_names,"
+                             "need to update params.py")
 
-        # update filters from requested relaxed criteria
-        if self.relaxed:
-            self.filters.update(self._get_relaxed_filters(self.relaxed))
-            self.catalog_label = f"{self.relaxed} relaxed"
-
-        # will be defined later.
+        # will be potentially defined later.
         self.use_generator = None
-        self.cat = None
+        self._bcat = None  # base cat.
+        self._cat = None  # cat to actually return.
 
         # ToDo: For the generator case we want to returned a modified generator with the filtered values.
         # ToDo: Make everything work together property if not default filters or params to include.
         # ToDo: Create a filtered_from_cat method. (general filtering not only relaxed)
         # ToDo: Delay obtaining filters so that we can use parameters of catalog in the user-defined filters.
         #  (Necessary?)
+        # ToDo: Change everything in place or create copy for every catalog (relaxed, mass bins, etc.)?
+        #       for now everything is copy.
 
-    def set_cat(self, use_generator=False):
+    def get_cat(self):
+        return self._cat
+
+    def get_cfilters(self):
+        return self._cfilters
+
+    def with_filters(self, myfilters, catalog_label='filtered catalog'):
+        self._cat = self._filter_cat(self._cat, myfilters)
+        self.catalog_label = catalog_label
+
+    def with_relaxed_filters(self, relaxed_name=None):
+        self.with_filters(filters.get_relaxed_filters(relaxed_name), catalog_label=f"{relaxed_name} relaxed")
+
+    def load_base_cat(self, use_generator=False, bcat=None):
         """
         This function is used to set the cat attribute in the hcat to the catalog so it can be used in the future.
         :param use_generator:
+        :param bcat:
         :return:
         """
         assert use_generator is False, "Not implemented this functionality yet, for now just return full catalog."
-        assert self.cat is None, "Overriding catalog that is already created. (probably wasteful)"
+        assert self._bcat is None, "Overriding catalog that is already created. (probably wasteful)"
 
         self.use_generator = use_generator
-        self.cat = self._load_cat()  # could be a generator or an astropy.Table object.
+        if not bcat:
+            self._bcat = self._load_cat()  # could be a generator or an astropy.Table object.
+
+        else:
+            self._bcat = bcat
+
+        self._cat = self._bcat  # filtering will create a copy later if necessary.
 
     def _get_cat_generator(self):
         """
@@ -81,12 +100,14 @@ class HaloCatalog(object):
 
         # 100 Mb chunks of maximum memory in each iteration.
         # this returns a generator.
-        return ascii.read(self.filename, format='csv', guess=False,
+        return ascii.read(self.filepath, format='csv', guess=False,
                           fast_reader={'chunk_size': 100 * 1000000, 'chunk_generator': True})
 
     def _load_cat(self):
         """
         Return either the catalog as a table or as a generator. Should only be called by set_cat.
+
+        NOTE: We filter using the cfilters (cat filters).
         :return:
         """
         gcats = self._get_cat_generator()
@@ -108,9 +129,9 @@ class HaloCatalog(object):
                 # ignore warning of possible parameters that are divided by zero, this will be filtered out later.
                 with np.errstate(divide='ignore', invalid='ignore'):
                     for param in self.param_names:
-                        new_cat.add_column(self.get_values(cat, param), name=param)
+                        new_cat.add_column(self._get_not_log_value(cat, param), name=param)
 
-                new_cat = self.filter_cat(new_cat, self.filters)
+                new_cat = self._filter_cat(new_cat, self._cfilters, use_include_params=True)
 
                 cats.append(new_cat)
 
@@ -120,84 +141,28 @@ class HaloCatalog(object):
 
             return astropy.table.vstack(cats)
 
-    def filter_cat(self, cat, filters):
+    def _filter_cat(self, cat, myfilters, use_include_params=False):
         """
         * Do all the appropriate filtering required when not reading the generator expression, in particular cat is
         assumed to contain all the parameter in param_names before value filters are applied.
 
-        * Not all parameters are actually required once filtering is complete so they are removed according
-        to self.params_to_include.
+        * Not all parameters are actually required once filtering is complete so they can be (optionally)
+        removed according to self.params_to_include.
 
-        * All filters assumed no logging is done.
+        NOTE: All filters assumed no logging has been done on the raw catalog columns.
+
         :param cat:
-        :param filters:
+        :param myfilters:
+        :param use_include_params: whether to remove all parameters that are not in `self.params_to_include`
         :return:
         """
-        for param_name, my_filter in filters.items():
-            cat = cat[my_filter(self._get_not_log_value(cat, param_name))]
+        for param_name, myfilter in myfilters.items():
+            cat = cat[myfilter(self._get_not_log_value(cat, param_name))]
 
-        cat = cat[self.params_to_include]
+        if use_include_params:
+            cat = cat[self.params_to_include]
+
         return cat
-
-    @staticmethod
-    def _get_relaxed_filters(relaxed_name):
-        """
-        For now only relaxed criteria is (cat['xoff'] < 0.04), according to Power 2011
-        :return:
-        """
-
-        if relaxed_name == 'power2011':
-            return {
-                'xoff': lambda x: x < 0.04,
-            }
-
-        else:
-            raise ValueError("The required relaxed_name has not be specified.")
-
-    def get_default_filters(self):
-        """
-        NOTE: Always assume that the values of the catalog are returned without log10ing first.
-
-        * x in the lambda functions represents the values of the keys.
-
-        * upid >=0 indicates a subhalo, upid=-1 indicates a distinct halo. Phil's comment: "This is -1 for distinct
-        halos and a halo ID for subhalos."
-        >> cat_distinct = cat[cat['upid'] == -1]
-        >> cat_sub = cat[cat['upid'] >= 0]
-        :return:
-        """
-        return {
-            'mvir': HaloCatalog.mass_default_filter(self.particle_mass, self.catalog_name),
-            'upid': lambda x: (x == -1 if not self.subhalos else x >= 0),
-            # the ones after seem to have no effect after.
-            'Spin': lambda x: x != 0,
-            'q': lambda x: x != 0,
-            'vrms': lambda x: x != 0,
-            'mag2_A': lambda x: x != 0,
-            'mag2_J': lambda x: x != 0,
-        }
-
-    @staticmethod
-    def mass_default_filter(particle_mass, catalog_name):
-        """
-        * The cuts on mvir are based on Phil's comment that Bolshoi/BolshoiP only give reasonable results up to
-        log10(Mvir) ~ 13.5 - 13.75.
-        :return:
-        """
-
-        def mass_filter(mvirs):
-            # first, we need a minimum number of particles, this log mass is around 11.13 for Bolshoi.
-            conds = np.log10(mvirs) > np.log10(particle_mass * 1e3)
-
-            if catalog_name == 'Bolshoi' or catalog_name == 'BolshoiP':
-                conds = conds & (np.log10(mvirs) < 13.75)
-
-            else:
-                raise NotImplementedError("Implemented other catalogs yet.")
-
-            return conds
-
-        return mass_filter
 
     @staticmethod
     def _get_not_log_value(cat, key):
@@ -210,22 +175,36 @@ class HaloCatalog(object):
         return params.Param(key, log=False).get_values(cat)
 
     @classmethod
-    def create_relaxed_from_complete(cls, old_hcat, relaxed=None):
-        # Todo: Make it more flexible and transparent. (No need to have all parameters in all catalog for example)
+    def create_filtered_from_base(cls, old_hcat, myfilters, catalog_label='filtered cat'):
+        assert old_hcat.get_cat() is not None, "Catalog of old_hcat should already be set."
+        assert set(myfilters.keys()).issubset(set(old_hcat.cat.colnames)), "This will fail because the " \
+                                                                           "cat of old_hcat does " \
+                                                                           "not contain filtered parameters."
 
-        assert old_hcat.relaxed is None, "This is only to be used from an old hcat which is not relaxed initially."
-        assert old_hcat.cat is not None, "Catalog of old_hcat should already be set."
-        assert relaxed is not None, "Need relaxed to be specified."
+        new_hcat = cls(old_hcat.filename, old_hcat.catalog_name, subhalos=old_hcat.subhalos,
+                       base_filters=old_hcat.get_filters(), catalog_label=catalog_label,
+                       params_to_include=old_hcat.params_to_include)
 
-        new_hcat = cls(old_hcat.filename, old_hcat.catalog_name, subhalos=old_hcat.subhalos, relaxed=relaxed,
-                       filters=old_hcat.filters, params_to_include=old_hcat.params_to_include)
+        assert set(myfilters.keys()).issubset(set(old_hcat.cat.colnames)), "This will fail because the " \
+                                                                           "final catalog of old_hcat does " \
+                                                                           "not contain filtered parameters."
+        new_hcat.load_base_cat(use_generator=False, bcat=old_hcat.get_cat())
+        new_hcat.with_filters(myfilters, catalog_label=catalog_label)
+        return new_hcat
 
-        relaxed_filters = new_hcat.get_relaxed_filters()
+    @classmethod
+    def create_relaxed_from_base(cls, old_hcat, relaxed_name):
+        return cls.create_filtered_from_base(old_hcat, filters.get_relaxed_filters(relaxed_name),
+                                             catalog_label=f"{relaxed_name} relaxed")
 
-        assert set(relaxed_filters.keys()).issubset(set(old_hcat.cat.colnames)), "This will fail because the " \
-                                                                                 "final catalog of old_hcat does " \
-                                                                                 "not contain relaxed parameters."
-
-        new_hcat.cat = new_hcat.filter_cat(old_hcat.cat, relaxed_filters)
-
-
+    @classmethod
+    def create_from_saved_cat(cls, cat_file, *args, **kwargs):
+        """
+        Create catalog from saved (smaller/filtered) cat to reduce waiting time of having to filter everytime, etc.
+        :param cat_file: The file location specified as Path object and save using
+        :return:
+        """
+        hcat = cls(*args, **kwargs)
+        cat = ascii.read(cat_file, format='csv')
+        hcat.cat = cat
+        return hcat

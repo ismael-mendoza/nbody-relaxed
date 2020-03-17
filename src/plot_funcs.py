@@ -32,7 +32,7 @@ def histogram(cat, param, ax, bins=30, histtype='step', color='r', legend_label=
     general_ax_settings(ax, **general_kwargs)
 
 
-def binning3d_mass(cat, param1, param2, ax, ax_title=None, mass_decades=np.arange(11, 15, 0.5),
+def binning3d_mass(cat, param1, param2, ax, ax_title=None, mass_decades=np.arange(11, 15, 1),
                    **scatter_binning_kwargs):
     """
     * plot_kwargs are additional keyword arguments to pass into the plotting_func
