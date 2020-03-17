@@ -21,15 +21,16 @@ def general_ax_settings(ax, ax_title='', xlabel=None, ylabel=None, xlabel_size=1
         ax.legend(loc='best', prop={'size': legend_size})
 
 
-def histogram(cat, param, ax, bins=30, histtype='step', color='r', legend_label=None, hist_kwargs=None,
+def histogram(cat, param, ax, bins=30, histtype='step', color='r', legend_label=None, extra_hist_kwargs=None,
               **general_kwargs):
-    if hist_kwargs is None:
-        hist_kwargs = {}
+
+    if extra_hist_kwargs is None:
+        extra_hist_kwargs = {}
 
     values = param.get_values(cat)
-    ax.hist(values, bins=bins, histtype=histtype, color=color, label=legend_label, **hist_kwargs)
+    ax.hist(values, bins=bins, histtype=histtype, color=color, label=legend_label, **extra_hist_kwargs)
 
-    general_ax_settings(ax, **general_kwargs)
+    general_ax_settings(ax, legend_label=legend_label, **general_kwargs)
 
 
 def binning3d_mass(cat, param1, param2, ax, ax_title=None, mass_decades=np.arange(11, 15, 1),

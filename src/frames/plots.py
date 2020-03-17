@@ -9,7 +9,7 @@ import numpy as np
 
 class Plot(object):
 
-    def __init__(self, params, nrows=1, ncols=1, figsize=(10, 10), title='', title_size=20, tick_size=24):
+    def __init__(self, params, nrows=1, ncols=1, figsize=(8, 8), title='', title_size=20, tick_size=24):
         """
         Represents a single plot to draw and produce. Each plot will be outputted in a single page of a pdf.
 

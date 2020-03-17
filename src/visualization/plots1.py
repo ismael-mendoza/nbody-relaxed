@@ -36,12 +36,12 @@ def plot_multiple_basic(hcats, colors, pdf):
     :return: None
     """
     for hcat in hcats:
-        assert hcat.cat is not None, "Catalog should be set in hcat."
+        assert hcat.get_cat() is not None, "Catalog should be set in hcat."
 
     # this are the default values that we will be using throughout the plots.
-    hist_kwargs1 = dict(bins=30, histtype='step')
+    hist_kwargs1 = dict(bins=30, histtype='step', extra_hist_kwargs=dict())
     binning_kwargs1 = dict(nxbins=10, no_bars=True, show_bands=True)
-    general_kwargs1 = dict(xlabel_size=24, ylabel_size=24)
+    general_kwargs1 = dict(xlabel_size=28, ylabel_size=28)
 
     # (1) Need to create all the plots and specify their parameters in kwargss.
     all_plots = []
@@ -52,7 +52,7 @@ def plot_multiple_basic(hcats, colors, pdf):
     all_plots.append(
         plots.UniPlot(plot_funcs.histogram, params, nrows=1, ncols=1)
     )
-    kwargss.append({'hist_kwargs': hist_kwargs1})
+    kwargss.append(hist_kwargs1)
 
     # Plot 2: mean-centered histogram of relevant quantities
     modifiers = [lambda x: (x - np.mean(x)) / np.std(x)]
