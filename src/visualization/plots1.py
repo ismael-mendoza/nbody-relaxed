@@ -1,9 +1,7 @@
-from src.utils import const
 from src.frames import plots
 from src.frames.params import Param
-from src import plot_funcs
+from src.visualization import plot_funcs
 from src import stats
-import matplotlib.backends.backend_pdf as back_pdf
 
 import numpy as np
 
@@ -17,7 +15,22 @@ import numpy as np
 #         pdf = back_pdf.PdfPages(const.figure_path.joinpath(out))
 # pdf.close()
 
-def generate_and_save(plots, hcats, pdf, colors=None)
+
+def generate_and_save(pdf, hcats, argss, uplots, general_kwargs=None, colors=None):
+    if colors is None:
+        colors = [None for _ in range(len(hcats))]
+
+    if general_kwargs is None:
+        general_kwargs = {}
+
+    for hcat, color, args in zip(hcats, colors, argss):
+        for plot, kwargs in args:
+            plot.generate(hcat.get_cat(),
+                          legend_label=hcat.catalog_label, color=color,
+                          **kwargs, **general_kwargs)
+
+    for plot in uplots:
+        plot.save(pdf=pdf)
 
 
 def plot_multiple_basic(hcats, colors, pdf):
@@ -36,7 +49,7 @@ def plot_multiple_basic(hcats, colors, pdf):
     :return: None
     """
     for hcat in hcats:
-        assert hcat.get_cat() is not None, "Catalog should be set in hcat."
+        assert hcat.get_cat() is not None, "Catalog should be loaded in hcat."
 
     # this are the default values that we will be using throughout the plots.
     hist_kwargs1 = dict(bins=30, histtype='step', extra_hist_kwargs=dict())
@@ -44,51 +57,73 @@ def plot_multiple_basic(hcats, colors, pdf):
     general_kwargs1 = dict(xlabel_size=28, ylabel_size=28)
 
     # (1) Need to create all the plots and specify their parameters in kwargss.
-    all_plots = []
-    kwargss = []
+    uplots = []
 
     # Plot 1: histogram of Mvir
     params = [Param('mvir', log=True)]
-    all_plots.append(
-        plots.UniPlot(plot_funcs.histogram, params, nrows=1, ncols=1)
-    )
-    kwargss.append(hist_kwargs1)
+    plot1 = plots.UniPlot(plot_funcs.histogram, params, nrows=1, ncols=1)
 
     # Plot 2: mean-centered histogram of relevant quantities
     modifiers = [lambda x: (x - np.mean(x)) / np.std(x)]
     param_names = ['mvir', 'cvir', 'T/|U|', 'xoff', 'voff', 'Spin', 'q', 'phi_l']
     params = [Param(param_name, log=True, modifiers=modifiers) for param_name in param_names]
-    all_plots.append(
-        plots.UniPlot(plot_funcs.histogram, params, ncols=2, nrows=4)
-    )
-    kwargss.append({'hist_kwargs': hist_kwargs1})
+    plot2 = plots.UniPlot(plot_funcs.histogram, params, ncols=2, nrows=4, figsize=(12, 20),
+                          title="Mean centered histograms", title_size=24)
 
     # Plot 3: Relaxedness parameters and mvir
     relaxedness_param_names = ['T/|U|', 'xoff', 'voff', 'Xoff', 'Voff', 'q', 'cvir']
     params = [(Param('mvir', log=True), Param(relaxed_param, log=True)) for relaxed_param in relaxedness_param_names]
-    all_plots.append(
-        plots.BiPlot(plot_funcs.scatter_binning, params, nrows=3, ncols=2)
-    )
-    kwargss.append(binning_kwargs1)
+    plot3 = plots.BiPlot(plot_funcs.scatter_binning, params, nrows=3, ncols=2, figsize=(18, 18))
 
-    # (2) Now, for each of the catalogs we actually create the plots and save them.
-    for hcat, color in zip(hcats, colors):
-        for plot, kwargs in zip(all_plots, kwargss):
-            plot.generate(hcat.cat, legend_label=hcat.catalog_label, color=color, **kwargs, **general_kwargs1)
-            plot.save(pdf=pdf)
+    # (2) Update the unique plots
+    uplots.extend([plot1, plot2, plot3])
+
+    # (3) Now specify which hcat to plot in which of the plots via argss.
+    argss = [[] for _ in hcats]  # list corresponding to a cat of list of tuple of (plot, kwargss)
+
+    for args in argss:  # one args for each hcats.
+        # we will use the same plots for both cats, which means we overlay them.
+        args.append(
+            (plot1, hist_kwargs1)
+        )
+
+        args.append(
+            (plot2, hist_kwargs1)
+        )
+
+        args.append(
+            (plot3, binning_kwargs1)
+        )
+
+    # (4) Now, we generate and save all the plots.
+    generate_and_save(pdf, hcats, argss, uplots, general_kwargs=general_kwargs1, colors=colors)
 
 
 def plot_correlation_matrix_basic(hcats, pdf):
+    """
+    Create a visualization fo the matrix of correlation separate for each of the catalogs in hcats.
+    :param hcats:
+    :param pdf:
+    :return:
+    """
     for hcat in hcats:
-        assert hcat.cat is not None, "Catalog should be set in hcat."
+        assert hcat.get_cat() is not None, "Catalog should be loaded in hcat."
+
+    argss = [[] for _ in hcats]
+    uplots = []
 
     # Plot 1: Matrix correlations
     param_names = ['mvir', 'cvir', 'T/|U|', 'xoff', 'voff', 'Spin', 'q', 'phi_l']
     params = [Param(param_name, log=True) for param_name in param_names]
-    all_plots.append(
-        plots.MatrixPlot(stats.get_corrs, params, symmetric=False)
-    )
-    kwargss.append({})
+    for args in argss:
+        plot = plots.MatrixPlot(stats.get_corrs, params, symmetric=False)
+        kwargs = dict(label_size=20)
+        uplots.append(plot)
+        args.append(
+           (plot, kwargs)
+        )
+
+    generate_and_save(pdf, hcats, argss, uplots)
 
 
 def plot_decades_basic(hcats, pdf):

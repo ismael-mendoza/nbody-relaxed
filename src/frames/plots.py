@@ -28,13 +28,13 @@ class Plot(object):
         else:
             self.axes = [axs]
 
-    def generate(self, *args, **kwargs):
+    def generate(self, cat, *args, **kwargs):
         """
         Produce the plot and save into the axes objects.
         :return: None
         """
         self.preamble()
-        self.run(*args, **kwargs)
+        self.run(cat, *args, **kwargs)
         self.finale()
 
     def preamble(self):
@@ -109,13 +109,13 @@ class MatrixPlot(Plot):
         super(MatrixPlot, self).__init__(*args, ncols=1, nrows=1, **kwargs)
         self.ax = self.axes[0]
 
-    def run(self, label_size=16, **kwargs):
-        matrix_values = self.matrix_func(self.params)
+    def run(self, cat, label_size=16, **kwargs):
+        matrix_values = self.matrix_func(self.params, cat)
         mask = np.tri(matrix_values.shape[0], k=-1) if self.symmetric else None
         a = np.ma.array(matrix_values, mask=mask)
         im = self.ax.matshow(a, cmap='bwr', vmin=-1, vmax=1)
         plt.colorbar(im, ax=self.ax)
 
-        latex_params = [param.latex_param for param in self.params]
+        latex_params = [param.get_text(only_param=True) for param in self.params]
         self.ax.set_xticklabels([''] + latex_params, size=label_size)
         self.ax.set_yticklabels([''] + latex_params, size=label_size)

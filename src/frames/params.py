@@ -54,7 +54,7 @@ class Param(object):
             values = self.derive(cat)
 
         if self.log:
-            values = np.log(values)
+            values = np.log10(values)
 
         if self.modifiers:
             for modifier in self.modifiers:
@@ -65,7 +65,7 @@ class Param(object):
     def set_values(self, cat):
         self.values = self.get_values(cat)
 
-    def get_text(self):
+    def get_text(self, only_param=False):
         """
         Obtain the text that will be used in the produce_plots.
         :return:
@@ -73,6 +73,9 @@ class Param(object):
         template = '${}{}{}$'
         log_tex = ''
         units_tex = ''
+
+        if only_param:
+            return template.format(log_tex, self.latex_param, units_tex)
 
         if self.log:
             log_tex = '\\log_{10}'

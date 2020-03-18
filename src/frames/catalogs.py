@@ -190,18 +190,23 @@ class HaloCatalog(object):
 
     @classmethod
     def create_filtered_from_base(cls, old_hcat, myfilters, catalog_label='filtered cat'):
+        """
+        This will copy the `_cat` attribute of the old_hcat.
+        :param old_hcat:
+        :param myfilters:
+        :param catalog_label:
+        :return:
+        """
         assert old_hcat.get_cat() is not None, "Catalog of old_hcat should already be set."
-        assert set(myfilters.keys()).issubset(set(old_hcat.cat.colnames)), "This will fail because the " \
+        assert set(myfilters.keys()).issubset(set(old_hcat.get_cat().colnames)), "This will fail because the " \
                                                                            "cat of old_hcat does " \
                                                                            "not contain filtered parameters."
 
-        new_hcat = cls(old_hcat.filename, old_hcat.catalog_name, subhalos=old_hcat.subhalos,
-                       base_filters=old_hcat.get_filters(), catalog_label=catalog_label,
+        new_hcat = cls(old_hcat.filepath, old_hcat.catalog_name, subhalos=old_hcat.subhalos,
+                       base_filters=old_hcat.get_cfilters(), catalog_label=catalog_label,
                        params_to_include=old_hcat.params_to_include)
 
-        assert set(myfilters.keys()).issubset(set(old_hcat.cat.colnames)), "This will fail because the " \
-                                                                           "final catalog of old_hcat does " \
-                                                                           "not contain filtered parameters."
+        # it is ok to have a view for the base cat, since filtering will create a copy.
         new_hcat.load_base_cat(use_generator=False, bcat=old_hcat.get_cat())
         new_hcat.with_filters(myfilters, catalog_label=catalog_label)
         return new_hcat

@@ -41,11 +41,11 @@ def test_log(bhcat, param_name):
     param_mvir = params.Param("mvir", log=False)
 
     assert np.allclose(param_mvir.get_values(cat), cat['mvir'])
-    assert not np.allclose(param_mvir.get_values(cat), np.log(cat['mvir']))
+    assert not np.allclose(param_mvir.get_values(cat), np.log10(cat['mvir']))
 
     param_mvir_log = params.Param("mvir", log=True)
     assert not np.allclose(param_mvir_log.get_values(cat), cat['mvir'])
-    assert np.allclose(param_mvir_log.get_values(cat), np.log(cat['mvir']))
+    assert np.allclose(param_mvir_log.get_values(cat), np.log10(cat['mvir']))
 
 
 def test_text(bhcat):
