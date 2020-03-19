@@ -84,7 +84,7 @@ class Param(object):
 
         return template.format(log_tex, self.latex_param, units_tex)
 
-
+# ToDo: Change T/U to eta globally.
 # non-derived quantities are by default included.
 # Can adjust by making it a 'false' derived.
 info_params = {

@@ -1,7 +1,6 @@
 import astropy
 from astropy.table import Table
 from astropy.io import ascii
-from astropy.io import ascii
 import numpy as np
 from typing import List
 
@@ -74,10 +73,10 @@ class HaloCatalog(object):
     def with_relaxed_filters(self, relaxed_name=None):
         self.with_filters(filters.get_relaxed_filters(relaxed_name), catalog_label=f"{relaxed_name} relaxed")
 
-    def save_cat(self, filepath):
+    def save_base_cat(self, filepath):
         assert self._cat is not None, "cat must be loaded"
         assert filepath.suffix == '.csv', "format supported will be csv for now"
-        ascii.write(self._cat, filepath, format='csv', fast_writer=True)
+        ascii.write(self._bcat, filepath, format='csv', fast_writer=True)
 
     def reset_base_cat(self, catalog_label='all halos'):
         self._cat = self._bcat

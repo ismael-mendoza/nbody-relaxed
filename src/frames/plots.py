@@ -6,6 +6,12 @@ import matplotlib.pyplot as plt
 from src.utils import const
 import numpy as np
 
+# ToDo: Possibility of merging two plots with two different sets of kwargs, sort of like a matrix merge.
+#  it will be annoying to specify kwargs for each of the nrows x ncols but a more global thing
+#  ==> make kwargs an attribute of the plot and not just at runtime.
+
+# ToDo: Mantra to keep in mind: One plot per PDF page.
+
 
 class Plot(object):
 

@@ -35,10 +35,6 @@ def histogram(cat, param, ax, bins=30, histtype='step', color='r', legend_label=
 
 def binning3d_mass(cat, param1, param2, ax, ax_title=None, mass_decades=np.arange(11, 15, 1),
                    **scatter_binning_kwargs):
-    """
-    * plot_kwargs are additional keyword arguments to pass into the plotting_func
-    * mods: lambda functions that modify plotting arrays, e.g. lambda x: np.log10(x)
-    """
     mass_bins = [(x, y) for x, y in zip(mass_decades, mass_decades[1:])]
     colors = ['b', 'r', 'g']
     for mass_bin, color in zip(mass_bins, colors): 
@@ -46,23 +42,28 @@ def binning3d_mass(cat, param1, param2, ax, ax_title=None, mass_decades=np.arang
         mmask = (log_mvir > mass_bin[0]) & (log_mvir < mass_bin[1])
         mcat = cat[mmask]
         label = "$" + str(mass_bin[0]) + "< M_{\\rm vir} <" + str(mass_bin[1]) + "$"
+
+        # avoid conflict with legend_label inside kwargs.
+        scatter_binning_kwargs.update(dict(legend_label=label, color=color))
+
         scatter_binning(mcat,
-                        param1, param2, legend_label=label, ax_title=ax_title,
-                        color=color, ax=ax, **scatter_binning_kwargs)
+                        param1, param2, ax_title=ax_title,
+                        ax=ax, **scatter_binning_kwargs)
 
 
 def scatter_binning(cat, param1, param2, ax, nxbins=10, color='r', no_bars=False, show_lines=False, show_bands=False,
                     xlabel=None, ylabel=None, legend_label=None, **general_kwargs):
-
+    # ToDo: Deal with empty bins better, right now it just skips that bin.
     x = param1.get_values(cat)
     y = param2.get_values(cat)
 
     xs = np.linspace(np.min(x), np.max(x), nxbins)
     xbbins = [(xs[i], xs[i+1]) for i in range(len(xs)-1)]
 
-    masks = [((xbbin[0] < x) & ( x < xbbin[1])) for xbbin in xbbins]
-    binned_x = [x[mask] for mask in masks]
-    binned_y = [y[mask] for mask in masks]
+    masks = [((xbbin[0] < x) & (x < xbbin[1])) for xbbin in xbbins]
+
+    binned_x = [x[mask] for mask in masks if len(x[mask]) > 0]  # remove empty ones.
+    binned_y = [y[mask] for mask in masks if len(x[mask]) > 0 and len(y[mask]) > 0]
 
     xmeds = [np.median(xbin) for xbin in binned_x]
     ymeds = [np.median(ybin) for ybin in binned_y]
