@@ -1,4 +1,5 @@
 import numpy as np
+from astropy.table import Column
 
 
 # functions to get derived quantities.
@@ -8,6 +9,7 @@ def get_phi_l(cat):
     * A[x],A[y],A[z]: Largest shape ellipsoid axis (kpc/h comoving)
     :param cat:
     :return: Value of phi_l for each row of the catalog cat.
+    :rtype: astropy.Column
     """
     return np.arccos(
         ((cat['A[x]'] * cat['Jx'] + cat['A[y]'] * cat['Jy'] + cat['A[z]'] * cat['Jz'])
@@ -16,6 +18,32 @@ def get_phi_l(cat):
              cat['Jx'] ** 2 + cat['Jy'] ** 2 + cat['Jz'] ** 2))
          )
     )
+
+
+def get_fsub(cat):
+    """
+    Return the substructure fraction of each entry of the catalog has value of -1 for halos without subhalos.
+    This is defined as in Neto2007: "We compute the mass fraction in resolved substructures
+    whose centres lie inside r_vir".
+    :param cat:
+    :return: astropy.Column
+    """
+    fsubs = []
+    for row in cat:
+        halo_id = row['id']
+        mvir = row['mvir']
+
+        # find all rows that have this id as the upid
+        upids = (cat['upid'] == halo_id)
+
+        if not np.sum(upids):
+            fsubs.append(-1)
+            continue
+
+        substructure_mass = np.sum(cat[upids]['mvir'])
+        fsubs.append(substructure_mass/mvir)
+
+    return Column(data=np.array(fsubs), name='fsub')
 
 
 class Param(object):
@@ -84,12 +112,14 @@ class Param(object):
 
         return template.format(log_tex, self.latex_param, units_tex)
 
+
 # ToDo: Change T/U to eta globally.
 # non-derived quantities are by default included.
 # Can adjust by making it a 'false' derived.
 info_params = {
     # fundamental quantities in the catalog.
     # The key is the actual way name to access from the catalog.
+    'id': (None, '', '', ''),
     'mvir': (None, 'Msun/h',  'h^{-1} \\, M_{\\odot}', 'M_{\\rm vir}'),
     'rvir': (None, 'kpc/h', 'h^{-1} \\, kpc', 'R_{\\rm vir}'),
     'rs': (None, 'kpc/h', 'h^{-1} \\, kpc', 'R_{\\rm vir}'),
@@ -105,10 +135,12 @@ info_params = {
 
     # derived quantities.
     'cvir': (lambda cat: cat['rvir'] / cat['rs'], '', '', 'c_{\\rm vir}'),
+    'eta': (lambda cat: 2*cat['T/|U|'], '', '', '\\eta'),
     'q': (lambda cat: (1/2)*(cat['b_to_a'] + cat['c_to_a']), '', '', 'q'),
     'phi_l': (get_phi_l, '', '', '\\Phi_{l}'),
     'xoff': (lambda cat: cat['Xoff']/cat['rvir'], '', '', 'x_{\\rm off}'),
     'voff': (lambda cat: cat['Voff']/cat['vrms'], '', '', 'v_{\\rm off}'),
+    # 'fsub': (get_fsub, '', '', 'f_{\\rm sub}'),
     # 'tdyn': (lambda cat: np.sqrt(2) * cat['rvir'] / cat['vrms'], 'kpc/h / km/s', '', '\\tau_{\\rm dyn}'), (notesheet)
 
     # usually excluded quantities necessary for filtering
@@ -125,7 +157,7 @@ params_dict = {
 }
 
 param_names = params_dict.keys()
-default_params_to_exclude = {'upid', 'mag2_A', 'mag2_J'}
+default_params_to_exclude = {'mag2_A', 'mag2_J'}
 default_params_to_include = [param for param in param_names if param not in default_params_to_exclude]
 
 

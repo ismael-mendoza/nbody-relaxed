@@ -3,7 +3,7 @@ Plotting functions that are useful for visualizing things like correlations.
 """
 
 import numpy as np
-from src.frames import params
+from ..frames import params
 
 
 def general_ax_settings(ax, ax_title='', xlabel=None, ylabel=None, xlabel_size=18, ylabel_size=18, legend_label=None,
@@ -21,14 +21,23 @@ def general_ax_settings(ax, ax_title='', xlabel=None, ylabel=None, xlabel_size=1
         ax.legend(loc='best', prop={'size': legend_size})
 
 
-def histogram(cat, param, ax, bins=30, histtype='step', color='r', legend_label=None, extra_hist_kwargs=None,
-              **general_kwargs):
+def histogram(cat, param, ax, bins=30, histtype='step', color='r', legend_label=None, vline=None,
+              log_y=True,
+              extra_hist_kwargs=None, **general_kwargs):
 
     if extra_hist_kwargs is None:
         extra_hist_kwargs = {}
 
     values = param.get_values(cat)
     ax.hist(values, bins=bins, histtype=histtype, color=color, label=legend_label, **extra_hist_kwargs)
+
+    # add a vertical line.
+    if vline == 'median':
+        ax.axvline(np.median(values), c=color, ls='--')
+
+    # log the scale or not.
+    if log_y:
+        ax.set_yscale('log')
 
     general_ax_settings(ax, legend_label=legend_label, **general_kwargs)
 

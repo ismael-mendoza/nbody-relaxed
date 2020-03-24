@@ -1,7 +1,7 @@
-from src.frames import plots
-from src.frames.params import Param
-from src.visualization import plot_funcs
-from src import stats
+from ..frames import plots
+from ..frames.params import Param
+from . import plot_funcs
+from .. import stats
 
 import numpy as np
 
@@ -43,7 +43,8 @@ def plot_multiple_basic(hcats, pdf, colors):
 
     # this are the default values that we will be using throughout the plots.
     general_kwargs = dict(xlabel_size=28, ylabel_size=28)
-    hist_kwargs = dict(bins=30, histtype='step', extra_hist_kwargs=dict(), **general_kwargs)
+    hist_kwargs = dict(bins=30, histtype='step', extra_hist_kwargs=dict(), log_y=True, **general_kwargs)
+    hist_kwargs2 = dict(bins=30, histtype='step', extra_hist_kwargs=dict(), log_y=True, vline='median', **general_kwargs)
     binning_kwargs = dict(nxbins=10, no_bars=True, show_bands=True, **general_kwargs)
 
     # (1) Need to create all the plots and specify their parameters in kwargss.
@@ -57,13 +58,13 @@ def plot_multiple_basic(hcats, pdf, colors):
     # ToDo: Fix the title to make it a possibility.
     # title = "Mean centered histograms"
     modifiers = [lambda x: (x - np.mean(x)) / np.std(x)]
-    param_names = ['mvir', 'cvir', 'T/|U|', 'xoff', 'voff', 'Spin', 'q', 'phi_l']
+    param_names = ['mvir', 'cvir', 'eta', 'xoff', 'voff', 'Spin', 'q', 'phi_l']
     params = [Param(param_name, log=True, modifiers=modifiers) for param_name in param_names]
     plot2 = plots.UniPlot(plot_funcs.histogram, params, ncols=2, nrows=4, figsize=(12, 20),
                           title=None, title_size=24)
 
     # Plot 3: Relaxedness parameters and mvir
-    relaxedness_param_names = ['T/|U|', 'xoff', 'voff', 'Xoff', 'Voff', 'q', 'cvir']
+    relaxedness_param_names = ['eta', 'xoff', 'voff', 'Xoff', 'Voff', 'q', 'cvir']
     params = [(Param('mvir', log=True), Param(relaxed_param, log=True)) for relaxed_param in relaxedness_param_names]
     plot3 = plots.BiPlot(plot_funcs.scatter_binning, params, nrows=3, ncols=2, figsize=(18, 18))
 
@@ -80,7 +81,7 @@ def plot_multiple_basic(hcats, pdf, colors):
         )
 
         args.append(
-            (plot2, hist_kwargs)
+            (plot2, hist_kwargs2)
         )
 
         args.append(
@@ -105,11 +106,11 @@ def plot_correlation_matrix_basic(hcats, pdf):
     uplots = []
 
     # Plot 4: Matrix correlations
-    param_names = ['mvir', 'cvir', 'T/|U|', 'xoff', 'voff', 'Spin', 'q', 'phi_l']
+    param_names = ['mvir', 'cvir', 'eta', 'xoff', 'voff', 'q', 'Spin', 'phi_l']
     params = [Param(param_name, log=True) for param_name in param_names]
     for args in argss:
         plot = plots.MatrixPlot(stats.get_corrs, params, symmetric=False)
-        kwargs = dict(label_size=20)
+        kwargs = dict(label_size=20, show_cell_text=True)
         uplots.append(plot)
         args.append(
            (plot, kwargs)
@@ -139,32 +140,21 @@ def plot_decades_basic(hcats, pdf):
     params = [
         (Param('T/|U|', log=True), Param('xoff', log=True)),
         (Param('T/|U|', log=True), Param('voff', log=True)),
-        (Param('T/|U|', log=True), Param('Xoff', log=True)),
-        (Param('T/|U|', log=True), Param('Voff', log=True)),
         (Param('T/|U|', log=True), Param('q', log=True)),
         (Param('T/|U|', log=True), Param('cvir', log=True)),
 
         (Param('xoff', log=True), Param('voff', log=True)),
-        (Param('xoff', log=True), Param('Voff', log=True)),
         (Param('xoff', log=True), Param('q', log=True)),
         (Param('xoff', log=True), Param('cvir', log=True)),
 
-        (Param('Xoff', log=True), Param('voff', log=True)),
-        (Param('Xoff', log=True), Param('Voff', log=True)),
-        (Param('Xoff', log=True), Param('q', log=True)),
-        (Param('Xoff', log=True), Param('cvir', log=True)),
 
-        (Param('voff', log=True), Param('Voff', log=True)),
         (Param('voff', log=True), Param('q', log=True)),
         (Param('voff', log=True), Param('cvir', log=True)),
-
-        (Param('Voff', log=True), Param('q', log=True)),
-        (Param('Voff', log=True), Param('cvir', log=True)),
 
         (Param('q', log=True), Param('cvir', log=True)),
         ]  # total = 20
 
-    plot1 = plots.BiPlot(plot_funcs.binning3d_mass, params, nrows=5, ncols=4, figsize=figsize)
+    plot1 = plots.BiPlot(plot_funcs.binning3d_mass, params, nrows=4, ncols=4, figsize=figsize)
     uplots.append(plot1)
 
     for args in argss:
@@ -173,7 +163,7 @@ def plot_decades_basic(hcats, pdf):
         )
 
     # Plot 6: Same plot as above but without any decades.
-    plot2 = plots.BiPlot(plot_funcs.scatter_binning, params, nrows=5, ncols=4, figsize=figsize)
+    plot2 = plots.BiPlot(plot_funcs.scatter_binning, params, nrows=4, ncols=4, figsize=figsize)
     uplots.append(plot2)
 
     for args in argss:

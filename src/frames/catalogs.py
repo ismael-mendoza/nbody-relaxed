@@ -4,14 +4,14 @@ from astropy.io import ascii
 import numpy as np
 from typing import List
 
-from src.frames import params
-from src.frames import filters
+from . import params
+from . import filters
 
 # particle mass (Msun/h), total particles, box size (Mpc/h).
 catalog_properties = {
-    'Bolshoi': (1.35e8, 2048**3, 250),
-    'BolshoiP': (1.55e8, 2048**3, 250),
-    'MDPL2': (1.51e9, 3840**3, 1000)
+    'Bolshoi': (1.35e8, 2048 ** 3, 250),
+    'BolshoiP': (1.55e8, 2048 ** 3, 250),
+    'MDPL2': (1.51e9, 3840 ** 3, 1000)
 }
 
 
@@ -40,8 +40,8 @@ class HaloCatalog(object):
         self.param_names = params.param_names
         self.params_to_include = params_to_include if params_to_include else params.default_params_to_include
 
-        self._cfilters = base_filters if base_filters else filters.get_default_base_filters(self.particle_mass,
-                                                                                           self.subhalos)
+        self._cfilters = base_filters if base_filters is not None else filters.get_default_base_filters(self.particle_mass,
+                                                                                            self.subhalos)
         if not set(self._cfilters.keys()).issubset(set(self.param_names)):
             raise ValueError("filtering will fail since not all params are in self.param_names,"
                              "need to update params.py")
@@ -136,11 +136,15 @@ class HaloCatalog(object):
             for i, cat in enumerate(gcats):
                 new_cat = Table()
 
+                # First obtain all the parameters that we want to have.
+                # cat is complete so all parameters can be obtained in any order.
                 # ignore warning of possible parameters that are divided by zero, this will be filtered out later.
                 with np.errstate(divide='ignore', invalid='ignore'):
                     for param in self.param_names:
-                        new_cat.add_column(self._get_not_log_value(cat, param), name=param)
+                        values = self._get_not_log_value(cat, param)  # type = astropy.Column
+                        new_cat.add_column(values, name=param)
 
+                # once everything is calculated, filter out stuff.
                 new_cat = self._filter_cat(new_cat, self._cfilters, use_include_params=True)
 
                 cats.append(new_cat)
@@ -198,8 +202,8 @@ class HaloCatalog(object):
         """
         assert old_hcat.get_cat() is not None, "Catalog of old_hcat should already be set."
         assert set(myfilters.keys()).issubset(set(old_hcat.get_cat().colnames)), "This will fail because the " \
-                                                                           "cat of old_hcat does " \
-                                                                           "not contain filtered parameters."
+                                                                                 "cat of old_hcat does " \
+                                                                                 "not contain filtered parameters."
 
         new_hcat = cls(old_hcat.filepath, old_hcat.catalog_name, subhalos=old_hcat.subhalos,
                        base_filters=old_hcat.get_cfilters(), catalog_label=catalog_label,

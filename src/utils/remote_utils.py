@@ -2,16 +2,15 @@
 Useful functions for submitting sbatch jobs.
 """
 import subprocess
-from pathlib import Path
 import numpy as np
-from src.utils import const
+from utils import const
 
-#ToDo: Create the directories below
+# ToDo: Create the directories below
 batch_dir = const.data_path.joinpath("batches")
 logs_dir = batch_dir.joinpath("logs")
 
 
-#ToDo: Implement iterations, make it clear
+# ToDo: Implement iterations, make it clear
 def run_sbatch_job(cmd, jobs_dir_name, jobname, time='01:00', memory='5GB', iterations=1):
 
     # prepare files and directories

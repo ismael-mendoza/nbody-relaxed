@@ -68,5 +68,12 @@ def get_relaxed_filters(relaxed_name):
             'xoff': lambda x: x < 0.04,
         }
 
+    if relaxed_name == 'neto2007':
+        return{
+            # 'fsub': lambda x: x < 0.1,
+            'xoff': lambda x: x < 0.07,
+            'eta': lambda x: x < 1.35
+        }
+
     else:
         raise NotImplementedError("The required relaxed name has not been implemented.")

@@ -3,8 +3,10 @@ This file contains classes that represent the different plots that are produced.
 reproducible plots and separate the plotting procedure from the images produced.
 """
 import matplotlib.pyplot as plt
-from src.utils import const
 import numpy as np
+
+from ..utils import const
+
 
 # ToDo: Possibility of merging two plots with two different sets of kwargs, sort of like a matrix merge.
 #  it will be annoying to specify kwargs for each of the nrows x ncols but a more global thing
@@ -115,12 +117,18 @@ class MatrixPlot(Plot):
         super(MatrixPlot, self).__init__(*args, ncols=1, nrows=1, **kwargs)
         self.ax = self.axes[0]
 
-    def run(self, cat, label_size=16, **kwargs):
-        matrix_values = self.matrix_func(self.params, cat)
-        mask = np.tri(matrix_values.shape[0], k=-1) if self.symmetric else None
-        a = np.ma.array(matrix_values, mask=mask)
+    def run(self, cat, label_size=16, show_cell_text=False, **kwargs):
+        matrix = self.matrix_func(self.params, cat)
+        mask = np.tri(matrix.shape[0], k=-1) if self.symmetric else None
+        a = np.ma.array(matrix, mask=mask)
         im = self.ax.matshow(a, cmap='bwr', vmin=-1, vmax=1)
         plt.colorbar(im, ax=self.ax)
+
+        if show_cell_text:
+            for i in range(matrix.shape[0]):
+                for j in range(matrix.shape[1]):
+                    _ = self.ax.text(j, i, round(matrix[i, j], 2),
+                                     ha="center", va="center", color="k", size=14)
 
         latex_params = [param.get_text(only_param=True) for param in self.params]
         self.ax.set_xticklabels([''] + latex_params, size=label_size)
