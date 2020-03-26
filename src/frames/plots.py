@@ -12,12 +12,15 @@ from ..utils import const
 #  it will be annoying to specify kwargs for each of the nrows x ncols but a more global thing
 #  ==> make kwargs an attribute of the plot and not just at runtime.
 
+# ToDo: Change to accommodate reading chunkified code.
+
 # ToDo: Mantra to keep in mind: One plot per PDF page.
 
 
 class Plot(object):
 
-    def __init__(self, params, nrows=1, ncols=1, figsize=(8, 8), title='', title_size=20, tick_size=24):
+    def __init__(self, params, param_locs=None, nrows=1, ncols=1, figsize=(8, 8), title='', title_size=20, tick_size=24,
+                 plot_kwargs=None):
         """
         Represents a single plot to draw and produce. Each plot will be outputted in a single page of a pdf.
 
@@ -29,12 +32,20 @@ class Plot(object):
         self.title_size = title_size
         self.tick_size = tick_size
 
+        self.fig, _ = plt.subplots(squeeze=False, figsize=figsize)
+        self.nrows = nrows
+        self.ncols = ncols
+
         self.params = params
-        self.fig, axs = plt.subplots(nrows, ncols, figsize=figsize)
-        if nrows > 1 or ncols > 1:
-            self.axes = axs.flatten()
-        else:
-            self.axes = [axs]
+
+        # just plot sequentially if locations were not specified.
+        self.param_locs = param_locs if param_locs else [(i, j) for i in range(nrows) for j in range(ncols)]
+
+        self.axes = [plt.subplot2grid((self.nrows, self.ncols), param_loc, fig=self.fig) for param_loc in
+                     self.param_locs
+                     ]
+
+        self.plot_kwargs = {} if None else plot_kwargs
 
     def generate(self, cat, *args, **kwargs):
         """
@@ -42,7 +53,7 @@ class Plot(object):
         :return: None
         """
         self.preamble()
-        self.run(cat, *args, **kwargs)
+        self.run(cat, *args, **kwargs, **self.plot_kwargs)
         self.finale()
 
     def preamble(self):
@@ -54,7 +65,7 @@ class Plot(object):
         for ax in self.axes:
             ax.tick_params(axis='both', which='major', labelsize=self.tick_size)
 
-        self.fig.tight_layout()
+        self.fig.tight_layout(rect=[0, 0.03, 1, 0.95])
 
     def run(self, *args, **kwargs):
         pass
@@ -72,7 +83,6 @@ class Plot(object):
             raise ValueError("Need to specify either a filename or a pdf")
 
 
-# ToDo: Change to accommodate reading chunkified code.
 class BiPlot(Plot):
     """
     Class that creates the standard x vs. y plots.
@@ -100,8 +110,7 @@ class UniPlot(Plot):
 
     def run(self, cat, **kwargs):
         for (ax, param) in zip(self.axes, self.params):
-            self.plot_func(cat, param, ax, xlabel=param.text,
-                           **kwargs)
+            self.plot_func(cat, param, ax, xlabel=param.text, **kwargs)
 
 
 class MatrixPlot(Plot):
