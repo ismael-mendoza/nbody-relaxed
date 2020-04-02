@@ -3,6 +3,7 @@ This file contains classes that represent the different plots that are produced.
 reproducible plots and separate the plotting procedure from the images produced.
 """
 import matplotlib.pyplot as plt
+from matplotlib import gridspec
 import numpy as np
 
 from ..utils import const
@@ -13,10 +14,8 @@ from ..utils import const
 #  ==> make kwargs an attribute of the plot and not just at runtime.
 
 # ToDo: Change to accommodate reading chunkified code.
-
 # ToDo: Mantra to keep in mind: One plot per PDF page.
 
-# ToDo: remove all unnecessary *args, **kwargs!!!
 
 class Plot(object):
 
@@ -34,21 +33,16 @@ class Plot(object):
         self.title_size = title_size
         self.tick_size = tick_size
 
-        self.fig, _ = plt.subplots(squeeze=False, figsize=figsize)
-        self.nrows = nrows
-        self.ncols = ncols
-
         self.params = params
         self.plot_func = plot_func
 
-        # just plot sequentially if locations were not specified.
-        self.param_locs = param_locs if param_locs else [(i, j) for i in range(nrows) for j in range(ncols)]
+        self.nrows = nrows
+        self.ncols = ncols
 
-        self.axes = [plt.subplot2grid((self.nrows, self.ncols), param_loc, fig=self.fig) for param_loc in
-                     self.param_locs
-                     ]
+        self.fig, self.axes, self.param_locs = self.get_subplots_config(self.nrows, self.ncols, param_locs, figsize)
 
         self.plot_kwargs = {} if None else plot_kwargs
+        self.cached_args = []
 
     def generate(self, cat, *args, **kwargs):
         """
@@ -56,7 +50,7 @@ class Plot(object):
         :return: None
         """
         self.preamble()
-        self.run(cat, *args, **kwargs, **self.plot_kwargs)
+        self.run(cat, **kwargs, **self.plot_kwargs)
         self.finale()
 
     def preamble(self):
@@ -70,7 +64,7 @@ class Plot(object):
 
         self.fig.tight_layout(rect=[0, 0.03, 1, 0.95])
 
-    def run(self, *args, **kwargs):
+    def run(self, cat, **kwargs):
         pass
 
     def save(self, fname=None, pdf=None):
@@ -85,13 +79,24 @@ class Plot(object):
         else:
             raise ValueError("Need to specify either a filename or a pdf")
 
-    # ToDo: Implement some sort of saving necessary cats, args, kwargs before actually plotting
-    #       this way we can implement the correct binning procedure:
-    #       https://stackoverflow.com/questions/23617129/matplotlib-how-to-make-two-histograms-have-the-same-bin-width/44064402
-    #       before plotting combine all values and get the bins using that.
-    def load_arguments(self, cat, *args, **kwargs):
-        self.cached_arguments.append(cat, args, kwargs)
+    def load_arguments(self, cat, **kwargs):
+        self.cached_args.append((cat, kwargs))
 
+    def generate_from_cached(self):
+        for (cat, kwargs) in self.cached_args:
+            self.generate(cat, **kwargs)
+
+    @staticmethod
+    def get_subplots_config(nrows, ncols, param_locs, figsize):
+        # just plot sequentially if locations were not specified.
+        new_param_locs = param_locs if param_locs else [(i, j) for i in range(nrows) for j in range(ncols)]
+
+        fig, _ = plt.subplots(squeeze=False, figsize=figsize)
+        axes = [plt.subplot2grid((nrows, ncols), param_loc, fig=fig) for param_loc in
+                new_param_locs
+                ]
+
+        return fig, axes, new_param_locs
 
 
 class BiPlot(Plot):
@@ -116,12 +121,127 @@ class UniPlot(Plot):
             self.plot_func(cat, param, ax, xlabel=param.text, **kwargs)
 
 
-class StackedHistogram(Plot):
+class Histogram(UniPlot):
+    """
+    Creates histograms which is a subclass of UniPlot but uses caching to set the bin sizes of all catalogs
+    to be the same.
+    """
+
+    def generate_from_cached(self):
+        # first we obtain the bin edges.
+        assert 'bins' in self.plot_kwargs
+
+        num_bins = self.plot_kwargs['bins']
+        bin_edges = []
+        for param in self.params:
+            param_values = []
+            for (cat, _) in self.cached_args:
+                param_values.append(param.get_values(cat))
+
+            # get the bin edges
+            bins = np.histogram(np.hstack(param_values), bins=num_bins)[1]
+            bin_edges.append(bins)
+
+        for (cat, kwargs) in self.cached_args:
+            self.generate(cat, bin_edges=bin_edges, **kwargs)
+
+    def run(self, cat, bin_edges=None, **kwargs):
+        for i, (ax, param) in enumerate(zip(self.axes, self.params)):
+            if bin_edges:
+                bin_edge = bin_edges[i]
+                assert 'bins' in kwargs
+                kwargs.update(dict(bins=bin_edge))
+
+            self.plot_func(cat, param, ax, xlabel=param.text, **kwargs)
+
+
+class StackedHistogram(Histogram):
     """
     Create a stacked histogram, this is specifically useful to reproduce plots like in Figure 3 of
     https://arxiv.org/pdf/1404.4634.pdf, where the top histogram are all the individual plots and the bottom row
     shows the ratio of each with respect to the total.
+
+    * Pass in nrow as if this wasn't stacked (just thinking of normal histogram.
+    * Used: https://stackoverflow.com/questions/37737538/merge-matplotlib-subplots-with-shared-x-axis
     """
+
+    def __init__(self, *args, **kwargs):
+        super(StackedHistogram, self).__init__(*args, **kwargs)
+        self.main_catalog_idx = 0  # assume the first catalog given is the one we are taking rations with respect to.
+
+    # def generate_from_cached(self):
+    #     # first get bin edges.
+    #     assert 'bins' in self.plot_kwargs
+    #
+    #     num_bins = self.plot_kwargs['bins']
+    #     bin_edges = []
+    #     main_cat = self.cached_args[self.main_catalog_idx][0]
+    #
+    #     for param in self.params:
+    #
+    #         # first do it normally.
+    #         param_values = []
+    #         for (cat, _) in self.cached_args:
+    #             param_values.append(param.get_values(cat))
+    #
+    #         bins1 = np.histogram(np.hstack(param_values), bins=num_bins)[1]
+    #
+    #         # then the ratio ones.
+    #         param_values = []
+    #         for i, (cat, _) in enumerate(self.cached_args):
+    #             if i != self.main_catalog_idx:
+    #                 assert len(main_cat) >= len(cat)
+    #                 param_values.append(param.get_values(cat) / param.get_values(main_cat))
+    #         bins2 = np.histogram(np.hstack(param_values), bins=num_bins)[1]
+    #
+    #         bin_edges.append((bins1, bins2))
+    #
+    #     # then use the bin edges to plot.
+    #     for (cat, kwargs) in self.cached_args:
+    #         self.generate(cat, bin_edges=bin_edges, main_cat=main_cat, **kwargs)
+    #
+    # @staticmethod
+    # def get_subplots_config(nrows, ncols, param_locs, figsize):
+    #     fig = plt.figure(figsize=figsize)
+    #     new_nrows = nrows*2
+    #     grids = gridspec.GridSpec(new_nrows, ncols, height_ratios=[2, 1]*nrows)
+    #     axes = [[] for _ in range(new_nrows)]
+    #
+    #     for i in range(new_nrows):
+    #         for j in range(ncols):
+    #             gs = grids[i, j]
+    #             if i % 2 == 0:
+    #                 ax = plt.subplot(gs)
+    #             else:
+    #                 ax_above = axes[i-1][j]
+    #                 ax = plt.subplot(gs, sharex=ax_above)
+    #             axes[i].append(ax)
+    #     plt.subplots_adjust(hspace=.0)
+    #     return fig, axes, param_locs
+    #
+    # def run(self, cat, bin_edges=None, main_cat=None, **kwargs):
+    #     assert main_cat is not None
+    #
+    #     for i in range(self.nrows*2):
+    #         param =
+    #         for j in range(self.ncols):
+    #             ax = self.axes[i][j]
+    #             if bin_edges:
+    #                 bin_edge = bin_edges[i][i % 2]
+    #                 assert 'bins' in kwargs
+    #                 kwargs.update(dict(bins=bin_edge1))
+    #             if i % 2 == 0:
+    #                 self.plot_func(cat, param, ax, xlabel=param.text, **kwargs)
+    #
+    #         if i % 2 == 0:
+    #             self.plot_func(main_cat, param, )
+    #
+    #             else:
+    #
+    #
+    #     for i, (ax, param) in enumerate(zip(self.axes, self.params)):
+    #         if bin_edges:
+    #             bin_edge1, bin_edge2 = bin_edges[i]
 
 
 class MatrixPlot(Plot):
