@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData" autoUpload="Always" serverName="Nbody" showDialogOnRemoteDnD="false">
+    <serverData>
+      <paths name="Nbody">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/tmp/pycharm_project_817" local="$PROJECT_DIR$" />
+          </mappings>
+          <excludedPaths>
+            <excludedPath local="true" path="$PROJECT_DIR$/intro/data" />
+            <excludedPath path="/intro/data" />
+            <excludedPath path="/data" />
+          </excludedPaths>
+        </serverdata>
+      </paths>
+    </serverData>
+    <option name="myAutoUpload" value="ALWAYS" />
+  </component>
+</project>
