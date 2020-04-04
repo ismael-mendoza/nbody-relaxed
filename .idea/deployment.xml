@@ -5,10 +5,10 @@
       <paths name="Nbody">
         <serverdata>
           <mappings>
-            <mapping deploy="/tmp/pycharm_project_817" local="$PROJECT_DIR$" />
+            <mapping deploy="/" local="$PROJECT_DIR$" web="/" />
           </mappings>
           <excludedPaths>
-            <excludedPath local="true" path="$PROJECT_DIR$/intro/data" />
+            <excludedPath local="true" path="$PROJECT_DIR$/data" />
             <excludedPath path="/intro/data" />
             <excludedPath path="/data" />
           </excludedPaths>
