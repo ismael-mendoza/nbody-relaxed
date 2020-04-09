@@ -3,6 +3,7 @@ from astropy.table import Table
 from astropy.io import ascii
 import numpy as np
 from typing import List
+import minh
 
 from . import params
 from . import filters
@@ -29,6 +30,8 @@ class HaloCatalog(object):
         assert subhalos is False, "Not implemented subhalo functionality."
 
         self.filepath = filepath
+        assert self.filepath.name.endswith('.minh'), "Using Phil's format exclusively now."
+
         self.catalog_name = catalog_name
         self.verbose = verbose
         self.subhalos = subhalos
@@ -40,14 +43,16 @@ class HaloCatalog(object):
         self.param_names = params.param_names
         self.params_to_include = params_to_include if params_to_include else params.default_params_to_include
 
-        self._cfilters = base_filters if base_filters is not None else filters.get_default_base_filters(self.particle_mass,
-                                                                                            self.subhalos)
+        self._cfilters = base_filters if base_filters is not None else filters.get_default_base_filters(
+            self.particle_mass,
+            self.subhalos)
+
         if not set(self._cfilters.keys()).issubset(set(self.param_names)):
             raise ValueError("filtering will fail since not all params are in self.param_names,"
                              "need to update params.py")
 
         # will be potentially defined later.
-        self.use_generator = None
+        self.use_minh = None
         self._bcat = None  # base cat.
         self._cat = None  # cat to actually return.
 
@@ -82,17 +87,17 @@ class HaloCatalog(object):
         self._cat = self._bcat
         self.catalog_label = catalog_label
 
-    def load_base_cat(self, use_generator=False, bcat=None):
+    def load_base_cat(self, use_minh=False, bcat=None):
         """
         This function is used to set the cat attribute in the hcat to the catalog so it can be used in the future.
-        :param use_generator:
+        :param use_minh:
         :param bcat:
         :return:
         """
-        assert use_generator is False, "Not implemented this functionality yet, for now just return full catalog."
+        assert use_minh is False, "Not implemented this functionality yet, for now just return full catalog."
         assert self._bcat is None, "Overriding catalog that is already created. (probably wasteful)"
 
-        self.use_generator = use_generator
+        self.use_minh = use_minh
         if not bcat:
             self._bcat = self._load_cat()  # could be a generator or an astropy.Table object.
 
@@ -101,17 +106,14 @@ class HaloCatalog(object):
 
         self._cat = self._bcat  # filtering will create a copy later if necessary.
 
-    def _get_cat_generator(self):
+    def _get_minh_cat(self):
         """
         This will eventually contain all the complexities of Phil's code and return a generator to access
         the catalog in chunks. For now it offers the chunkified version of my catalog how I've been doing it.
         :return:
         """
 
-        # 100 Mb chunks of maximum memory in each iteration.
-        # this returns a generator.
-        return ascii.read(self.filepath, format='csv', guess=False,
-                          fast_reader={'chunk_size': 100 * 1000000, 'chunk_generator': True})
+        return minh.open(self.filepath)
 
     def _load_cat(self):
         """
@@ -120,10 +122,10 @@ class HaloCatalog(object):
         NOTE: We filter using the cfilters (cat filters).
         :return:
         """
-        gcats = self._get_cat_generator()
+        minh_cat = self._get_minh_cat()
 
-        if self.use_generator:
-            return gcats
+        if self.use_minh:
+            return minh_cat  # will do operations in each of the blocks through another interface.
 
         else:
             if self.verbose:
@@ -133,15 +135,15 @@ class HaloCatalog(object):
             # do filtering on the fly so don't actually ever read unfiltered catalog.
             cats = []
 
-            for i, cat in enumerate(gcats):
+            for b in minh_cat.blocks:
                 new_cat = Table()
 
                 # First obtain all the parameters that we want to have.
-                # cat is complete so all parameters can be obtained in any order.
+                # each block in minh is complete so all parameters can be obtained in any order.
                 # ignore warning of possible parameters that are divided by zero, this will be filtered out later.
                 with np.errstate(divide='ignore', invalid='ignore'):
                     for param in self.param_names:
-                        values = self._get_not_log_value(cat, param)  # type = astropy.Column
+                        values = self._get_not_log_value(b, minh_cat, param)  # type = astropy.Column
                         new_cat.add_column(values, name=param)
 
                 # once everything is calculated, filter out stuff.

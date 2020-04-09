@@ -30,6 +30,7 @@
       <w>locs</w>
       <w>mcat</w>
       <w>mdpl</w>
+      <w>minh</w>
       <w>mmask</w>
       <w>msun</w>
       <w>mvir</w>
@@ -44,15 +45,18 @@
       <w>nrows</w>
       <w>nxbins</w>
       <w>odot</w>
+      <w>pids</w>
       <w>preprocessing</w>
       <w>procs</w>
       <w>relaxedness</w>
       <w>rvir</w>
       <w>sbatch</w>
       <w>subhalo</w>
+      <w>subhaloes</w>
       <w>subhalos</w>
       <w>tdyn</w>
       <w>tfile</w>
+      <w>undersampled</w>
       <w>unlogged</w>
       <w>upid</w>
       <w>upids</w>

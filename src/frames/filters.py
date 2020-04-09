@@ -32,12 +32,15 @@ def get_default_base_filters(particle_mass, subhalos):
 
 def particle_mass_filter(particle_mass):
     """
+    We introduce two default cuts on mass:
+        * The first part is to account for having too few particles (<1000).
+         * The second is too account for bins that are undersampled in Bolshoi.
 
     :param particle_mass: The mass of each particle in the halo catalog.
     :return:
     """
 
-    return {'mvir': lambda mvirs: np.log10(mvirs) > np.log10(particle_mass * 1e3)}
+    return {'mvir': lambda mvirs: (np.log10(mvirs) > np.log10(particle_mass * 1e3)) & (np.log10(mvirs) < 14.18)}
 
 
 def catalog_mass_filter(catalog_name):

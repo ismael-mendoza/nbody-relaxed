@@ -5,7 +5,7 @@
       <sourceFolder url="file://$MODULE_DIR$/tests" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
     </content>
-    <orderEntry type="jdk" jdkName="Remote Python 3.7.3 (sftp://imendoza@greatlakes.arc-ts.umich.edu:22/home/imendoza/miniconda3/envs/alcca/bin/python)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Alcca" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="PyDocumentationSettings">
