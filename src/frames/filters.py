@@ -21,7 +21,7 @@ def get_default_base_filters(particle_mass, subhalos):
     return {
         **particle_mass_filter(particle_mass),
         'upid': lambda x: (x == -1 if not subhalos else x >= 0),
-        # the ones after seem to have no effect after.
+        # the ones after seem to have no effect after for not subhalos.
         'Spin': lambda x: x != 0,
         'q': lambda x: x != 0,
         'vrms': lambda x: x != 0,

@@ -41,7 +41,7 @@ def get_fsub(cat):
             continue
 
         substructure_mass = np.sum(cat[upids]['mvir'])
-        fsubs.append(substructure_mass/mvir)
+        fsubs.append(substructure_mass / mvir)
 
     return Column(data=np.array(fsubs), name='fsub')
 
@@ -61,14 +61,33 @@ class Param(object):
         """
         self.key = key
         self.latex_param = params_dict[key]['latex_param']
-        self.latex_units = params_dict[key]['latex_units']
-        self.units = params_dict[key]['units']
-        self.derive = params_dict[key]['derive']
+
+        # units.
+        self.units, self.latex_units = '', ''
+        unit_pair = params_dict[key]['units']
+        if unit_pair:
+            self.units = unit_pair[0]
+            self.latex_units = unit_pair[1]
+
+        # deriving parameter.
+        self.derive_func, self.required_derive_params = None, None
+        derivation_pair = params_dict[key]['derive']
+        if derivation_pair:
+            self.derive_func = derivation_pair[0]
+            self.required_derive_params = derivation_pair[1]
+
         self.log = log
-        self.modifiers = None
+        self.modifiers = modifiers
 
         self.text = self.get_text() if not text else text
         self.values = None
+
+    def get_values_minh(self, minh, b=None):
+
+        if not self.derive_func:
+            pass
+
+        pass
 
     def get_values(self, cat):
         assert self.key in cat.colnames or self.derive is not None, f"Cannot obtained the parameter {self.key} for " \
@@ -89,9 +108,6 @@ class Param(object):
                 values = modifier(values)
 
         return values
-
-    def set_values(self, cat):
-        self.values = self.get_values(cat)
 
     def get_text(self, only_param=False):
         """
@@ -115,49 +131,46 @@ class Param(object):
 
 # ToDo: Change T/U to eta globally.
 # non-derived quantities are by default included.
-# Can adjust by making it a 'false' derived.
 info_params = {
     # fundamental quantities in the catalog.
     # The key is the actual way name to access from the catalog.
-    'id': (None, '', '', ''),
-    'mvir': (None, 'Msun/h',  'h^{-1} \\, M_{\\odot}', 'M_{\\rm vir}'),
-    'rvir': (None, 'kpc/h', 'h^{-1} \\, kpc', 'R_{\\rm vir}'),
-    'rs': (None, 'kpc/h', 'h^{-1} \\, kpc', 'R_{\\rm vir}'),
-    'Xoff': (None, 'kpc/h', 'h^{-1} \\, kpc', 'X_{\\rm off}'),
-    'Voff': (None, 'km/s', 'km \\, s^{-1}', 'V_{\\rm off}'),
-    'vrms': (None, 'km/s', 'km \\, s^{-1}', 'V_{\\rm rms}'),
-    'Acc_Rate_1*Tdyn': (None, 'Msun/h/yr', 'h^{-1}\\, yr^{-1} \\, M_{\\odot}', '\\alpha_{\\tau_{\\rm dyn}}'),
-    'Acc_Rate_Inst': (None, 'Msun/h/yr', 'h^{-1}\\, yr^{-1} \\, M_{\\odot}', '\\alpha_{\\rm inst}'),
+    'id': (None, None, ''),
+    'mvir': (None, ('Msun/h', 'h^{-1} \\, M_{\\odot}'), 'M_{\\rm vir}'),
+    'rvir': (None, ('kpc/h', 'h^{-1} \\, kpc'), 'R_{\\rm vir}'),
+    'rs': (None, ('kpc/h', 'h^{-1} \\, kpc'), 'R_{\\rm vir}'),
+    'Xoff': (None, ('kpc/h', 'h^{-1} \\, kpc'), 'X_{\\rm off}'),
+    'Voff': (None, ('km/s', 'km \\, s^{-1}'), 'V_{\\rm off}'),
+    'vrms': (None, ('km/s', 'km \\, s^{-1}'), 'V_{\\rm rms}'),
+    'Acc_Rate_1*Tdyn': (None, ('Msun/h/yr', 'h^{-1}\\, yr^{-1} \\, M_{\\odot}'), '\\alpha_{\\tau_{\\rm dyn}}'),
+    'Acc_Rate_Inst': (None, ('Msun/h/yr', 'h^{-1}\\, yr^{-1} \\, M_{\\odot}'), '\\alpha_{\\rm inst}'),
 
-    'T/|U|': (None, '', '', 'T/|U|'),
-    'Spin': (None, '', '', '\\lambda'),
-    'scale_of_last_MM': (None, '', '', '\\delta_{\\rm MM}'),
+    'T/|U|': (None, None, 'T/|U|'),
+    'Spin': (None, None, '\\lambda'),
+    'scale_of_last_MM': (None, None, '\\delta_{\\rm MM}'),
 
     # derived quantities.
-    'cvir': (lambda cat: cat['rvir'] / cat['rs'], '', '', 'c_{\\rm vir}'),
-    'eta': (lambda cat: 2*cat['T/|U|'], '', '', '\\eta'),
-    'q': (lambda cat: (1/2)*(cat['b_to_a'] + cat['c_to_a']), '', '', 'q'),
-    'phi_l': (get_phi_l, '', '', '\\Phi_{l}'),
-    'xoff': (lambda cat: cat['Xoff']/cat['rvir'], '', '', 'x_{\\rm off}'),
-    'voff': (lambda cat: cat['Voff']/cat['vrms'], '', '', 'v_{\\rm off}'),
+    'cvir': ((lambda cat: cat['rvir'] / cat['rs'], ('rvir', 'rs')), None, 'c_{\\rm vir}'),
+    'eta': ((lambda cat: 2 * cat['T/|U|'], 'T/U'), None, '\\eta'),
+    'q': ((lambda cat: (1 / 2) * (cat['b_to_a'] + cat['c_to_a']), ('b_to_a', 'c_to_a')), None, 'q'),
+    'phi_l': ((get_phi_l, ('A[x]', 'A[y]', 'A[z]', 'Jx', 'Jy', 'Jz')), None, '\\Phi_{l}'),
+    'xoff': ((lambda cat: cat['Xoff'] / cat['rvir'], ('Xoff', 'rvir')), None, 'x_{\\rm off}'),
+    'voff': ((lambda cat: cat['Voff'] / cat['vrms'], ('Voff', 'vrms')), None, 'v_{\\rm off}'),
     # 'fsub': (get_fsub, '', '', 'f_{\\rm sub}'),
     # 'tdyn': (lambda cat: np.sqrt(2) * cat['rvir'] / cat['vrms'], 'kpc/h / km/s', '', '\\tau_{\\rm dyn}'), (notesheet)
 
     # usually excluded quantities necessary for filtering
     'upid': (None, '', '', ''),
-    'mag2_A': (lambda cat: cat['A[x]'] ** 2 + cat['A[y]'] ** 2 + cat['A[z]'] ** 2, '', '', ''),
-    'mag2_J': (lambda cat: cat['Jx'] ** 2 + cat['Jy'] ** 2 + cat['Jz'] ** 2, '', '', ''),
+    'mag2_A': ((lambda cat: cat['A[x]'] ** 2 + cat['A[y]'] ** 2 + cat['A[z]'] ** 2, ('A[x]', 'A[y]', 'A[z]')),
+               None, None),
+    'mag2_J': ((lambda cat: cat['Jx'] ** 2 + cat['Jy'] ** 2 + cat['Jz'] ** 2, ('Jx', 'Jy', 'Jz')), None, None),
 }
-
 
 # nicer format.
 params_dict = {
-    key: {'derive': value[0], 'units': value[1], 'latex_units': value[2], 'latex_param': value[3]}
+    key: {'derive': value[0], 'units': value[1], 'latex_param': value[2]}
     for (key, value) in info_params.items()
 }
 
 param_names = params_dict.keys()
 default_params_to_exclude = {'mag2_A', 'mag2_J'}
 default_params_to_include = [param for param in param_names if param not in default_params_to_exclude]
-
-

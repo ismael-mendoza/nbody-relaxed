@@ -1,4 +1,5 @@
 *.list.gz
-*~
 *.ipynb_checkpoints
 *data
+/packages/
+.idea

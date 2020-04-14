@@ -43,7 +43,7 @@ class HaloCatalog(object):
         self.param_names = params.param_names
         self.params_to_include = params_to_include if params_to_include else params.default_params_to_include
 
-        self._cfilters = base_filters if base_filters is not None else filters.get_default_base_filters(
+        self._filters = base_filters if base_filters is not None else filters.get_default_base_filters(
             self.particle_mass,
             self.subhalos)
 
@@ -68,8 +68,8 @@ class HaloCatalog(object):
     def get_cat(self):
         return self._cat
 
-    def get_cfilters(self):
-        return self._cfilters
+    def get_filters(self):
+        return self._filters
 
     def with_filters(self, myfilters, catalog_label='filtered catalog'):
         self._cat = self._filter_cat(self._cat, myfilters)
@@ -147,7 +147,7 @@ class HaloCatalog(object):
                         new_cat.add_column(values, name=param)
 
                 # once everything is calculated, filter out stuff.
-                new_cat = self._filter_cat(new_cat, self._cfilters, use_include_params=True)
+                new_cat = self._filter_cat(new_cat, self._filters, use_include_params=True)
 
                 cats.append(new_cat)
 
@@ -181,7 +181,7 @@ class HaloCatalog(object):
         return cat
 
     @staticmethod
-    def _get_not_log_value(cat, key):
+    def _get_not_log_value(cat, key, b):
         """
         Only purpose is for the filters.
         :param cat:
