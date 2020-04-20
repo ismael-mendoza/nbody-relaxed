@@ -3,7 +3,7 @@ from astropy.table import Table
 from astropy.io import ascii
 import numpy as np
 from typing import List
-import minh
+from pminh import minh
 
 from . import params
 from . import filters
