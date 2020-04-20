@@ -6,6 +6,9 @@
 // to iterate through every single halo, do all_halos.halo_lookup[i], not sure what order is.
 
 int main(void) {
+  printf("Will read trees now...\n");
+
+
   read_tree("/home/imendoza/alcca/nbody-relaxed/data/raw/trees_bolshoi/tree_0_0_0.dat");
   printf("%"PRId64" halos found in tree_0_0_0.dat!\n", all_halos.num_halos);
 //  printf("%"PRId64" lists found in the halo tree!\n", halo_tree.num_lists);
@@ -32,29 +35,39 @@ int main(void) {
   // fprintf(fp, "# (id, tree root id, mmp, mvir, scale)\n\n");
   int64_t count=0;
   int64_t count_root=0; // how many root ids are they?
+
+  FILE *fp;
+  fp = fopen("test2.txt", "w");
+
   while(count < all_halos.num_halos){
       struct halo *curr_halo = all_halos.halos + count;
+
       if(count % 1000 ==0){
         printf("Count is %ld\n", (long)count);
       }
 
-      if(curr_halo->id == curr_halo->tree_root_id){ // if this is a root halo id, we follow it. 
+      if(curr_halo->id == curr_halo->tree_root_id){ // if this is a root halo id, we follow it.
             count_root++;
-            FILE *fp;
-            fp = fopen("test1.txt", "w");
+            // FILE *fp;
+            // fp = fopen("test1.txt", "w");
             fprintf(fp, "# tree root id: %ld \n", (long)curr_halo->tree_root_id);
 
-            while (curr_halo->prog != NULL){ //follow all the progenitors in this tree_root id. 
+            while (curr_halo->prog != NULL){ //follow all the progenitors in this tree_root id.
 
-                 fprintf(fp, "(%ld, %ld,  %f, %f, %d)\n",
-                     (long)curr_halo->id,
-                     (long)curr_halo->tree_root_id,
+                // fprintf(fp, "(%ld, %ld,  %f, %f, %d)\n",
+                //      (long)curr_halo->id,
+                //      (long)curr_halo->tree_root_id,
+                //      curr_halo->mvir,
+                //      curr_halo->scale,
+                //      (int)curr_halo->mmp
+                //      );
+                fprintf(fp, "(%f, %f, %d)\n",
                      curr_halo->mvir,
                      curr_halo->scale,
                      (int)curr_halo->mmp
                      );
 
-                if(curr_halo->mmp == 0){  // check if it's in the main line progenitor. 
+                if(curr_halo->mmp == 0){  // check if it's in the main line progenitor.
                     printf("Something is wrong !\n");
                     fclose(fp);
                     return 1;
@@ -72,17 +85,17 @@ int main(void) {
                          curr_halo->prog->scale,
                          (int)curr_halo->prog->mmp
                          );
-                  fclose(fp);
-                  return 1; 
+                    break;
+                  // fclose(fp);
+                  // return 1;
                 }
-
             }
-            fprintf(fp, "\n\n");
-            fflush(fp);
-            fclose(fp);
+        fprintf(fp, "\n\n");
+        fflush(fp);
       }
       count++;
   }
+  fclose(fp);
 
   printf("Number of root nodes is: %ld\n", (long)count_root);
   printf("final count is: %ld\n", (long)count);
