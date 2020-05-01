@@ -37,7 +37,9 @@ int main(void) {
   int64_t count_root=0; // how many root ids are they?
 
   FILE *fp;
-  fp = fopen("test2.txt", "w");
+  char *file_name = "test3.txt";
+  fp = fopen(file_name, "w");
+  printf("Overwriting file %s \n", file_name);
 
   while(count < all_halos.num_halos){
       struct halo *curr_halo = all_halos.halos + count;
@@ -61,33 +63,42 @@ int main(void) {
                 //      curr_halo->scale,
                 //      (int)curr_halo->mmp
                 //      );
+
                 fprintf(fp, "(%f, %f, %d)\n",
                      curr_halo->mvir,
                      curr_halo->scale,
                      (int)curr_halo->mmp
                      );
 
-                if(curr_halo->mmp == 0){  // check if it's in the main line progenitor.
-                    printf("Something is wrong !\n");
-                    fclose(fp);
-                    return 1;
-                }
+                // if(curr_halo->mmp == 0){  // check if it's in the main line progenitor.
+                //     printf("Something is wrong !\n");
+                //     fclose(fp);
+                //     return 1;
+                // }
 
                 if (curr_halo->prog->mmp==1){
                     curr_halo = curr_halo->prog;
                 }
 
                 else{
-                    fprintf(fp, "(%ld, %ld,  %f, %f, %d)\n",
+                    fprintf(fp, "Found a mmp=0 halo progenitor!\n");
+                    fprintf(fp, "(%ld, %ld, %f, %f, %d)\n",
                          (long)curr_halo->prog->id,
                          (long)curr_halo->prog->tree_root_id,
                          curr_halo->prog->mvir,
                          curr_halo->prog->scale,
                          (int)curr_halo->prog->mmp
                          );
+
+                    if(curr_halo->prog->next_coprog != NULL){
+                        fprintf(fp, "There is a coprogenitor!\n");
+                        fprintf(fp, "It has mass: %f\n", curr_halo->prog->next_coprog->mvir);
+                        fprintf(fp, "and mmp value: %d\n", (int)curr_halo->prog->next_coprog->mmp);
+//                        fclose(fp);
+//                        return 1;
+                    }
+
                     break;
-                  // fclose(fp);
-                  // return 1;
                 }
             }
         fprintf(fp, "\n\n");
@@ -102,37 +113,3 @@ int main(void) {
 
   return 0;
 }
-
-//      if(curr_root->mmp == 0 || curr_root->id != curr_root->tree_root_id){
-//        printf("Something is wrong!\n");
-//        return 1;
-//      }
-
-//total haloes:
-  // Get the first halo from tree_0_0_0 file
-//  int64_t id = 3060299107;
-//  printf("ID is: %" PRId64 "\n", id);
-//  printf("Number of lists is %" PRId64 "\n", halo_tree.num_lists);
-//  printf("Second halo id is %" PRId64 "\n", halo_tree.halo_lists[1].halos->id);
-//  printf("Second halo tree root id is %" PRId64 "\n", halo_tree.halo_lists[1].halos->tree_root_id);
-
-
-//  struct halo *halo1 = lookup_halo_in_list(halo_tree, id);
-//  printf("Hi!\n");
-//  printf("First halo id is %" PRId64 "\n", halo1->id);
-//  printf("First progenitor has id is %" PRId64 "\n", halo1->prog->id);
-
-//  printf("First halo has id is %" PRId64 "\n", all_halos.halos->id);
-//  printf("First halo has tree root id is %" PRId64 "\n", all_halos.halos->tree_root_id);
-////
-//  printf("First progenitor has id is %" PRId64 "\n", all_halos.halos->prog->id);
-//  printf("First progenitor has tree root id is %" PRId64 "\n", all_halos.halos->prog->tree_root_id);
-//  printf("First progenitor is main %" PRId64 "\n", all_halos.halos->prog->mmp);
-//
-//  printf("Second halo has id is %" PRId64 "\n", all_halos.halos[1].id);
-//  printf("Second halo has tree root id is %" PRId64 "\n", all_halos.halos[1].tree_root_id);
-//
-//  printf("Second halo has progenitor has id is %" PRId64 "\n", all_halos.halos[1].prog->id);
-//  printf("Second halo has progenitor has tree root id is %" PRId64 "\n", all_halos.halos[1].prog->tree_root_id);
-//  printf("Second halo has progenitor is main %" PRId64 "\n", all_halos.halos[1].prog->mmp);
-
