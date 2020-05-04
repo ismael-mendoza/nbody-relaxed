@@ -1,10 +1,23 @@
-
-import subprocess
-import os
-from src.utils import const
-import gzip
 import csv
+import gzip
+import os
+import subprocess
 from pathlib import Path
+import re
+
+from src.utils import const
+
+
+def write_main_line_progenitors(tree_dir, outname):
+    read_tree_path = Path("/home/imendoza/alcca/nbody-relaxed/packages/consistent-trees/read_tree")
+    subprocess.run(f"cd {read_tree_path.as_posix()}; make", shell=True)
+
+    for p in tree_dir.iterdir:
+        if p.suffix == '.dat' and p.name.startswith('tree'):
+            suffx = re.search(r"tree(/w*).dat", p.name).groups()[0]
+            cmd = f"cd {read_tree_path.as_posix()}; ./read_tree {p.as_posix()} {outname}{suffx}"
+            print(cmd)
+            # subprocess.run(f"cd {read_tree_path.as_posix()}; ./read_tree {p.as_posix()} {outname}{suffx}", shell=True)
 
 
 def download_trees(ncubes, dir_name, url_skeleton="https://www.slac.stanford.edu/~behroozi/Bolshoi_Trees/tree"):
@@ -47,9 +60,9 @@ def hlist_dat_to_csv(hlist_file):
 
     with gzip.open(hlist_file, 'rt') as f:
         with open(hlist_new_file, mode='w') as csvfile:
-            for i,line in enumerate(f):
+            for i, line in enumerate(f):
 
-                if i % 10000 == 0: # show progress.
+                if i % 10000 == 0:  # show progress.
                     print(i)
 
                 if i == 0:  # header
@@ -58,7 +71,7 @@ def hlist_dat_to_csv(hlist_file):
                     writer.writeheader()
 
                 if i >= 58:  # content.
-                    dct = {key: value for key,value in zip(fieldnames, line.split())}
+                    dct = {key: value for key, value in zip(fieldnames, line.split())}
                     writer.writerow(dct)
 
                 else:
