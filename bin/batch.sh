@@ -3,9 +3,9 @@
 #SBATCH --job-name=main_progenitors
 #SBATCH --mail-user=imendoza@umich.edu
 #SBATCH --mail-type=BEGIN,END
-#SBATCH --nodes=1
-#SBATCH --ntasks=5
-#SBATCH --cpus-per-task=1
+#SBATCH --nodes=1                     # number of nodes to use (usually 1)
+#SBATCH --ntasks=5                    # how many process do you need?
+#SBATCH --cpus-per-task=1             # how many cpus per process?
 #SBATCH --mem-per-cpu=4GB
 #SBATCH --time=00:30:00
 #SBATCH --account=cavestru1
