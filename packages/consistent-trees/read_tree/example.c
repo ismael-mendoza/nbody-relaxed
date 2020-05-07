@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
   FILE *fp;
   fp = fopen(outname, "w");
   printf("Overwriting file %s \n", outname);
-  fprintf(fp, "Order is: (id, mvir, scale, coprog_id, coprog_mvir, coprog_scale)");
+  fprintf(fp, "Order is: (id, mvir, scale, coprog_id, coprog_mvir, coprog_scale)\n\n");
 
   while(count < all_halos.num_halos){
       struct halo *curr_halo = all_halos.halos + count;

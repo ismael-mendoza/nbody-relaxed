@@ -1,7 +1,7 @@
 from ..frames import plots
 from ..frames.params import Param
 from . import plot_funcs
-from .. import stats
+from ..utils import stats
 
 import numpy as np
 
