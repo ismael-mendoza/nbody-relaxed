@@ -8,7 +8,7 @@ Later:
 """
 
 import pytest
-from src.frames import params
+from relaxed.frames import params
 import numpy as np
 
 
@@ -18,8 +18,8 @@ def small_bolshoi_cat():
     Return a small bolshoi catalog (one of the high z) for testing.
     :return:
     """
-    from src.frames import catalogs
-    from src.utils import const
+    from relaxed.frames import catalogs
+    from relaxed.utils import const
     path_to_cat = const.joinpath("data/bolshoi/...")
     hcat = catalogs.HaloCatalog(path_to_cat, "Bolshoi")
     return hcat

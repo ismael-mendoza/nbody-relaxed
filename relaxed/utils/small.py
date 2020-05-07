@@ -5,19 +5,18 @@ import subprocess
 from pathlib import Path
 import re
 
-from src.utils import const
+from . import const
 
 
-def write_main_line_progenitors(tree_dir, outname):
-    read_tree_path = Path("/home/imendoza/alcca/nbody-relaxed/packages/consistent-trees/read_tree")
-    subprocess.run(f"cd {read_tree_path.as_posix()}; make", shell=True)
+def write_main_line_progenitors(tree_dir, out_file):
+    subprocess.run(f"cd {const.read_tree_path.as_posix()}; make", shell=True)
 
-    for p in tree_dir.iterdir:
+    for p in tree_dir.iterdir():
         if p.suffix == '.dat' and p.name.startswith('tree'):
-            suffx = re.search(r"tree(/w*).dat", p.name).groups()[0]
-            cmd = f"cd {read_tree_path.as_posix()}; ./read_tree {p.as_posix()} {outname}{suffx}"
+            suffx = re.search(r"tree(_\d_\d_\d)\.dat", p.name).groups()[0]
+            cmd = f"cd {const.read_tree_path.as_posix()}; ./read_tree {p.as_posix()} {out_file.as_posix()}_{suffx}"
             print(cmd)
-            # subprocess.run(f"cd {read_tree_path.as_posix()}; ./read_tree {p.as_posix()} {outname}{suffx}", shell=True)
+            # subprocess.run(cmd, shell=True)
 
 
 def download_trees(ncubes, dir_name, url_skeleton="https://www.slac.stanford.edu/~behroozi/Bolshoi_Trees/tree"):
