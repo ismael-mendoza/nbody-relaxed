@@ -13,7 +13,7 @@ def main(args):
 
     progenitor_path.mkdir(exist_ok=False)
 
-    write_main_line_progenitors(tree_path, progenitor_path.joinpath("mline"), cpus=pargs.cpus)
+    write_main_line_progenitors(tree_path, progenitor_path.joinpath("mline"), cpus=args.cpus)
 
 
 if __name__ == '__main__':

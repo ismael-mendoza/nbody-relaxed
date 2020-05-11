@@ -72,7 +72,8 @@ int main(int argc, char **argv) {
   fclose(fp);
 
   fprintf(fp, "Number of root nodes is: %ld\n", (long)count_root);
-  fprintf(fp, "final count is: %ld\n", (long)count);
+  fprintf(fp, "final count is: %ld\n\n", (long)count);
+  printf("Success on writing %s!\n", outname);
 
   return 0;
 }
