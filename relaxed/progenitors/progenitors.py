@@ -1,4 +1,5 @@
 import re
+from astropy.table import Table
 
 
 def get_prog_lines_generator(progenitor_file):
@@ -18,32 +19,43 @@ def get_prog_lines_generator(progenitor_file):
                 if tree_root_match:
                     root_id = tree_root_match.groups()[0]
                     prog_line = ProgenitorLine(root_id=root_id)
-                    found_root_id = True
-                    continue
 
                 elif halo_match:
-                    halo_id, mvir, scale, coprog_id, coprog_mvir, coprog_scale = (float(x) for x in
+                    halo_id, mvir, scale, coprog_id, coprog_mvir, coprog_scale = (float(x) if x != '' else -1 for x in
                                                                                   halo_match.groups())
                     prog_line.add((halo_id, mvir, scale, coprog_id, coprog_mvir, coprog_scale))
-                    continue
 
                 elif weird_match:
-                    assert weird_match.groups()[0] == '0'
+                    assert weird_match.groups()[1] == '0', "Expected failure should have this format"
 
-                elif total_halos_match:
-                    total_halos = tota
+                elif total_halos_match or total_root_halos_match:
+                    # we are done
+                    break
 
                 else:
                     raise ValueError("Something is wrong in this halo file.")
 
             elif prog_line is not None:
+                prog_line.finalize()
                 yield prog_line
                 prog_line = None
 
+            else:
+                continue
+
 
 class ProgenitorLine(object):
-    def __init__(self):
+    def __init__(self, root_id):
         """
         Class representing progenitors read from the file created by save_progenitors.py
         """
-        pass
+        self.root_id = root_id
+        self.cat = Table()
+        self.colnames = ['halo_id', 'mvir', 'scale', 'coprog_ids', 'coprog_mvirs', 'coprog_scale']
+        self.rows = []
+
+    def add(self, halo_tuple):
+        self.rows.append(halo_tuple)
+
+    def finalize(self):
+        self.cat = Table(rows=self.rows, names=self.colnames)
