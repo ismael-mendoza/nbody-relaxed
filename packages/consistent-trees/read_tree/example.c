@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <stdlib.h>
+
 #include <inttypes.h>
 #include "read_tree.h"
 
@@ -8,8 +10,11 @@
 int main(int argc, char **argv) {
   char *path = argv[1];
   char *outname = argv[2];
-  printf("Will read trees now from %s\n", path);
 
+  char *pend;
+  float Mcut = strtof(argv[3], &pend);
+
+  printf("Will read trees now from %s\n", path);
   read_tree(path);
   printf("%"PRId64" halos found in %s!\n", all_halos.num_halos, path);
 
@@ -24,7 +29,7 @@ int main(int argc, char **argv) {
   while(count < all_halos.num_halos){
       struct halo *curr_halo = all_halos.halos + count;
 
-      if(curr_halo->id == curr_halo->tree_root_id){ // if this is a root halo id, we follow it.
+      if(curr_halo->id == curr_halo->tree_root_id && curr_halo->mvir > Mcut){ // if this is a root halo id, we follow it.
             count_root++;
             fprintf(fp, "# tree root id: %ld #\n", (long)curr_halo->tree_root_id);
 
@@ -69,10 +74,15 @@ int main(int argc, char **argv) {
       }
       count++;
   }
-  fclose(fp);
+
+  printf("Number of root nodes is: %ld\n", (long)count_root);
+  printf("final count is: %ld\n\n", (long)count);
 
   fprintf(fp, "Number of root nodes is: %ld\n", (long)count_root);
   fprintf(fp, "final count is: %ld\n\n", (long)count);
+  fflush(fp);
+  fclose(fp);
+
   printf("Success on writing %s!\n", outname);
 
   return 0;
