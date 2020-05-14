@@ -1,5 +1,5 @@
 import numpy as np
-from astropy.table import Column
+from astropy.table import Column, Table
 
 
 # functions to get derived quantities.
@@ -82,23 +82,33 @@ class Param(object):
         self.text = self.get_text() if not text else text
         self.values = None
 
-    def get_values_minh(self, minh, b=None):
+    def get_values_minh(self, mcat, b=None):
 
         if not self.derive_func:
-            pass
+            if b is None:
+                return mcat.read([self.key])
 
-        pass
+            else:
+                return mcat.block(b, [self.key])
+
+        else:
+            if b is None:
+                t = Table([Column(data=mcat.read([self.required_derive_params]))])
+            else:
+                t = Table([Column(data=mcat.block(b, [self.required_derive_params]))])
+
+            self.get_values(t)
 
     def get_values(self, cat):
-        assert self.key in cat.colnames or self.derive is not None, f"Cannot obtained the parameter {self.key} for " \
-                                                                    f"the given catalog."
+        assert self.key in cat.colnames or self.derive_func is not None, f"Cannot obtained the parameter {self.key} for " \
+                                                                         f"the given catalog."
 
         if self.values is not None:
             return self.values
         elif self.key in cat.colnames:
             values = cat[self.key]
         else:
-            values = self.derive(cat)
+            values = self.derive_func(cat)
 
         if self.log:
             values = np.log10(values)

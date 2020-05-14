@@ -3,7 +3,7 @@ from astropy.table import Table
 from astropy.io import ascii
 import numpy as np
 from typing import List
-# from pminh import minh
+from pminh import minh
 
 from . import params
 from . import filters
@@ -78,14 +78,14 @@ class HaloCatalog(object):
     def with_relaxed_filters(self, relaxed_name=None):
         self.with_filters(filters.get_relaxed_filters(relaxed_name), catalog_label=f"{relaxed_name} relaxed")
 
+    def reset_base_cat(self, catalog_label='all halos'):
+        self._cat = self._bcat
+        self.catalog_label = catalog_label
+
     def save_base_cat(self, filepath):
         assert self._cat is not None, "cat must be loaded"
         assert filepath.suffix == '.csv', "format supported will be csv for now"
         ascii.write(self._bcat, filepath, format='csv', fast_writer=True)
-
-    def reset_base_cat(self, catalog_label='all halos'):
-        self._cat = self._bcat
-        self.catalog_label = catalog_label
 
     def load_base_cat(self, use_minh=False, bcat=None):
         """
@@ -135,7 +135,7 @@ class HaloCatalog(object):
             # do filtering on the fly so don't actually ever read unfiltered catalog.
             cats = []
 
-            for b in minh_cat.blocks:
+            for i, b in enumerate(minh_cat.blocks):
                 new_cat = Table()
 
                 # First obtain all the parameters that we want to have.
@@ -181,14 +181,14 @@ class HaloCatalog(object):
         return cat
 
     @staticmethod
-    def _get_not_log_value(cat, key, b):
+    def _get_not_log_value(key, mcat, b=None):
         """
         Only purpose is for the filters.
         :param cat:
         :param key:
         :return:
         """
-        return params.Param(key, log=False).get_values(cat)
+        return params.Param(key, log=False).get_values_minh(mcat, b)
 
     def __len__(self):
         return len(self._cat)
@@ -212,7 +212,7 @@ class HaloCatalog(object):
                        params_to_include=old_hcat.params_to_include)
 
         # it is ok to have a view for the base cat, since filtering will create a copy.
-        new_hcat.load_base_cat(use_generator=False, bcat=old_hcat.get_cat())
+        new_hcat.load_base_cat(use_minh=False, bcat=old_hcat.get_cat())
         new_hcat.with_filters(myfilters, catalog_label=catalog_label)
         return new_hcat
 
@@ -230,5 +230,5 @@ class HaloCatalog(object):
         """
         hcat = cls(cat_file, *args, **kwargs)
         cat = ascii.read(cat_file, format='csv')
-        hcat.load_base_cat(use_generator=False, bcat=cat)
+        hcat.load_base_cat(use_minh=False, bcat=cat)
         return hcat
