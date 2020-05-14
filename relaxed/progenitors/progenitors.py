@@ -56,14 +56,20 @@ class ProgenitorLine(object):
         self.cat = Table()
         self.colnames = ['halo_id', 'mvir', 'scale', 'coprog_ids', 'coprog_mvirs', 'coprog_scale']
         self.rows = []
+        self.finalized = False
 
     def add(self, halo_tuple):
+        assert not self.finalized
         self.rows.append(halo_tuple)
 
     def finalize(self):
+        assert not self.finalized
+        self.finalized = True
         self.cat = Table(rows=self.rows, names=self.colnames)
 
     def get_a2(self):
+        assert self.finalized
+
         # return the a_1/2 scale.
         idx = np.argmin(
             np.where(
@@ -74,6 +80,8 @@ class ProgenitorLine(object):
         return self.cat['scale'][idx]
 
     def get_alpha(self):
+        assert self.finalized
+
         # get best exponential fit to the line of main progenitors.
         from scipy.optimize import curve_fit
 

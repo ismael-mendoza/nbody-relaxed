@@ -67,6 +67,7 @@ def merge_progenitors(tree_dir, progenitor_dir):
     with open(progenitor_file, 'w') as pf:
         for p in progenitor_dir.iterdir():
             assert p.name.startswith("mline")
+            print(p.name)
             with open(p, 'r') as single_pf:
                 pf.write(single_pf.read())  # ignore headers, etc. which is account for in progenitors.py
 
