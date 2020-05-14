@@ -1,7 +1,7 @@
 from __future__ import print_function, division
 
 import numpy as np
-import binning
+from . import binning
 
 """
 subhaloes.py provides several utility functions for analysing a host halo's
@@ -44,7 +44,7 @@ def bin_by_host(host_ids, sub_pids):
 
 # Provided as an example of how to use bin_by_host:
 
-def M_sub(host_ids, sub_mvir, sub_pids):
+def m_sub(host_ids, sub_mvir, sub_pids):
     """ M_sub returns the sum of the mass of all subhaloes of each host.
     """
     bins = bin_by_host(host_ids, sub_pids)
@@ -57,7 +57,7 @@ def M_sub(host_ids, sub_mvir, sub_pids):
     return M_sub
 
 
-def N_sub(host_ids, sub_pids):
+def n_sub(host_ids, sub_pids):
     bins = bin_by_host(host_ids, sub_pids)
     N_sub = np.zeros(len(bins))
     for i in range(len(M_sub)):

@@ -1,7 +1,7 @@
 from __future__ import print_function
 import numpy as np
-import cy_binning
 import time
+import cy_binning
 
 """ binning.py contains wrappers for Cython routines which bin data almost a
 hundred times faster than any native Python routine can.
