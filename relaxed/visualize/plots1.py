@@ -134,7 +134,7 @@ def plot_decades_basic(hcats, pdf, colors):
 
     # Plot 5: Correlation between all pairs of different relaxedness parameters as a function
     # of mass half decades.
-    # params to include:  'T/|U|', 'x0', 'v0', 'xoff', 'Voff', 'q', 'cvir'
+    # params to include:  't/|u|', 'x0', 'v0', 'xoff', 'Voff', 'q', 'cvir'
     params = [
         (Param('t/|u|', log=True), Param('x0', log=True)),
         (Param('t/|u|', log=True), Param('v0', log=True)),

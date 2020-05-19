@@ -5,6 +5,7 @@ import numpy as np
 from astropy.io import ascii
 from astropy.table import Table
 from pminh import minh
+from contextlib import contextmanager
 
 from . import filters
 from . import params
@@ -77,17 +78,21 @@ class HaloCatalog(object):
     def get_filters(self):
         return self._filters
 
-    def with_filters(self, myfilters, catalog_label='filtered catalog'):
+    @contextmanager
+    def using_filters(self, myfilters, catalog_label='filtered catalog'):
+        old_label = self.catalog_label
+        self.catalog_label = catalog_label
         self._cat = self._filter_cat(self._cat, myfilters)
-        self.catalog_label = catalog_label
 
-    def with_relaxed_filters(self, relaxed_name=None):
-        self.with_filters(filters.get_relaxed_filters(relaxed_name),
-                          catalog_label=f"{relaxed_name} relaxed")
+        try:
+            yield self
+        finally:
+            self._cat = self._bcat
+            self.catalog_label = old_label
 
-    def reset_base_cat(self, catalog_label='all halos'):
-        self._cat = self._bcat
-        self.catalog_label = catalog_label
+    def using_relaxed_filters(self, relaxed_name=None):
+        self.using_filters(filters.get_relaxed_filters(relaxed_name),
+                           catalog_label=f"{relaxed_name} relaxed")
 
     def save_base_cat(self, filepath):
         assert self._cat is not None, "cat must be loaded"
