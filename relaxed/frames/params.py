@@ -12,10 +12,10 @@ def get_phi_l(cat):
     :rtype: astropy.Column
     """
     return np.arccos(
-        ((cat['A[x]'] * cat['Jx'] + cat['A[y]'] * cat['Jy'] + cat['A[z]'] * cat['Jz'])
+        ((cat['ax'] * cat['jx'] + cat['ay'] * cat['jy'] + cat['az'] * cat['jz'])
          /
-         (np.sqrt(cat['A[x]'] ** 2 + cat['A[y]'] ** 2 + cat['A[z]'] ** 2) * np.sqrt(
-             cat['Jx'] ** 2 + cat['Jy'] ** 2 + cat['Jz'] ** 2))
+         (np.sqrt(cat['ax'] ** 2 + cat['ay'] ** 2 + cat['az'] ** 2) * np.sqrt(
+             cat['jx'] ** 2 + cat['jy'] ** 2 + cat['jz'] ** 2))
          )
     )
 
@@ -89,10 +89,12 @@ class Param(object):
 
         if not self.derive_func:
             if b is None:
-                return mcat.read([self.key])
+                data = mcat.read([self.key]).pop()
 
             else:
-                return mcat.block(b, [self.key])
+                data = mcat.block(b, [self.key]).pop()
+
+            return Column(data=data, name=self.key)
 
         else:
             if b is None:
@@ -152,17 +154,17 @@ info_params = {
     'mvir': (None, ('Msun/h', 'h^{-1} \\, M_{\\odot}'), 'M_{\\rm vir}'),
     'rvir': (None, ('kpc/h', 'h^{-1} \\, kpc'), 'R_{\\rm vir}'),
     'rs': (None, ('kpc/h', 'h^{-1} \\, kpc'), 'R_{\\rm vir}'),
-    'Xoff': (None, ('kpc/h', 'h^{-1} \\, kpc'), 'X_{\\rm off}'),
-    'Voff': (None, ('km/s', 'km \\, s^{-1}'), 'V_{\\rm off}'),
+    'xoff': (None, ('kpc/h', 'h^{-1} \\, kpc'), 'X_{\\rm off}'),
+    'voff': (None, ('km/s', 'km \\, s^{-1}'), 'V_{\\rm off}'),
     'vrms': (None, ('km/s', 'km \\, s^{-1}'), 'V_{\\rm rms}'),
-    'Acc_Rate_1*Tdyn': (None, ('Msun/h/yr', 'h^{-1}\\, yr^{-1} \\, M_{\\odot}'),
-                        '\\alpha_{\\tau_{\\rm dyn}}'),
-    'Acc_Rate_Inst': (
+    'gamma_tdyn': (None, ('Msun/h/yr', 'h^{-1}\\, yr^{-1} \\, M_{\\odot}'),
+                   '\\alpha_{\\tau_{\\rm dyn}}'),
+    'gamma_inst': (
         None, ('Msun/h/yr', 'h^{-1}\\, yr^{-1} \\, M_{\\odot}'), '\\alpha_{\\rm inst}'),
 
-    'T/|U|': (None, None, 'T/|U|'),
-    'Spin': (None, None, '\\lambda'),
-    'scale_of_last_MM': (None, None, '\\delta_{\\rm MM}'),
+    't/|u|': (None, None, 'T/|U|'),
+    'spin': (None, None, '\\lambda'),
+    'scale_of_last_mm': (None, None, '\\delta_{\\rm MM}'),
 
     # derived quantities.
     'cvir': ((lambda cat: cat['rvir'] / cat['rs'], ('rvir', 'rs')), None, 'c_{\\rm vir}'),
@@ -171,24 +173,24 @@ info_params = {
         (lambda cat: (1 / 2) * (cat['b_to_a'] + cat['c_to_a']), ('b_to_a', 'c_to_a')),
         None,
         'q'),
-    'phi_l': ((get_phi_l, ('A[x]', 'A[y]', 'A[z]', 'Jx', 'Jy', 'Jz')), None, '\\Phi_{l}'),
-    'xoff': (
-        (lambda cat: cat['Xoff'] / cat['rvir'], ('Xoff', 'rvir')), None, 'x_{\\rm off}'),
-    'voff': (
-        (lambda cat: cat['Voff'] / cat['vrms'], ('Voff', 'vrms')), None, 'v_{\\rm off}'),
+    'phi_l': ((get_phi_l, ('ax', 'ay', 'az', 'jx', 'jy', 'jz')), None, '\\Phi_{l}'),
+    'x0': (
+        (lambda cat: cat['xoff'] / cat['rvir'], ('Xoff', 'rvir')), None, 'x_{\\rm off}'),
+    'v0': (
+        (lambda cat: cat['voff'] / cat['vrms'], ('Voff', 'vrms')), None, 'v_{\\rm off}'),
     # 'fsub': (get_fsub, '', '', 'f_{\\rm sub}'),
     # 'tdyn': (lambda cat: np.sqrt(2) * cat['rvir'] / cat['vrms'], 'kpc/h / km/s',
     # '', '\\tau_{\\rm dyn}'), (notesheet)
 
     # usually excluded quantities necessary for filtering
     'upid': (None, '', '', ''),
-    'mag2_A': ((lambda cat: cat['A[x]'] ** 2 + cat['A[y]'] ** 2 + cat['A[z]'] ** 2,
-                ('A[x]', 'A[y]', 'A[z]')),
+    'mag2_a': ((lambda cat: cat['ax'] ** 2 + cat['ay'] ** 2 + cat['ax'] ** 2,
+                ('ax', 'ay', 'az')),
                None, None),
-    'mag2_J': (
+    'mag2_j': (
         (
-            lambda cat: cat['Jx'] ** 2 + cat['Jy'] ** 2 + cat['Jz'] ** 2,
-            ('Jx', 'Jy', 'Jz')),
+            lambda cat: cat['jx'] ** 2 + cat['jy'] ** 2 + cat['jz'] ** 2,
+            ('jx', 'jy', 'jz')),
         None, None),
 }
 
@@ -199,6 +201,6 @@ params_dict = {
 }
 
 param_names = params_dict.keys()
-default_params_to_exclude = {'mag2_A', 'mag2_J'}
+default_params_to_exclude = {'mag2_a', 'mag2_j'}
 default_params_to_include = [param for param in param_names if
                              param not in default_params_to_exclude]
