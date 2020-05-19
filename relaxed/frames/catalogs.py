@@ -48,9 +48,9 @@ class HaloCatalog(object):
         self.params_to_include = (params_to_include if params_to_include
                                   else params.default_params_to_include)
 
-        self._filters = base_filters if base_filters is not None else filters.get_default_base_filters(
-            self.particle_mass,
-            self.subhalos)
+        self._filters = (base_filters if base_filters is not None else
+                         filters.get_default_base_filters(self.particle_mass, self.subhalos)
+                       )
 
         if not set(self._filters.keys()).issubset(set(self.param_names)):
             raise ValueError(
@@ -102,7 +102,8 @@ class HaloCatalog(object):
         :param bcat:
         :return:
         """
-        assert use_minh is False, "Not implemented this functionality yet, for now just return full catalog."
+        assert use_minh is False, "Not implemented this functionality yet, for now just return " \
+                                  "full catalog. "
         assert self._bcat is None, "Overriding catalog that is already created. (probably wasteful)"
 
         self.use_minh = use_minh
@@ -140,7 +141,7 @@ class HaloCatalog(object):
             # do filtering on the fly so don't actually ever read unfiltered catalog.
             cats = []
 
-            for i, b in enumerate(minh_cat.blocks):
+            for b in range(minh_cat.blocks):
                 new_cat = Table()
 
                 # * First obtain all the parameters that we want to have.
@@ -150,8 +151,7 @@ class HaloCatalog(object):
                 # this will be filtered out later.
                 with np.errstate(divide='ignore', invalid='ignore'):
                     for param in self.param_names:
-                        values = self._get_not_log_value(b, minh_cat,
-                                                         param)  # type = astropy.Column
+                        values = self._get_not_log_value(param, minh_cat, b)
                         new_cat.add_column(values, name=param)
 
                 # once all needed params are in new_cat, we filter it out to reduce size.
@@ -161,8 +161,8 @@ class HaloCatalog(object):
                 cats.append(new_cat)
 
                 if self.verbose:
-                    if i % 10 == 0:
-                        print(i)
+                    if b % 10 == 0:
+                        print(b)
 
             return astropy.table.vstack(cats)
 
