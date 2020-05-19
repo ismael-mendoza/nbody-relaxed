@@ -7,3 +7,12 @@ figure_path = root_path.joinpath("figures")
 packages_path = root_path.joinpath("packages")
 data_path = root_path.joinpath("data")
 read_tree_path = packages_path.joinpath("consistent-trees/read_tree")
+
+
+def is_iterable(obj):
+    try:
+        iter(obj)
+    except Exception:
+        return False
+    else:
+        return True

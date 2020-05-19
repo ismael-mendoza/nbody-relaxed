@@ -1,6 +1,8 @@
 import numpy as np
 from astropy.table import Column, Table
 
+from ..utils import const
+
 
 # functions to get derived quantities.
 def get_phi_l(cat):
@@ -78,6 +80,7 @@ class Param(object):
         if derivation_pair:
             self.derive_func = derivation_pair[0]
             self.required_derive_params = derivation_pair[1]
+            assert const.is_iterable(self.required_derive_params)
 
         self.log = log
         self.modifiers = modifiers
@@ -99,11 +102,11 @@ class Param(object):
         else:
             if b is None:
                 t = Table(
-                        mcat.read(self.required_derive_params), names=self.required_derive_params
-                    )
+                    mcat.read(self.required_derive_params), names=self.required_derive_params
+                )
             else:
                 t = Table(
-                    mcat.read(b, self.required_derive_params), names=self.required_derive_params
+                    mcat.block(b, self.required_derive_params), names=self.required_derive_params
                 )
 
             return self.get_values(t)
@@ -172,16 +175,16 @@ info_params = {
 
     # derived quantities.
     'cvir': ((lambda cat: cat['rvir'] / cat['rs'], ('rvir', 'rs')), None, 'c_{\\rm vir}'),
-    'eta': ((lambda cat: 2 * cat['t/|u|'], 't/|u|'), None, '\\eta'),
+    'eta': ((lambda cat: 2 * cat['t/|u|'], ('t/|u|',)), None, '\\eta'),
     'q': (
         (lambda cat: (1 / 2) * (cat['b_to_a'] + cat['c_to_a']), ('b_to_a', 'c_to_a')),
         None,
         'q'),
     'phi_l': ((get_phi_l, ('ax', 'ay', 'az', 'jx', 'jy', 'jz')), None, '\\Phi_{l}'),
     'x0': (
-        (lambda cat: cat['xoff'] / cat['rvir'], ('Xoff', 'rvir')), None, 'x_{\\rm off}'),
+        (lambda cat: cat['xoff'] / cat['rvir'], ('xoff', 'rvir')), None, 'x_{\\rm off}'),
     'v0': (
-        (lambda cat: cat['voff'] / cat['vrms'], ('Voff', 'vrms')), None, 'v_{\\rm off}'),
+        (lambda cat: cat['voff'] / cat['vrms'], ('voff', 'vrms')), None, 'v_{\\rm off}'),
     # 'fsub': (get_fsub, '', '', 'f_{\\rm sub}'),
     # 'tdyn': (lambda cat: np.sqrt(2) * cat['rvir'] / cat['vrms'], 'kpc/h / km/s',
     # '', '\\tau_{\\rm dyn}'), (notesheet)

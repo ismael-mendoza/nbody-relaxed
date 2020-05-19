@@ -50,7 +50,7 @@ class HaloCatalog(object):
 
         self._filters = (base_filters if base_filters is not None else
                          filters.get_default_base_filters(self.particle_mass, self.subhalos)
-                       )
+                         )
 
         if not set(self._filters.keys()).issubset(set(self.param_names)):
             raise ValueError(
