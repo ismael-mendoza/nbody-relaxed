@@ -4,7 +4,6 @@ reproducible plots and separate the plotting procedure from the images produced.
 """
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import gridspec
 
 from ..utils import const
 

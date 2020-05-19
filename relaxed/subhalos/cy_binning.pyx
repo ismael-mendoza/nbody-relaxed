@@ -1,4 +1,3 @@
-import numpy as np
 cimport cython
 
 @cython.boundscheck(False)

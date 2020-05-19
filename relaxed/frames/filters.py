@@ -41,7 +41,7 @@ def particle_mass_filter(particle_mass):
     """
 
     return {'mvir': lambda mvirs: (np.log10(mvirs) > np.log10(particle_mass * 1e3)) & (
-                np.log10(mvirs) < 14.18)}
+            np.log10(mvirs) < 14.18)}
 
 
 def catalog_mass_filter(catalog_name):

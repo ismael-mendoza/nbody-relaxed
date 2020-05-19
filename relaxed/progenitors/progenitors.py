@@ -28,8 +28,8 @@ def get_prog_lines_generator(progenitor_file):
 
                 elif halo_match:
                     halo_id, mvir, scale, coprog_id, coprog_mvir, coprog_scale = (
-                    float(x) if x != '' else -1 for x in
-                    halo_match.groups())
+                        float(x) if x != '' else -1 for x in
+                        halo_match.groups())
                     prog_line.add(
                         (halo_id, mvir, scale, coprog_id, coprog_mvir, coprog_scale))
 

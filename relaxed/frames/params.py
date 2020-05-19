@@ -51,14 +51,16 @@ class Param(object):
 
     def __init__(self, key, log=False, modifiers=None, text=None):
         """
-        Class implementing a Param object which manages how data is accessed from catalog and attributes like its name
-        and its text representation for plots.
+        Class implementing a Param object which manages how data is accessed from catalog
+        and attributes like its name and its text representation for plots.
 
 
-        :param key: is the actual string used to access the corresponding parameter from the catalogue.
-        :param log: Whether to log the values when returning them and change the label to indicate that there is a log.
-        :param modifiers: Extra modifiers to the values passed in as a list of lambda functions. This will be applied
-                         after logging.
+        :param key: is the actual string used to access the corresponding parameter from
+                    the catalogue.
+        :param log: Whether to log the values when returning them and change the label to
+                    indicate that there is a log.
+        :param modifiers: Extra modifiers to the values passed in as a list of lambda
+                         functions. This will be applied  after logging.
         """
         self.key = key
         self.latex_param = params_dict[key]['latex_param']
@@ -101,8 +103,9 @@ class Param(object):
             self.get_values(t)
 
     def get_values(self, cat):
-        assert self.key in cat.colnames or self.derive_func is not None, f"Cannot obtained the parameter {self.key} for " \
-                                                                         f"the given catalog."
+        if self.key not in cat.colnames and self.derive_func is None:
+            raise ValueError(f"Cannot obtained the parameter {self.key} for "
+                             f"the given catalog.")
 
         if self.values is not None:
             return self.values
@@ -186,7 +189,7 @@ info_params = {
         (
             lambda cat: cat['Jx'] ** 2 + cat['Jy'] ** 2 + cat['Jz'] ** 2,
             ('Jx', 'Jy', 'Jz')),
-            None, None),
+        None, None),
 }
 
 # nicer format.
