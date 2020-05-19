@@ -168,7 +168,7 @@ info_params = {
 
     # derived quantities.
     'cvir': ((lambda cat: cat['rvir'] / cat['rs'], ('rvir', 'rs')), None, 'c_{\\rm vir}'),
-    'eta': ((lambda cat: 2 * cat['T/|U|'], 'T/U'), None, '\\eta'),
+    'eta': ((lambda cat: 2 * cat['t/|u|'], 't/|u|'), None, '\\eta'),
     'q': (
         (lambda cat: (1 / 2) * (cat['b_to_a'] + cat['c_to_a']), ('b_to_a', 'c_to_a')),
         None,
