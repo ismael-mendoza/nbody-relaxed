@@ -147,7 +147,7 @@ class HaloCatalog(object):
                 # * First obtain all the parameters that we want to have.
                 # each block in minh is complete so all parameters can
                 # be obtained in any order.
-                # * ignore warning of possible parameters that are divided by zero,
+                # * Ignore warning of possible parameters that are divided by zero,
                 # this will be filtered out later.
                 with np.errstate(divide='ignore', invalid='ignore'):
                     for param in self.param_names:

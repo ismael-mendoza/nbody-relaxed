@@ -22,11 +22,11 @@ def get_default_base_filters(particle_mass, subhalos):
         **particle_mass_filter(particle_mass),
         'upid': lambda x: (x == -1 if not subhalos else x >= 0),
         # the ones after seem to have no effect after for not subhalos.
-        'Spin': lambda x: x != 0,
+        'spin': lambda x: x != 0,
         'q': lambda x: x != 0,
         'vrms': lambda x: x != 0,
-        'mag2_A': lambda x: x != 0,
-        'mag2_J': lambda x: x != 0,
+        'mag2_a': lambda x: x != 0,
+        'mag2_j': lambda x: x != 0,
     }
 
 
@@ -46,8 +46,8 @@ def particle_mass_filter(particle_mass):
 
 def catalog_mass_filter(catalog_name):
     """
-    * The cuts on mvir are based on Phil's comment that Bolshoi/BolshoiP only give reasonable results up to
-    log10(Mvir) ~ 13.5 - 13.75.
+    * The cuts on mvir are based on Phil's comment that Bolshoi/BolshoiP only give reasonable
+    results up to log10(Mvir) ~ 13.5 - 13.75.
     :return:
     """
 
@@ -69,13 +69,13 @@ def get_relaxed_filters(relaxed_name):
 
     if relaxed_name == 'power2011':
         return {
-            'xoff': lambda x: x < 0.04,
+            'x0': lambda x: x < 0.04,
         }
 
     if relaxed_name == 'neto2007':
         return {
             # 'fsub': lambda x: x < 0.1,
-            'xoff': lambda x: x < 0.07,
+            'x0': lambda x: x < 0.07,
             'eta': lambda x: x < 1.35
         }
 

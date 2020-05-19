@@ -98,11 +98,15 @@ class Param(object):
 
         else:
             if b is None:
-                t = Table([Column(data=mcat.read([self.required_derive_params]))])
+                t = Table(
+                        mcat.read(self.required_derive_params), names=self.required_derive_params
+                    )
             else:
-                t = Table([Column(data=mcat.block(b, [self.required_derive_params]))])
+                t = Table(
+                    mcat.read(b, self.required_derive_params), names=self.required_derive_params
+                )
 
-            self.get_values(t)
+            return self.get_values(t)
 
     def get_values(self, cat):
         if self.key not in cat.colnames and self.derive_func is None:
