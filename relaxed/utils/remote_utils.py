@@ -2,7 +2,9 @@
 Useful functions for submitting sbatch jobs.
 """
 import subprocess
+
 import numpy as np
+
 from utils import const
 
 # ToDo: Create the directories below
@@ -12,7 +14,6 @@ logs_dir = batch_dir.joinpath("logs")
 
 # ToDo: Implement iterations, make it clear
 def run_sbatch_job(cmd, jobs_dir_name, jobname, time='01:00', memory='5GB', iterations=1):
-
     # prepare files and directories
     jobseed = np.random.randint(1e6)
     identifier = jobname + "_" + str(jobseed)

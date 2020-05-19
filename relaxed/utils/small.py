@@ -1,8 +1,8 @@
 import csv
 import gzip
 import os
-from pathlib import Path
 import subprocess
+from pathlib import Path
 
 
 def get_stem(filename: str):
@@ -27,7 +27,8 @@ def hlist_dat_to_csv(hlist_file):
                     print(i)
 
                 if i == 0:  # header
-                    fieldnames = [name[:name.rfind('(')].strip('#') for name in line.split()]
+                    fieldnames = [name[:name.rfind('(')].strip('#') for name in
+                                  line.split()]
                     writer = csv.DictWriter(csvfile, fieldnames)
                     writer.writeheader()
 

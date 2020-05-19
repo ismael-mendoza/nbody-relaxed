@@ -1,12 +1,13 @@
-import astropy
-from astropy.table import Table
-from astropy.io import ascii
-import numpy as np
 from typing import List
+
+import astropy
+import numpy as np
+from astropy.io import ascii
+from astropy.table import Table
 from pminh import minh
 
-from . import params
 from . import filters
+from . import params
 
 # particle mass (Msun/h), total particles, box size (Mpc/h).
 catalog_properties = {
@@ -19,7 +20,8 @@ catalog_properties = {
 class HaloCatalog(object):
 
     def __init__(self, filepath, catalog_name, subhalos=False, base_filters=None,
-                 params_to_include: List[str] = None, verbose=False, catalog_label='all halos'):
+                 params_to_include: List[str] = None, verbose=False,
+                 catalog_label='all halos'):
         """
 
         :param filepath:
@@ -30,26 +32,30 @@ class HaloCatalog(object):
         assert subhalos is False, "Not implemented subhalo functionality."
 
         self.filepath = filepath
-        assert self.filepath.name.endswith('.minh'), "Using Phil's format exclusively now."
+        assert self.filepath.name.endswith(
+            '.minh'), "Using Phil's format exclusively now."
 
         self.catalog_name = catalog_name
         self.verbose = verbose
         self.subhalos = subhalos
-        self.particle_mass, self.total_particles, self.box_size = catalog_properties[self.catalog_name]
+        self.particle_mass, self.total_particles, self.box_size = catalog_properties[
+            self.catalog_name]
         self.catalog_label = catalog_label  # for use in things like legends.
 
         # name of all params that will be needed for filtering and
         # params we actually want to have at the end in the output catalog.
         self.param_names = params.param_names
-        self.params_to_include = params_to_include if params_to_include else params.default_params_to_include
+        self.params_to_include = (params_to_include if params_to_include
+                                  else params.default_params_to_include)
 
         self._filters = base_filters if base_filters is not None else filters.get_default_base_filters(
             self.particle_mass,
             self.subhalos)
 
-        if not set(self._cfilters.keys()).issubset(set(self.param_names)):
-            raise ValueError("filtering will fail since not all params are in self.param_names,"
-                             "need to update params.py")
+        if not set(self._filters.keys()).issubset(set(self.param_names)):
+            raise ValueError(
+                "filtering will fail since not all params are in self.param_names,"
+                "need to update params.py")
 
         # will be potentially defined later.
         self.use_minh = None
@@ -76,7 +82,8 @@ class HaloCatalog(object):
         self.catalog_label = catalog_label
 
     def with_relaxed_filters(self, relaxed_name=None):
-        self.with_filters(filters.get_relaxed_filters(relaxed_name), catalog_label=f"{relaxed_name} relaxed")
+        self.with_filters(filters.get_relaxed_filters(relaxed_name),
+                          catalog_label=f"{relaxed_name} relaxed")
 
     def reset_base_cat(self, catalog_label='all halos'):
         self._cat = self._bcat
@@ -89,7 +96,8 @@ class HaloCatalog(object):
 
     def load_base_cat(self, use_minh=False, bcat=None):
         """
-        This function is used to set the cat attribute in the hcat to the catalog so it can be used in the future.
+        This function is used to set the cat attribute in the hcat to the catalog so it
+        can be used in the future.
         :param use_minh:
         :param bcat:
         :return:
@@ -99,7 +107,7 @@ class HaloCatalog(object):
 
         self.use_minh = use_minh
         if not bcat:
-            self._bcat = self._load_cat()  # could be a generator or an astropy.Table object.
+            self._bcat = self._load_cat()
 
         else:
             self._bcat = bcat
@@ -107,12 +115,6 @@ class HaloCatalog(object):
         self._cat = self._bcat  # filtering will create a copy later if necessary.
 
     def _get_minh_cat(self):
-        """
-        This will eventually contain all the complexities of Phil's code and return a generator to access
-        the catalog in chunks. For now it offers the chunkified version of my catalog how I've been doing it.
-        :return:
-        """
-
         return minh.open(self.filepath)
 
     def _load_cat(self):
@@ -125,11 +127,14 @@ class HaloCatalog(object):
         minh_cat = self._get_minh_cat()
 
         if self.use_minh:
-            return minh_cat  # will do operations in each of the blocks through another interface.
+            # will do operations in each of the blocks through another interface.
+            return minh_cat
 
         else:
             if self.verbose:
-                print("Ignoring dividing by zero and invalid errors that should be filtered out anyways.")
+                print(
+                    "Ignoring dividing by zero and invalid errors that should "
+                    "be filtered out anyways.")
 
             # actually extract the data from gcats and read it into memory.
             # do filtering on the fly so don't actually ever read unfiltered catalog.
@@ -138,16 +143,20 @@ class HaloCatalog(object):
             for i, b in enumerate(minh_cat.blocks):
                 new_cat = Table()
 
-                # First obtain all the parameters that we want to have.
-                # each block in minh is complete so all parameters can be obtained in any order.
-                # ignore warning of possible parameters that are divided by zero, this will be filtered out later.
+                # * First obtain all the parameters that we want to have.
+                # each block in minh is complete so all parameters can
+                # be obtained in any order.
+                # * ignore warning of possible parameters that are divided by zero,
+                # this will be filtered out later.
                 with np.errstate(divide='ignore', invalid='ignore'):
                     for param in self.param_names:
-                        values = self._get_not_log_value(b, minh_cat, param)  # type = astropy.Column
+                        values = self._get_not_log_value(b, minh_cat,
+                                                         param)  # type = astropy.Column
                         new_cat.add_column(values, name=param)
 
-                # once everything is calculated, filter out stuff.
-                new_cat = self._filter_cat(new_cat, self._filters, use_include_params=True)
+                # once all needed params are in new_cat, we filter it out to reduce size.
+                new_cat = self._filter_cat(new_cat, self._filters,
+                                           use_include_params=True)
 
                 cats.append(new_cat)
 
@@ -159,17 +168,19 @@ class HaloCatalog(object):
 
     def _filter_cat(self, cat, myfilters, use_include_params=False):
         """
-        * Do all the appropriate filtering required when not reading the generator expression, in particular cat is
-        assumed to contain all the parameter in param_names before value filters are applied.
+        * Do all the appropriate filtering required when not reading the generator
+        expression, in particular cat is assumed to contain all the parameter in
+        param_names before value filters are applied.
 
-        * Not all parameters are actually required once filtering is complete so they can be (optionally)
-        removed according to self.params_to_include.
+        * Not all parameters are actually required once filtering is complete so they
+        can be (optionally) removed according to self.params_to_include.
 
         NOTE: All filters assumed no logging has been done on the raw catalog columns.
 
         :param cat:
         :param myfilters:
-        :param use_include_params: whether to remove all parameters that are not in `self.params_to_include`
+        :param use_include_params: whether to remove all parameters that are not in
+                                   `self.params_to_include`
         :return:
         """
         for param_name, myfilter in myfilters.items():
@@ -184,7 +195,6 @@ class HaloCatalog(object):
     def _get_not_log_value(key, mcat, b=None):
         """
         Only purpose is for the filters.
-        :param cat:
         :param key:
         :return:
         """
@@ -203,11 +213,13 @@ class HaloCatalog(object):
         :return:
         """
         assert old_hcat.get_cat() is not None, "Catalog of old_hcat should already be set."
-        assert set(myfilters.keys()).issubset(set(old_hcat.get_cat().colnames)), "This will fail because the " \
-                                                                                 "cat of old_hcat does " \
-                                                                                 "not contain filtered parameters."
+        assert set(myfilters.keys()).issubset(
+            set(old_hcat.get_cat().colnames)), "This will fail because the " \
+                                               "cat of old_hcat does " \
+                                               "not contain filtered parameters."
 
-        new_hcat = cls(old_hcat.filepath, old_hcat.catalog_name, subhalos=old_hcat.subhalos,
+        new_hcat = cls(old_hcat.filepath, old_hcat.catalog_name,
+                       subhalos=old_hcat.subhalos,
                        base_filters=old_hcat.get_cfilters(), catalog_label=catalog_label,
                        params_to_include=old_hcat.params_to_include)
 
@@ -218,13 +230,16 @@ class HaloCatalog(object):
 
     @classmethod
     def create_relaxed_from_base(cls, old_hcat, relaxed_name):
-        return cls.create_filtered_from_base(old_hcat, filters.get_relaxed_filters(relaxed_name),
+        return cls.create_filtered_from_base(old_hcat,
+                                             filters.get_relaxed_filters(relaxed_name),
                                              catalog_label=f"{relaxed_name} relaxed")
 
     @classmethod
     def create_from_saved_cat(cls, cat_file, *args, **kwargs):
         """
-        Create catalog from saved (smaller/filtered) cat to reduce waiting time of having to filter everytime, etc.
+        Create catalog from saved (smaller/filtered) cat to reduce waiting time of having
+        to filter every time, etc.
+
         :param cat_file: The file location specified as Path object and save using
         :return:
         """

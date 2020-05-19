@@ -1,5 +1,5 @@
-from pathlib import Path
 from os.path import dirname
+from pathlib import Path
 
 src_path = Path(dirname(dirname(__file__)))
 root_path = Path(dirname(dirname(dirname(__file__))))

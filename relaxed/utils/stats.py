@@ -17,4 +17,3 @@ def get_corrs(params, cat):
             corrs[i, j] = corr
 
     return corrs
-

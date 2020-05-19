@@ -1,12 +1,13 @@
-import subprocess
 import multiprocessing
-import re
 import os
-from astropy.table import Table
-from astropy.io import ascii
+import re
+import subprocess
 
-from ..utils import const
+from astropy.io import ascii
+from astropy.table import Table
+
 from . import progenitors
+from ..utils import const
 
 url_skeletons = {
     'Bolshoi': "https://www.slac.stanford.edu/~behroozi/Bolshoi_Trees/tree"
@@ -38,7 +39,8 @@ def download_trees(ncubes, dir_name, url_skeleton):
 
     # then download the files using multiprocessing
     os.chdir(dir_path.as_posix())
-    subprocess.run("cat downloads.txt | xargs -n 1 --max-procs 10 --verbose wget", shell=True)
+    subprocess.run("cat downloads.txt | xargs -n 1 --max-procs 10 --verbose wget",
+                   shell=True)
 
 
 def write_main_line_progenitors(tree_dir, out_file_prefix, Mcut, cpus=5):
@@ -69,7 +71,8 @@ def merge_progenitors(tree_dir, progenitor_dir):
             assert p.name.startswith("mline")
             print(p.name)
             with open(p, 'r') as single_pf:
-                pf.write(single_pf.read())  # ignore headers, etc. which is account for in progenitors.py
+                pf.write(
+                    single_pf.read())  # ignore headers, etc. which is account for in progenitors.py
 
 
 def summarize_progenitors(progenitor_file, out_file):

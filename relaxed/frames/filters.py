@@ -40,7 +40,8 @@ def particle_mass_filter(particle_mass):
     :return:
     """
 
-    return {'mvir': lambda mvirs: (np.log10(mvirs) > np.log10(particle_mass * 1e3)) & (np.log10(mvirs) < 14.18)}
+    return {'mvir': lambda mvirs: (np.log10(mvirs) > np.log10(particle_mass * 1e3)) & (
+                np.log10(mvirs) < 14.18)}
 
 
 def catalog_mass_filter(catalog_name):
@@ -72,7 +73,7 @@ def get_relaxed_filters(relaxed_name):
         }
 
     if relaxed_name == 'neto2007':
-        return{
+        return {
             # 'fsub': lambda x: x < 0.1,
             'xoff': lambda x: x < 0.07,
             'eta': lambda x: x < 1.35

@@ -1,4 +1,5 @@
 import re
+
 import numpy as np
 from astropy.table import Table
 
@@ -11,9 +12,12 @@ def get_prog_lines_generator(progenitor_file):
         for line in pf:
             line = line.rstrip()  # remove trailing whitespace
             if line:  # not empty
-                top_match = re.match(r"Order is: \(id, mvir, scale, coprog_id, coprog_mvir, coprog_scale\)", line)
+                top_match = re.match(
+                    r"Order is: \(id, mvir, scale, coprog_id, coprog_mvir, coprog_scale\)",
+                    line)
                 tree_root_match = re.match(r"# tree root id: (\d+) #", line)
-                halo_match = re.match(r"(\d+),(\d+\.\d*),(\d+\.\d*),(\d*),(\d*.?\d*),(\d*.?\d*)", line)
+                halo_match = re.match(
+                    r"(\d+),(\d+\.\d*),(\d+\.\d*),(\d*),(\d*.?\d*),(\d*.?\d*)", line)
                 weird_match = re.match(r"id=\d+, mmp=(\d+)", line)
                 total_halos_match = re.match(r"Number of root nodes is: (\d+)", line)
                 total_root_halos_match = re.match(r"final count is: (\d+)", line)
@@ -23,12 +27,15 @@ def get_prog_lines_generator(progenitor_file):
                     prog_line = ProgenitorLine(root_id=int(root_id))
 
                 elif halo_match:
-                    halo_id, mvir, scale, coprog_id, coprog_mvir, coprog_scale = (float(x) if x != '' else -1 for x in
-                                                                                  halo_match.groups())
-                    prog_line.add((halo_id, mvir, scale, coprog_id, coprog_mvir, coprog_scale))
+                    halo_id, mvir, scale, coprog_id, coprog_mvir, coprog_scale = (
+                    float(x) if x != '' else -1 for x in
+                    halo_match.groups())
+                    prog_line.add(
+                        (halo_id, mvir, scale, coprog_id, coprog_mvir, coprog_scale))
 
                 elif weird_match:
-                    assert weird_match.groups()[0] == '0', "Expected failure should have this format"
+                    assert weird_match.groups()[
+                               0] == '0', "Expected failure should have this format"
                     prog_line = None
 
                 elif total_halos_match or total_root_halos_match or top_match:
@@ -54,7 +61,8 @@ class ProgenitorLine(object):
         """
         self.root_id = root_id
         self.cat = Table()
-        self.colnames = ['halo_id', 'mvir', 'scale', 'coprog_ids', 'coprog_mvirs', 'coprog_scale']
+        self.colnames = ['halo_id', 'mvir', 'scale', 'coprog_ids', 'coprog_mvirs',
+                         'coprog_scale']
         self.rows = []
         self.finalized = False
 
@@ -73,7 +81,7 @@ class ProgenitorLine(object):
         # return the a_1/2 scale.
         idx = np.argmin(
             np.where(
-                self.cat['mvir'] > self.cat['mvir'][0]*0.5, self.cat['mvir'], np.inf
+                self.cat['mvir'] > self.cat['mvir'][0] * 0.5, self.cat['mvir'], np.inf
             )
         )
 
@@ -91,6 +99,3 @@ class ProgenitorLine(object):
         opt_params, _ = curve_fit(func, self.cat['scale'], self.cat['mvir'])
 
         return opt_params[0]  # = alpha.
-
-
-

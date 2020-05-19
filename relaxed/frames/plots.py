@@ -3,8 +3,8 @@ This file contains classes that represent the different plots that are produced.
 reproducible plots and separate the plotting procedure from the images produced.
 """
 import matplotlib.pyplot as plt
-from matplotlib import gridspec
 import numpy as np
+from matplotlib import gridspec
 
 from ..utils import const
 
@@ -19,7 +19,8 @@ from ..utils import const
 
 class Plot(object):
 
-    def __init__(self, plot_func, params, param_locs=None, nrows=1, ncols=1, figsize=(8, 8),
+    def __init__(self, plot_func, params, param_locs=None, nrows=1, ncols=1,
+                 figsize=(8, 8),
                  title='', title_size=20, tick_size=24,
                  plot_kwargs=None):
         """
@@ -39,7 +40,10 @@ class Plot(object):
         self.nrows = nrows
         self.ncols = ncols
 
-        self.fig, self.axes, self.param_locs = self.get_subplots_config(self.nrows, self.ncols, param_locs, figsize)
+        self.fig, self.axes, self.param_locs = self.get_subplots_config(self.nrows,
+                                                                        self.ncols,
+                                                                        param_locs,
+                                                                        figsize)
 
         self.plot_kwargs = {} if None else plot_kwargs
         self.cached_args = []
@@ -89,7 +93,8 @@ class Plot(object):
     @staticmethod
     def get_subplots_config(nrows, ncols, param_locs, figsize):
         # just plot sequentially if locations were not specified.
-        new_param_locs = param_locs if param_locs else [(i, j) for i in range(nrows) for j in range(ncols)]
+        new_param_locs = param_locs if param_locs else [(i, j) for i in range(nrows) for j
+                                                        in range(ncols)]
 
         fig, _ = plt.subplots(squeeze=False, figsize=figsize)
         axes = [plt.subplot2grid((nrows, ncols), param_loc, fig=fig) for param_loc in
@@ -107,7 +112,8 @@ class BiPlot(Plot):
     def run(self, cat, **kwargs):
         for (ax, param_pair) in zip(self.axes, self.params):
             param1, param2 = param_pair
-            self.plot_func(cat, param1, param2, ax, xlabel=param1.text, ylabel=param2.text,
+            self.plot_func(cat, param1, param2, ax, xlabel=param1.text,
+                           ylabel=param2.text,
                            **kwargs)
 
 

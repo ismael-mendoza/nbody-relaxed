@@ -22,8 +22,9 @@ def get_phi_l(cat):
 
 def get_fsub(cat):
     """
-    Return the substructure fraction of each entry of the catalog has value of -1 for halos without subhalos.
-    This is defined as in Neto2007: "We compute the mass fraction in resolved substructures
+    Return the substructure fraction of each entry of the catalog has value of -1 for
+    halos without subhalos.
+    This is defined in Neto2007: "We compute the mass fraction in resolved substructures
     whose centres lie inside r_vir".
     :param cat:
     :return: astropy.Column
@@ -151,8 +152,10 @@ info_params = {
     'Xoff': (None, ('kpc/h', 'h^{-1} \\, kpc'), 'X_{\\rm off}'),
     'Voff': (None, ('km/s', 'km \\, s^{-1}'), 'V_{\\rm off}'),
     'vrms': (None, ('km/s', 'km \\, s^{-1}'), 'V_{\\rm rms}'),
-    'Acc_Rate_1*Tdyn': (None, ('Msun/h/yr', 'h^{-1}\\, yr^{-1} \\, M_{\\odot}'), '\\alpha_{\\tau_{\\rm dyn}}'),
-    'Acc_Rate_Inst': (None, ('Msun/h/yr', 'h^{-1}\\, yr^{-1} \\, M_{\\odot}'), '\\alpha_{\\rm inst}'),
+    'Acc_Rate_1*Tdyn': (None, ('Msun/h/yr', 'h^{-1}\\, yr^{-1} \\, M_{\\odot}'),
+                        '\\alpha_{\\tau_{\\rm dyn}}'),
+    'Acc_Rate_Inst': (
+        None, ('Msun/h/yr', 'h^{-1}\\, yr^{-1} \\, M_{\\odot}'), '\\alpha_{\\rm inst}'),
 
     'T/|U|': (None, None, 'T/|U|'),
     'Spin': (None, None, '\\lambda'),
@@ -161,18 +164,29 @@ info_params = {
     # derived quantities.
     'cvir': ((lambda cat: cat['rvir'] / cat['rs'], ('rvir', 'rs')), None, 'c_{\\rm vir}'),
     'eta': ((lambda cat: 2 * cat['T/|U|'], 'T/U'), None, '\\eta'),
-    'q': ((lambda cat: (1 / 2) * (cat['b_to_a'] + cat['c_to_a']), ('b_to_a', 'c_to_a')), None, 'q'),
+    'q': (
+        (lambda cat: (1 / 2) * (cat['b_to_a'] + cat['c_to_a']), ('b_to_a', 'c_to_a')),
+        None,
+        'q'),
     'phi_l': ((get_phi_l, ('A[x]', 'A[y]', 'A[z]', 'Jx', 'Jy', 'Jz')), None, '\\Phi_{l}'),
-    'xoff': ((lambda cat: cat['Xoff'] / cat['rvir'], ('Xoff', 'rvir')), None, 'x_{\\rm off}'),
-    'voff': ((lambda cat: cat['Voff'] / cat['vrms'], ('Voff', 'vrms')), None, 'v_{\\rm off}'),
+    'xoff': (
+        (lambda cat: cat['Xoff'] / cat['rvir'], ('Xoff', 'rvir')), None, 'x_{\\rm off}'),
+    'voff': (
+        (lambda cat: cat['Voff'] / cat['vrms'], ('Voff', 'vrms')), None, 'v_{\\rm off}'),
     # 'fsub': (get_fsub, '', '', 'f_{\\rm sub}'),
-    # 'tdyn': (lambda cat: np.sqrt(2) * cat['rvir'] / cat['vrms'], 'kpc/h / km/s', '', '\\tau_{\\rm dyn}'), (notesheet)
+    # 'tdyn': (lambda cat: np.sqrt(2) * cat['rvir'] / cat['vrms'], 'kpc/h / km/s',
+    # '', '\\tau_{\\rm dyn}'), (notesheet)
 
     # usually excluded quantities necessary for filtering
     'upid': (None, '', '', ''),
-    'mag2_A': ((lambda cat: cat['A[x]'] ** 2 + cat['A[y]'] ** 2 + cat['A[z]'] ** 2, ('A[x]', 'A[y]', 'A[z]')),
+    'mag2_A': ((lambda cat: cat['A[x]'] ** 2 + cat['A[y]'] ** 2 + cat['A[z]'] ** 2,
+                ('A[x]', 'A[y]', 'A[z]')),
                None, None),
-    'mag2_J': ((lambda cat: cat['Jx'] ** 2 + cat['Jy'] ** 2 + cat['Jz'] ** 2, ('Jx', 'Jy', 'Jz')), None, None),
+    'mag2_J': (
+        (
+            lambda cat: cat['Jx'] ** 2 + cat['Jy'] ** 2 + cat['Jz'] ** 2,
+            ('Jx', 'Jy', 'Jz')),
+            None, None),
 }
 
 # nicer format.
@@ -183,4 +197,5 @@ params_dict = {
 
 param_names = params_dict.keys()
 default_params_to_exclude = {'mag2_A', 'mag2_J'}
-default_params_to_include = [param for param in param_names if param not in default_params_to_exclude]
+default_params_to_include = [param for param in param_names if
+                             param not in default_params_to_exclude]
