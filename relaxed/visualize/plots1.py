@@ -67,7 +67,7 @@ def plot_multiple_basic(hcats, pdf, colors):
     # Plot 2: mean-centered histogram of relevant quantities
     # title = "Mean centered histograms"
     modifiers = [lambda x: (x - np.mean(x)) / np.std(x)]
-    param_names = ['mvir', 'cvir', 'eta', 'xoff', 'voff', 'Spin', 'q', 'phi_l']
+    param_names = ['mvir', 'cvir', 'eta', 'x0', 'v0', 'spin', 'q', 'phi_l']
     params = [Param(param_name, log=True, modifiers=modifiers) for param_name in
               param_names]
     plot2 = plots.Histogram(plot_funcs.histogram, params, ncols=2, nrows=4,
@@ -75,7 +75,7 @@ def plot_multiple_basic(hcats, pdf, colors):
                             title=None, title_size=24, plot_kwargs=hist_kwargs2)
 
     # Plot 3: Relaxedness parameters and mvir
-    relaxedness_param_names = ['eta', 'xoff', 'voff', 'Xoff', 'Voff', 'q', 'cvir']
+    relaxedness_param_names = ['eta', 'x0', 'v0', 'xoff', 'voff', 'q', 'cvir']
     params = [(Param('mvir', log=True), Param(relaxed_param, log=True)) for relaxed_param
               in relaxedness_param_names]
     plot3 = plots.BiPlot(plot_funcs.scatter_binning, params, nrows=4, ncols=2,
@@ -105,7 +105,7 @@ def plot_correlation_matrix_basic(hcats, pdf):
     uplots = []
 
     # Plot 4: Matrix correlations
-    param_names = ['mvir', 'cvir', 'eta', 'xoff', 'voff', 'q', 'Spin', 'phi_l']
+    param_names = ['mvir', 'cvir', 'eta', 'x0', 'v0', 'q', 'spin', 'phi_l']
     params = [Param(param_name, log=True) for param_name in param_names]
     for hcat, hplot in zip(hcats, hplots):
         kwargs = dict(label_size=20, show_cell_text=True)
@@ -132,20 +132,21 @@ def plot_decades_basic(hcats, pdf, colors):
     uplots = []
     hplots = [[] for _ in hcats]
 
-    # Plot 5: Correlation between all pairs of different relaxedness parameters as a function of mass half decades.
-    # params to include:  'T/|U|', 'xoff', 'voff', 'Xoff', 'Voff', 'q', 'cvir'
+    # Plot 5: Correlation between all pairs of different relaxedness parameters as a function
+    # of mass half decades.
+    # params to include:  'T/|U|', 'x0', 'v0', 'xoff', 'Voff', 'q', 'cvir'
     params = [
-        (Param('T/|U|', log=True), Param('xoff', log=True)),
-        (Param('T/|U|', log=True), Param('voff', log=True)),
-        (Param('T/|U|', log=True), Param('q', log=True)),
-        (Param('T/|U|', log=True), Param('cvir', log=True)),
+        (Param('t/|u|', log=True), Param('x0', log=True)),
+        (Param('t/|u|', log=True), Param('v0', log=True)),
+        (Param('t/|u|', log=True), Param('q', log=True)),
+        (Param('t/|u|', log=True), Param('cvir', log=True)),
 
-        (Param('xoff', log=True), Param('voff', log=True)),
-        (Param('xoff', log=True), Param('q', log=True)),
-        (Param('xoff', log=True), Param('cvir', log=True)),
+        (Param('x0', log=True), Param('v0', log=True)),
+        (Param('x0', log=True), Param('q', log=True)),
+        (Param('x0', log=True), Param('cvir', log=True)),
 
-        (Param('voff', log=True), Param('q', log=True)),
-        (Param('voff', log=True), Param('cvir', log=True)),
+        (Param('v0', log=True), Param('q', log=True)),
+        (Param('v0', log=True), Param('cvir', log=True)),
 
         (Param('q', log=True), Param('cvir', log=True)),
     ]  # total = 10

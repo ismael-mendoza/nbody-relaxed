@@ -151,11 +151,11 @@ class HaloCatalog(object):
                 # this will be filtered out later.
                 with np.errstate(divide='ignore', invalid='ignore'):
                     for param in self.param_names:
-                        values = self._get_not_log_value(param, minh_cat, b)
+                        values = self._get_not_log_value_minh(param, minh_cat, b)
                         new_cat.add_column(values, name=param)
 
                 # once all needed params are in new_cat, we filter it out to reduce size.
-                new_cat = self._filter_cat(new_cat, self._filters,
+                new_cat = self._filter_cat(self._filters, new_cat,
                                            use_include_params=True)
 
                 cats.append(new_cat)
@@ -166,7 +166,7 @@ class HaloCatalog(object):
 
             return astropy.table.vstack(cats)
 
-    def _filter_cat(self, cat, myfilters, use_include_params=False):
+    def _filter_cat(self, myfilters, cat, use_include_params=False):
         """
         * Do all the appropriate filtering required when not reading the generator
         expression, in particular cat is assumed to contain all the parameter in
@@ -184,7 +184,7 @@ class HaloCatalog(object):
         :return:
         """
         for param_name, myfilter in myfilters.items():
-            cat = cat[myfilter(self._get_not_log_value(cat, param_name))]
+            cat = cat[myfilter(self._get_not_log_value(param_name, cat))]
 
         if use_include_params:
             cat = cat[self.params_to_include]
@@ -192,13 +192,22 @@ class HaloCatalog(object):
         return cat
 
     @staticmethod
-    def _get_not_log_value(key, mcat, b=None):
+    def _get_not_log_value_minh(key, mcat, b=None):
         """
         Only purpose is for the filters.
         :param key:
         :return:
         """
         return params.Param(key, log=False).get_values_minh(mcat, b)
+
+    @staticmethod
+    def _get_not_log_value(key, cat):
+        """
+        Only purpose is for the filters.
+        :param key:
+        :return:
+        """
+        return params.Param(key, log=False).get_values(cat)
 
     def __len__(self):
         return len(self._cat)
