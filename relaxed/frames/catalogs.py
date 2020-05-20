@@ -200,6 +200,7 @@ class HaloCatalog(object):
         for b in range(minh_cat.blocks):
             upid, mvir = minh_cat.block(b, ['upid', 'mvir'])
             # TODO: need to finish, tried something with sets but gets to be really slow.
+            #       I THINK: solution is to just apply same filters.
 
             # need to contain only ids of host_ids for it to work.
             sub_pids = upid[upid != -1]
