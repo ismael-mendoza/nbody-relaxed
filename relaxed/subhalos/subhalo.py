@@ -35,7 +35,7 @@ class LookupTable(object):
 def bin_by_host(host_ids, sub_pids):
     """ bin_by_host bins subhaloes according to their hosts. This function
     returns a list where each element is an array of indices into `sub_pids`
-    the correspond to that that host's subhaloes.
+    the correspond to that host's subhaloes.
     """
 
     table = LookupTable(host_ids)
@@ -45,7 +45,7 @@ def bin_by_host(host_ids, sub_pids):
 
 # Provided as an example of how to use bin_by_host:
 
-def m_sub(host_ids, sub_mvir, sub_pids):
+def m_sub(host_ids, sub_pids, sub_mvir):
     """ M_sub returns the sum of the mass of all subhaloes of each host.
     """
     bins = bin_by_host(host_ids, sub_pids)
@@ -59,9 +59,11 @@ def m_sub(host_ids, sub_mvir, sub_pids):
 
 
 def n_sub(host_ids, sub_pids):
+    """How many subhaloes does each halo have?
+    """
     bins = bin_by_host(host_ids, sub_pids)
     N_sub = np.zeros(len(bins))
-    for i in range(len(M_sub)):
+    for i in range(len(bins)):
         sub_index = bins[i]
         N_sub[i] = len(sub_index)
     return N_sub
@@ -69,11 +71,12 @@ def n_sub(host_ids, sub_pids):
 
 def mass_gap(host_mvir, host_ids, sub_mvir, sub_pids):
     bins = bin_by_host(host_ids, sub_pids)
-    mass_gap = np.zeros(len(bins))
+    M_sub = m_sub(host_ids, sub_pids, sub_mvir)
+    mgap = np.zeros(len(bins))
     for i in range(len(M_sub)):
         sub_index = bins[i]
-        M_sub[i] = host_mivr[i] - np.max(sub_mvir[sub_index])
-    return mass_gap
+        mgap[i] = host_mvir[i] - np.max(sub_mvir[sub_index])
+    return mgap
 
 
 def run_tests():
@@ -100,9 +103,11 @@ def run_tests():
 
     # test M_sub
 
-    m_sub = M_sub(host_ids, sub_mvir, sub_pids)
+    M_sub = m_sub(host_ids, sub_pids, sub_mvir)
 
-    assert np.all(m_sub == np.array([10, 4, 0, 7]))
+    assert np.all(M_sub == np.array([10, 4, 0, 7]))
+
+    print("Test passes!")
 
 
 if __name__ == "__main__":

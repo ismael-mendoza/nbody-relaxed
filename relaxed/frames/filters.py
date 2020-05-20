@@ -4,6 +4,7 @@ A filter is always a dictionary of keys which are catalog parameters and values 
 check `get_default_base_filters` below for an example.
 """
 import numpy as np
+import warnings
 
 
 def get_default_base_filters(particle_mass, subhalos):
@@ -12,14 +13,15 @@ def get_default_base_filters(particle_mass, subhalos):
 
     * x in the lambda functions represents the values of the keys.
 
-    * upid >=0 indicates a subhalo, upid=-1 indicates a distinct halo. Phil's comment: "This is -1 for distinct
-    halos and a halo ID for subhalos."
+    * upid >=0 indicates a subhalo, upid=-1 indicates a distinct halo. Phil's comment: "This is -1
+    for distinct halos and a halo ID for subhalos."
+
     >> cat_distinct = cat[cat['upid'] == -1]
     >> cat_sub = cat[cat['upid'] >= 0]
     :return:
     """
     return {
-        **particle_mass_filter(particle_mass),
+        **particle_mass_filter(particle_mass, subhalos),
         'upid': lambda x: (x == -1 if not subhalos else x >= 0),
         # the ones after seem to have no effect after for not subhalos.
         'spin': lambda x: x != 0,
@@ -30,15 +32,19 @@ def get_default_base_filters(particle_mass, subhalos):
     }
 
 
-def particle_mass_filter(particle_mass):
+def particle_mass_filter(particle_mass, subhalos):
     """
     We introduce two default cuts on mass:
         * The first part is to account for having too few particles (<1000).
          * The second is too account for bins that are undersampled in Bolshoi.
 
-    :param particle_mass: The mass of each particle in the halo catalog.
-    :return:
+    Args:
+        particle_mass: The mass of each particle in the halo catalog.
+        subhalos:
     """
+
+    if subhalos:
+        warnings.warn("Making same cut in subhalos as in host halos")
 
     return {'mvir': lambda mvirs: (np.log10(mvirs) > np.log10(particle_mass * 1e3)) & (
             np.log10(mvirs) < 14.18)}

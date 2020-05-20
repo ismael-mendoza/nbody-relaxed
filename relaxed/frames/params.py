@@ -2,6 +2,7 @@ import numpy as np
 from astropy.table import Column, Table
 
 from ..utils import const
+from ..subhalos import subhalo
 
 
 # functions to get derived quantities.
@@ -31,6 +32,9 @@ def get_fsub(cat):
     :param cat:
     :return: astropy.Column
     """
+    host_ids, sub_pids
+
+
     fsubs = []
     for row in cat:
         halo_id = row['id']
