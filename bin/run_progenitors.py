@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 from pathlib import Path
 import shutil
 import argparse
@@ -6,6 +7,8 @@ import warnings
 
 from relaxed.frames.catalogs import catalog_properties
 from relaxed.progenitors import save_progenitors
+
+from .remote import run_sbatch_job
 
 
 def setup_paths(args):
@@ -49,6 +52,7 @@ def summarize(args, paths):
 
 def main(args):
     paths = setup_paths(args)
+
     if args.write:
         write(args, paths)
 
@@ -65,8 +69,8 @@ if __name__ == '__main__':
     parser.add_argument('--cpus', type=int, default=None)
     parser.add_argument('--write', action='store_true')
     parser.add_argument('--merge', action='store_true')
-    parser.add_argument('--overwrite', action='store_true')
 
+    parser.add_argument('--overwrite', action='store_true')
     parser.add_argument('--tree-path', type=str, help="Path containing raw tree files",
                         default="/home/imendoza/alcca/nbody-relaxed/data/trees_bolshoi")
 
