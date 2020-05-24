@@ -12,4 +12,4 @@
 #SBATCH --partition=standard
 #SBATCH --output=/home/imendoza/alcca/nbody-relaxed/logs/slurm-%j.out
 
-./bin/run_progenitors.py --cpus 10
+./bin/run_progenitors.py --cpus 10 --write
