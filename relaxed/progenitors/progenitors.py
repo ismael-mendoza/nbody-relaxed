@@ -13,11 +13,12 @@ def get_prog_lines_generator(progenitor_file):
             line = line.rstrip()  # remove trailing whitespace
             if line:  # not empty
                 top_match = re.match(
-                    r"Order is: \(id, mvir, scale, coprog_id, coprog_mvir, coprog_scale\)",
+                    r"Order is: \(id, mvir, scale, scale_of_last_MM, coprog_id, coprog_mvir, "
+                    r"coprog_scale\)",
                     line)
                 tree_root_match = re.match(r"# tree root id: (\d+) #", line)
                 halo_match = re.match(
-                    r"(\d+),(\d+\.\d*),(\d+\.\d*),(\d*),(\d*.?\d*),(\d*.?\d*)", line)
+                    r"(\d+),(\d+\.\d*),(\d+\.\d*),(\d+\.\d*),(\d*),(\d*.?\d*),(\d*.?\d*)", line)
                 weird_match = re.match(r"id=\d+, mmp=(\d+)", line)
                 total_halos_match = re.match(r"Number of root nodes is: (\d+)", line)
                 total_root_halos_match = re.match(r"final count is: (\d+)", line)
@@ -27,11 +28,12 @@ def get_prog_lines_generator(progenitor_file):
                     prog_line = ProgenitorLine(root_id=int(root_id))
 
                 elif halo_match:
-                    halo_id, mvir, scale, coprog_id, coprog_mvir, coprog_scale = (
+                    halo_id, mvir, scale, scale_of_last_MM, coprog_id, coprog_mvir, coprog_scale = (
                         float(x) if x != '' else -1 for x in
                         halo_match.groups())
                     prog_line.add(
-                        (halo_id, mvir, scale, coprog_id, coprog_mvir, coprog_scale))
+                        (halo_id, mvir, scale, scale_of_last_MM, coprog_id, coprog_mvir,
+                         coprog_scale))
 
                 elif weird_match:
                     assert weird_match.groups()[
@@ -61,8 +63,8 @@ class ProgenitorLine(object):
         """
         self.root_id = root_id
         self.cat = Table()
-        self.colnames = ['halo_id', 'mvir', 'scale', 'coprog_ids', 'coprog_mvirs',
-                         'coprog_scale']
+        self.colnames = ['halo_id', 'mvir', 'scale', 'scale_of_last_MM', 'coprog_ids',
+                         'coprog_mvirs', 'coprog_scale']
         self.rows = []
         self.finalized = False
 

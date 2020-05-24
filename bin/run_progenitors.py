@@ -20,7 +20,7 @@ def setup_paths(args):
 
 
 def write(args, paths):
-    assert args.cpu is not None, "Need to specify cpus"
+    assert args.cpus is not None, "Need to specify cpus"
     # Bolshoi
     Mcut = 1e3 * catalog_properties['Bolshoi'][0]
 

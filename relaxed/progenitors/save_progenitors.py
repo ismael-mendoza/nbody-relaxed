@@ -71,13 +71,14 @@ def merge_progenitors(tree_dir, progenitor_dir):
             assert p.name.startswith("mline")
             print(p.name)
             with open(p, 'r') as single_pf:
-                pf.write(
-                    single_pf.read())  # ignore headers, etc. which is account for in progenitors.py
+                pf.write(single_pf.read())  # ignore headers, etc. which is account for in
+                # progenitors.py
 
 
 def summarize_progenitors(progenitor_file, out_file):
     """
-    Write the summary statistics of all the progenitors in progenitor_dir into a table with the root id.
+    Write the summary statistics of all the progenitors in progenitor_dir into a
+    table with the root id.
     """
     assert out_file.as_posix().endswith(".csv")
 

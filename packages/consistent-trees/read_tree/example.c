@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
             //follow all the main line progenitors in this tree_root id.
             while (curr_halo->prog != NULL && curr_halo->mmp==1){
 
-                fprintf(fp, "%ld,%f,%f,%f",
+                fprintf(fp, "%ld,%f,%f,%f,",
                     (long)curr_halo->id,
                     curr_halo->mvir,
                     curr_halo->scale,
