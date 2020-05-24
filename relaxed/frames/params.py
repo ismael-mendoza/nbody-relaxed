@@ -1,7 +1,7 @@
 import numpy as np
 from astropy.table import Column, Table
 
-from ..utils import const
+import utils
 
 
 # functions to get derived quantities.
@@ -53,7 +53,7 @@ class Param(object):
         if derivation_pair:
             self.derive_func = derivation_pair[0]
             self.required_derive_params = derivation_pair[1]
-            assert const.is_iterable(self.required_derive_params)
+            assert utils.is_iterable(self.required_derive_params)
 
         self.log = log
         self.modifiers = modifiers

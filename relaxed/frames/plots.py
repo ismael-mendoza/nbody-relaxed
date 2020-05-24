@@ -5,7 +5,7 @@ reproducible plots and separate the plotting procedure from the images produced.
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ..utils import const
+import utils
 
 
 # ToDo: Possibility of merging two plots with two different sets of kwargs, sort of like a matrix merge.
@@ -74,7 +74,7 @@ class Plot(object):
         plt.rc("text", usetex=True)
 
         if fname is not None:
-            self.fig.savefig(const.figure_path.joinpath(fname))
+            self.fig.savefig(utils.figure_path.joinpath(fname))
 
         elif pdf is not None:
             pdf.savefig(self.fig)

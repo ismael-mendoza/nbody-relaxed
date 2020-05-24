@@ -3,7 +3,7 @@ import numpy as np
 from . import plot_funcs
 from ..frames import plots
 from ..frames.params import Param
-from ..utils import stats
+import stats
 
 
 # ToDo: (Future) some of the redundancy in the functions below can be improved.

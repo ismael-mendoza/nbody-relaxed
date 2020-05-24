@@ -1,6 +1,23 @@
 import csv
 import gzip
+from os.path import dirname
 from pathlib import Path
+
+root_path = Path(dirname(dirname(dirname(__file__))))
+relaxed_path = root_path.joinpath("relaxed")
+figure_path = root_path.joinpath("figures")
+packages_path = root_path.joinpath("packages")
+data_path = root_path.joinpath("data")
+read_tree_path = packages_path.joinpath("consistent-trees/read_tree")
+
+
+def is_iterable(obj):
+    try:
+        iter(obj)
+    except Exception:
+        return False
+    else:
+        return True
 
 
 def get_stem(filename: str):

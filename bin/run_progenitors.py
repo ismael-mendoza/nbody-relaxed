@@ -14,7 +14,8 @@ def setup_paths(args):
     paths = {
         'trees': tree_path,
         'progenitor_dir': tree_path.joinpath("progenitors"),
-        'progenitor_file': tree_path.joinpath("progenitors.txt")
+        'progenitor_file': tree_path.joinpath("progenitors.txt"),
+        'progenitor_table': tree_path.joinpath("progenitors.csv")
     }
 
     return paths
@@ -43,8 +44,7 @@ def merge(args, paths):
 
 
 def summarize(args, paths):
-    assert args.out_path
-    save_progenitors.summarize_progenitors(paths['progenitor_file'], args.summary_file)
+    save_progenitors.summarize_progenitors(paths['progenitor_file'], paths['progenitor_table'])
 
 
 def main(args):
@@ -67,7 +67,6 @@ if __name__ == '__main__':
     parser.add_argument('--merge', action='store_true')
     parser.add_argument('--overwrite', action='store_true')
 
-    parser.add_argument('--summary-file', type=str, default=None)
     parser.add_argument('--tree-path', type=str, help="Path containing raw tree files",
                         default="/home/imendoza/alcca/nbody-relaxed/data/trees_bolshoi")
 

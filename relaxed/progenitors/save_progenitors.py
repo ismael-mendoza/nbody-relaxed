@@ -7,7 +7,7 @@ from astropy.io import ascii
 from astropy.table import Table
 
 from . import progenitors
-from ..utils import const
+import utils
 
 url_skeletons = {
     'Bolshoi': "https://www.slac.stanford.edu/~behroozi/Bolshoi_Trees/tree"
@@ -22,7 +22,7 @@ def download_trees(ncubes, dir_name, url_skeleton):
     """
     Download all the bolshoi trees from the listed url.
     """
-    dir_path = const.data_path.joinpath(dir_name)
+    dir_path = utils.data_path.joinpath(dir_name)
 
     if dir_path.exists():
         raise IOError("Directory already exists! Overwriting?")
@@ -47,13 +47,13 @@ def write_main_line_progenitors(tree_dir, out_file_prefix, Mcut, cpus=5):
     """
     Use the consistent trees package to extract main progenitor lines from downloaded trees.
     """
-    subprocess.run(f"cd {const.read_tree_path.as_posix()}; make", shell=True)
+    subprocess.run(f"cd {utils.read_tree_path.as_posix()}; make", shell=True)
     cmds = []
     for p in tree_dir.iterdir():
         if p.suffix == '.dat' and p.name.startswith('tree'):
             print(f"Found tree: {p.name}")
             suffx = re.search(r"tree(_\d_\d_\d)\.dat", p.name).groups()[0]
-            cmd = f"cd {const.read_tree_path.as_posix()}; ./read_tree {p.as_posix()} " \
+            cmd = f"cd {utils.read_tree_path.as_posix()}; ./read_tree {p.as_posix()} " \
                   f"{out_file_prefix.as_posix()}{suffx}.txt {Mcut}"
             cmds.append(cmd)
 
