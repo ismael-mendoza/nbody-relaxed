@@ -24,7 +24,8 @@ int main(int argc, char **argv) {
   FILE *fp;
   fp = fopen(outname, "w");
   printf("Overwriting file %s \n", outname);
-  fprintf(fp, "Order is: (id, mvir, scale, coprog_id, coprog_mvir, coprog_scale)\n\n");
+  fprintf(fp, "Order is: (id, mvir, scale, scale_of_last_MM, coprog_id, "
+              "coprog_mvir, coprog_scale)\n\n");
 
   while(count < all_halos.num_halos){
       struct halo *curr_halo = all_halos.halos + count;
@@ -36,13 +37,14 @@ int main(int argc, char **argv) {
             //follow all the main line progenitors in this tree_root id.
             while (curr_halo->prog != NULL && curr_halo->mmp==1){
 
-                fprintf(fp, "%ld,%f,%f,",
+                fprintf(fp, "%ld,%f,%f,%f",
                     (long)curr_halo->id,
                     curr_halo->mvir,
-                    curr_halo->scale
+                    curr_halo->scale,
+                    curr_halo->scale_of_last_MM
                     );
 
-                //also parameters for second most massive halo.
+                //also parameters for second most massive halo if it exists.
                 if(curr_halo->next_coprog != NULL){
                     fprintf(fp, "%ld,%f,%f\n",
                     curr_halo->next_coprog->id,

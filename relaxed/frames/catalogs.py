@@ -189,6 +189,7 @@ class HaloCatalog(object):
             return fcat
 
     # TODO: Might need to change if require lower mass host halos.
+    # TODO: make process more similar to adding other parameters.
     @staticmethod
     def _extract_subhalo(host_cat, minh_cat):
         # now we also want to add subhalo fraction and we follow Phil's lead
@@ -199,8 +200,6 @@ class HaloCatalog(object):
 
         for b in range(minh_cat.blocks):
             upid, mvir = minh_cat.block(b, ['upid', 'mvir'])
-            # TODO: need to finish, tried something with sets but gets to be really slow.
-            #       might be easier to modify lookup to throw away these indices?
 
             # need to contain only ids of host_ids for it to work.
             sub_pids = upid[upid != -1]
@@ -208,8 +207,8 @@ class HaloCatalog(object):
             M_sub_sum += subhalo.m_sub(host_ids, sub_pids, sub_mvir)
 
         f_sub = M_sub_sum / host_mvir  # subhalo mass fraction.
-        c = Column(data=f_sub, name='f_sub')
-        host_cat.add_column(c)
+        assert 'f_sub' in host_cat.colnames, "Require dummy column already initialized."
+        host_cat['f_sub'] = f_sub
 
         return host_cat
 

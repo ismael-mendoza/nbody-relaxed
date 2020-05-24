@@ -2,7 +2,6 @@ import numpy as np
 from astropy.table import Column, Table
 
 from ..utils import const
-from ..subhalos import subhalo
 
 
 # functions to get derived quantities.
@@ -21,36 +20,6 @@ def get_phi_l(cat):
              cat['jx'] ** 2 + cat['jy'] ** 2 + cat['jz'] ** 2))
          )
     )
-
-
-def get_fsub(cat):
-    """
-    Return the substructure fraction of each entry of the catalog has value of -1 for
-    halos without subhalos.
-    This is defined in Neto2007: "We compute the mass fraction in resolved substructures
-    whose centres lie inside r_vir".
-    :param cat:
-    :return: astropy.Column
-    """
-    host_ids, sub_pids
-
-
-    fsubs = []
-    for row in cat:
-        halo_id = row['id']
-        mvir = row['mvir']
-
-        # find all rows that have this id as the upid
-        upids = (cat['upid'] == halo_id)
-
-        if not np.sum(upids):
-            fsubs.append(-1)
-            continue
-
-        substructure_mass = np.sum(cat[upids]['mvir'])
-        fsubs.append(substructure_mass / mvir)
-
-    return Column(data=np.array(fsubs), name='fsub')
 
 
 class Param(object):
@@ -157,6 +126,7 @@ class Param(object):
 
 
 # ToDo: Change T/U to eta globally.
+# TODO: Remove 'mvir' from f_sub.
 # non-derived quantities are by default included.
 info_params = {
     # fundamental quantities in the catalog.
@@ -192,6 +162,8 @@ info_params = {
     # 'fsub': (get_fsub, '', '', 'f_{\\rm sub}'),
     # 'tdyn': (lambda cat: np.sqrt(2) * cat['rvir'] / cat['vrms'], 'kpc/h / km/s',
     # '', '\\tau_{\\rm dyn}'), (notesheet)
+    'f_sub': ((lambda cat: Column(np.array(len(cat)*[-1]), name='f_sub'), ('mvir',)), None,
+              'f_{\\rm sub}'),
 
     # usually excluded quantities necessary for filtering
     'upid': (None, '', '', ''),

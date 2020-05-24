@@ -1,7 +1,6 @@
 from __future__ import print_function, division
 
 import numpy as np
-
 from . import binning
 
 """
@@ -27,15 +26,23 @@ class LookupTable(object):
 
     def lookup(self, sub_pids):
         """ lookup returns the indices of the host halos of each subhalo.
+        Returns -1 if a PID corresponds to a halo not in host_ids.
         """
         sub_index = np.searchsorted(self.host_ids, sub_pids)
-        return self.host_index[sub_index]
+
+        sub_ok = sub_index < len(self.host_ids)
+        sub_ok[sub_ok] &= self.host_ids[sub_index[sub_ok]] == sub_pids[sub_ok]
+
+        out = np.ones(len(sub_index), dtype=int) * -1
+        out[sub_ok] = self.host_index[sub_index[sub_ok]]
+
+        return out
 
 
 def bin_by_host(host_ids, sub_pids):
     """ bin_by_host bins subhaloes according to their hosts. This function
     returns a list where each element is an array of indices into `sub_pids`
-    the correspond to that host's subhaloes.
+    the correspond to that that host's subhaloes.
     """
 
     table = LookupTable(host_ids)
@@ -81,15 +88,15 @@ def mass_gap(host_mvir, host_ids, sub_mvir, sub_pids):
 
 def run_tests():
     host_ids = np.array([100, 200, 50, -17], dtype=int)
-    sub_pids = np.array([100, -17, 100, 200, -17, 100], dtype=int)
-    sub_mvir = np.array([1, 2, 3, 4, 5, 6])
+    sub_pids = np.array([100, -17, 100, 200, -17, 100, 75, 300, -20], dtype=int)
+    sub_mvir = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9], dtype=float)
 
     # test LookupTable
 
     table = LookupTable(host_ids)
     sub_index = table.lookup(sub_pids)
 
-    assert np.all(sub_index == np.array([0, 3, 0, 1, 3, 0]))
+    assert np.all(sub_index == np.array([0, 3, 0, 1, 3, 0, -1, -1, -1]))
 
     # test bin_by_host
 
@@ -103,7 +110,7 @@ def run_tests():
 
     # test M_sub
 
-    M_sub = m_sub(host_ids, sub_pids, sub_mvir)
+    M_sub = m_sub(host_ids, sub_mvir, sub_pids)
 
     assert np.all(M_sub == np.array([10, 4, 0, 7]))
 
