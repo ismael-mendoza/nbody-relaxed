@@ -61,18 +61,17 @@ def write_main_line_progenitors(tree_dir, out_file_prefix, Mcut, cpus=5):
     pool.map(work, cmds)
 
 
-def merge_progenitors(tree_dir, progenitor_dir):
+def merge_progenitors(tree_dir, progenitor_dir, progenitor_file):
     """
     Merge all progenitor files into one, put it in tree_dir with name "progenitors.txt"
     """
-    progenitor_file = tree_dir.joinpath("progenitors.txt")
     with open(progenitor_file, 'w') as pf:
         for p in progenitor_dir.iterdir():
             assert p.name.startswith("mline")
             print(p.name)
             with open(p, 'r') as single_pf:
-                pf.write(single_pf.read())  # ignore headers, etc. which is account for in
-                # progenitors.py
+                # ignore headers, etc. which is accounted for in progenitors.py
+                pf.write(single_pf.read())
 
 
 def summarize_progenitors(progenitor_file, out_file):

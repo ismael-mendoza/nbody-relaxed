@@ -5,7 +5,7 @@ import argparse
 import warnings
 
 from relaxed.frames.catalogs import catalog_properties
-from relaxed.progenitors.save_progenitors import write_main_line_progenitors, merge_progenitors
+from relaxed.progenitors import save_progenitors
 
 
 def setup_paths(args):
@@ -13,7 +13,8 @@ def setup_paths(args):
 
     paths = {
         'trees': tree_path,
-        'progenitors': tree_path.joinpath("progenitors")
+        'progenitor_dir': tree_path.joinpath("progenitors"),
+        'progenitor_file': tree_path.joinpath("progenitors.txt")
     }
 
     return paths
@@ -24,7 +25,7 @@ def write(args, paths):
     # Bolshoi
     Mcut = 1e3 * catalog_properties['Bolshoi'][0]
 
-    progenitor_path = paths['progenitors']
+    progenitor_path = paths['progenitor_dir']
 
     if progenitor_path.exists() and args.overwrite:
         warnings.warn("Overwriting current progenitor directory")
@@ -32,16 +33,18 @@ def write(args, paths):
 
     progenitor_path.mkdir(exist_ok=False)
 
-    write_main_line_progenitors(paths['trees'], progenitor_path.joinpath("mline"), Mcut,
-                                cpus=args.cpus)
+    save_progenitors.write_main_line_progenitors(paths['trees'], progenitor_path.joinpath(
+        "mline"), Mcut, cpus=args.cpus)
 
 
 def merge(args, paths):
-    merge_progenitors(paths['trees'], paths['progenitors'])
+    save_progenitors.merge_progenitors(paths['trees'], paths['progenitor_dir'],
+                                       paths['progenitor_file'])
 
 
 def summarize(args, paths):
-    pass
+    assert args.out_path
+    save_progenitors.summarize_progenitors(paths['progenitor_file'], args.summary_file)
 
 
 def main(args):
@@ -64,6 +67,7 @@ if __name__ == '__main__':
     parser.add_argument('--merge', action='store_true')
     parser.add_argument('--overwrite', action='store_true')
 
+    parser.add_argument('--summary-file', type=str, default=None)
     parser.add_argument('--tree-path', type=str, help="Path containing raw tree files",
                         default="/home/imendoza/alcca/nbody-relaxed/data/trees_bolshoi")
 
