@@ -4,7 +4,7 @@ import warnings
 import astropy
 import numpy as np
 from astropy.io import ascii
-from astropy.table import Table, Column
+from astropy.table import Table
 from contextlib import contextmanager
 from pminh import minh
 

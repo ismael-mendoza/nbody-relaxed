@@ -5,8 +5,7 @@ reproducible plots and separate the plotting procedure from the images produced.
 import matplotlib.pyplot as plt
 import numpy as np
 
-import utils
-
+from .. import utils
 
 # ToDo: Possibility of merging two plots with two different sets of kwargs, sort of like a matrix merge.
 #  it will be annoying to specify kwargs for each of the nrows x ncols but a more global thing

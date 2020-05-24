@@ -8,8 +8,6 @@ import warnings
 from relaxed.frames.catalogs import catalog_properties
 from relaxed.progenitors import save_progenitors
 
-from .remote import run_sbatch_job
-
 
 def setup_paths(args):
     tree_path = Path(args.tree_path)

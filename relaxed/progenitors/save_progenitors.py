@@ -7,7 +7,7 @@ from astropy.io import ascii
 from astropy.table import Table
 
 from . import progenitors
-import utils
+from .. import utils
 
 url_skeletons = {
     'Bolshoi': "https://www.slac.stanford.edu/~behroozi/Bolshoi_Trees/tree"

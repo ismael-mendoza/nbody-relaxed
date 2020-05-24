@@ -96,7 +96,7 @@ class ProgenitorLine(object):
         from scipy.optimize import curve_fit
 
         def func(x, alpha, b, c):
-            return b * np.exp(-alpha * x) + c
+            return b * np.log10(alpha * x) + c
 
         opt_params, _ = curve_fit(func, self.cat['scale'], self.cat['mvir'])
 

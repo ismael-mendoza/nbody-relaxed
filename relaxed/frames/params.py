@@ -1,8 +1,7 @@
 import numpy as np
 from astropy.table import Column, Table
 
-import utils
-
+from .. import utils
 
 # functions to get derived quantities.
 def get_phi_l(cat):
