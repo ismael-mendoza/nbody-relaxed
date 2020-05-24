@@ -24,7 +24,6 @@ def run_sbatch_job(cmd, job_dir_name, job_name, time='01:00',
         f.writelines("#!/bin/bash\n\n"
                      f"#SBATCH --job-name={job_name}\n"
                      f"#SBATCH --output={job_dir_name}/%j.out\n"
-                     f"#SBATCH --error={job_dir_name}/%j.err\n"
                      f"#SBATCH --time={time}:00\n"
                      f"#SBATCH --nodes={nodes}\n"
                      f"#SBATCH --ntasks={ntasks}\n" 

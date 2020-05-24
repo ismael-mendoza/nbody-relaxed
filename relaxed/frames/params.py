@@ -3,6 +3,7 @@ from astropy.table import Column, Table
 
 from .. import utils
 
+
 # functions to get derived quantities.
 def get_phi_l(cat):
     """
@@ -161,7 +162,7 @@ info_params = {
     # 'fsub': (get_fsub, '', '', 'f_{\\rm sub}'),
     # 'tdyn': (lambda cat: np.sqrt(2) * cat['rvir'] / cat['vrms'], 'kpc/h / km/s',
     # '', '\\tau_{\\rm dyn}'), (notesheet)
-    'f_sub': ((lambda cat: Column(np.array(len(cat)*[-1]), name='f_sub'), ('mvir',)), None,
+    'f_sub': ((lambda cat: Column(np.array(len(cat) * [-1]), name='f_sub'), ('mvir',)), None,
               'f_{\\rm sub}'),
 
     # usually excluded quantities necessary for filtering

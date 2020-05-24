@@ -67,6 +67,7 @@ if __name__ == '__main__':
     parser.add_argument('--cpus', type=int, default=None)
     parser.add_argument('--write', action='store_true')
     parser.add_argument('--merge', action='store_true')
+    parser.add_argument('--summarize', action='store_true')
 
     parser.add_argument('--overwrite', action='store_true')
     parser.add_argument('--tree-path', type=str, help="Path containing raw tree files",
