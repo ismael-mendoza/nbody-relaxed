@@ -98,6 +98,6 @@ class ProgenitorLine(object):
         def func(x, alpha, b, c):
             return b * np.log10(alpha * x) + c
 
-        opt_params, _ = curve_fit(func, self.cat['scale'], self.cat['mvir'])
+        opt_params, _ = curve_fit(func, self.cat['scale'], self.cat['mvir'], p0=(0.5, 1, 12))
 
         return opt_params[0]  # = alpha.
