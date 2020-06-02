@@ -20,6 +20,32 @@ catalog_properties = {
 }
 
 
+# TODO: improve logic
+def intersection(cat1, cat2):
+    cat1.sort('id')
+    cat2.sort('id')
+
+    # intersect two catalogs by their id attribute.
+    ids1 = cat1['id']
+    ids2 = cat2['id']
+
+    # first sort ids2 into ids1 using Phil's approach
+    indx2 = np.searchsorted(ids1, ids2)
+    indx2_ok = indx2 < len(ids1)
+    indx2_ok[indx2_ok] &= ids1[indx2[indx2_ok]] == indx2[indx2_ok]
+
+    # we have cat2 down.
+    cat2 = cat2[indx2_ok]
+    ids2 = ids2[indx2_ok]
+
+    # now repeat.
+    indx1 = np.searchsorted(ids2, ids1)
+    indx1_ok = indx1 < len(ids2)
+    indx1_ok[indx1_ok] &= ids2[indx1[indx1_ok]] == indx1[indx1_ok]
+
+    cat1 = cat1[indx1_ok]
+    return cat1, cat2
+
 class HaloCatalog(object):
 
     def __init__(self, filepath, catalog_name, subhalos=False,

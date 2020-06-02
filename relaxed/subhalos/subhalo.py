@@ -28,11 +28,20 @@ class LookupTable(object):
         """ lookup returns the indices of the host halos of each subhalo.
         Returns -1 if a PID corresponds to a halo not in host_ids.
         """
+
+        # where do we need to insert each id in sub_pids to keep host_ids ordered.
         sub_index = np.searchsorted(self.host_ids, sub_pids)
 
+        # only ones that are smaller than biggest host_id
         sub_ok = sub_index < len(self.host_ids)
+
+        # first select, all indices we know so far are ok in host_ids. Note that the ordering of
+        # sub_index is the same ordering as sub_pids.
+        # for each 'ok' index indx in sub_index, the ordering is such that id host_index[indx]
+        # should match the corresponding 'ok' id in sub_pids if these ids are to be equal.
         sub_ok[sub_ok] &= self.host_ids[sub_index[sub_ok]] == sub_pids[sub_ok]
 
+        # for each sub_index, return the id of the host halo if that id was 'ok', -1 otherwise.
         out = np.ones(len(sub_index), dtype=int) * -1
         out[sub_ok] = self.host_index[sub_index[sub_ok]]
 
