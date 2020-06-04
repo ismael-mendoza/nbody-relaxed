@@ -46,6 +46,7 @@ def intersection(cat1, cat2):
     cat1 = cat1[indx1_ok]
     return cat1, cat2
 
+
 class HaloCatalog(object):
 
     def __init__(self, filepath, catalog_name, subhalos=False,

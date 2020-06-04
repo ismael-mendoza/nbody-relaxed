@@ -159,9 +159,10 @@ info_params = {
         (lambda cat: cat['xoff'] / cat['rvir'], ('xoff', 'rvir')), None, 'x_{\\rm off}'),
     'v0': (
         (lambda cat: cat['voff'] / cat['vrms'], ('voff', 'vrms')), None, 'v_{\\rm off}'),
-    # 'fsub': (get_fsub, '', '', 'f_{\\rm sub}'),
     # 'tdyn': (lambda cat: np.sqrt(2) * cat['rvir'] / cat['vrms'], 'kpc/h / km/s',
     # '', '\\tau_{\\rm dyn}'), (notesheet)
+
+    # dummy row just so that exists in the catalog, actual values added later.
     'f_sub': ((lambda cat: Column(np.array(len(cat) * [-1]), name='f_sub'), ('mvir',)), None,
               'f_{\\rm sub}'),
 
