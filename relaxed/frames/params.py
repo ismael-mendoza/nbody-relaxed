@@ -162,9 +162,9 @@ info_params = {
     # 'tdyn': (lambda cat: np.sqrt(2) * cat['rvir'] / cat['vrms'], 'kpc/h / km/s',
     # '', '\\tau_{\\rm dyn}'), (notesheet)
 
-    # dummy row just so that exists in the catalog, actual values added later.
-    'f_sub': ((lambda cat: Column(np.array(len(cat) * [-1]), name='f_sub'), ('mvir',)), None,
-              'f_{\\rm sub}'),
+    # will be added later via a more complicated procedure.
+    'f_sub': (None, None, 'f_{\\rm sub}'),
+    'a2': (None, None, 'a_{\\ 1/2}'),
 
     # usually excluded quantities necessary for filtering
     'upid': (None, '', '', ''),
@@ -184,6 +184,8 @@ params_dict = {
     for (key, value) in info_params.items()
 }
 
+# TODO: make this a bit more flexible so not every param added has to be calculated like above.
+# but can still add units , etc.
 param_names = params_dict.keys()
 default_params_to_exclude = {'mag2_a', 'mag2_j'}
 default_params_to_include = [param for param in param_names if

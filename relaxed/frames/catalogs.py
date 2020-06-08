@@ -1,16 +1,16 @@
 from typing import List
 import warnings
-
-import astropy
-import numpy as np
-from astropy.io import ascii
-from astropy.table import Table
 from contextlib import contextmanager
-from pminh import minh
+
+import numpy as np
+import astropy
+from astropy.table import Table
+from astropy.io import ascii
 
 from . import filters
 from . import params
 from ..subhalos import subhalo
+from pminh import minh
 
 # particle mass (Msun/h), total particles, box size (Mpc/h).
 catalog_properties = {
@@ -20,43 +20,37 @@ catalog_properties = {
 }
 
 
-# TODO: improve logic
-def intersection(cat1, cat2):
-    cat1.sort('id')
-    cat2.sort('id')
-
+def intersection(cat, scat):
     # intersect two catalogs by their id attribute.
-    ids1 = cat1['id']
-    ids2 = cat2['id']
+    # scat ids are ideally a subset of cat ids
+    # can also just repeat with switched order and will work in the end.
+    cat.sort('id')
+    scat.sort('id')
 
-    # first sort ids2 into ids1 using Phil's approach
-    indx2 = np.searchsorted(ids1, ids2)
-    indx2_ok = indx2 < len(ids1)
-    indx2_ok[indx2_ok] &= ids1[indx2[indx2_ok]] == indx2[indx2_ok]
+    ids = cat['id']
+    sids = scat['id']
 
-    # we have cat2 down.
-    cat2 = cat2[indx2_ok]
-    ids2 = ids2[indx2_ok]
+    indx = np.searchsorted(sids, ids)
+    indx_ok = indx < len(sids)
+    indx_ok[indx_ok] &= sids[indx[indx_ok]] == ids[indx_ok]
 
-    # now repeat.
-    indx1 = np.searchsorted(ids2, ids1)
-    indx1_ok = indx1 < len(ids2)
-    indx1_ok[indx1_ok] &= ids2[indx1[indx1_ok]] == indx1[indx1_ok]
+    new_cat = cat[indx_ok]
 
-    cat1 = cat1[indx1_ok]
-    return cat1, cat2
+    return new_cat
 
 
 class HaloCatalog(object):
 
     def __init__(self, filepath, catalog_name, subhalos=False,
-                 extract_sub=False, base_filters=None,
+                 extract_sub=False, add_progenitor=None,
+                 base_filters=None,
                  params_to_include: List[str] = None, verbose=False,
                  catalog_label='all halos'):
         """
 
         :param filepath:
         :param catalog_name: Should be one of `Bolshoi / BolshoiP / MDPL2`
+        :param add_progenitor: filename of summary progenitor table.
         :param base_filters:
         """
         assert catalog_name in catalog_properties, "Catalog name is not recognized."
@@ -68,6 +62,7 @@ class HaloCatalog(object):
 
         self.catalog_name = catalog_name
         self.verbose = verbose
+        self.add_progenitor = add_progenitor
 
         self.subhalos = subhalos
         self.extract_sub = extract_sub
@@ -208,10 +203,25 @@ class HaloCatalog(object):
                 if self.verbose:
                     print("extracting subhalo properties")
                 assert np.all(fcat['upid'] == -1), "Needs to be a host catalog"
-                fcat = self._extract_subhalo(fcat, minh_cat)
+                subhalo_cat = self._extract_subhalo(fcat, minh_cat)
+                fcat = astropy.table.join(fcat, subhalo_cat, keys='id')
+                self.params_to_include.append('f_sub')
+
+            if self.add_progenitor:
+                if self.verbose:
+                    print("Adding progenitor properties")
+                pcat = Table.read(self.add_progenitor)  # catalog with progenitor summary.
+
+                pcat = intersection(pcat, fcat)
+                fcat = intersection(fcat, pcat)
+
+                fcat = astropy.table.join(fcat, pcat, keys='id')
+                pcat_params = pcat.colnames
+                pcat_params.remove('id')
+                self.params_to_include += pcat_params
 
             warnings.warn("We only include parameters in `params.default_params_to_include`")
-            fcat = fcat[params.default_params_to_include]
+            fcat = fcat[self.params_to_include]
 
             return fcat
 
@@ -234,10 +244,9 @@ class HaloCatalog(object):
             M_sub_sum += subhalo.m_sub(host_ids, sub_pids, sub_mvir)
 
         f_sub = M_sub_sum / host_mvir  # subhalo mass fraction.
-        assert 'f_sub' in host_cat.colnames, "Require dummy column already initialized."
-        host_cat['f_sub'] = f_sub
+        subhalo_cat = Table(data=[host_ids, f_sub], names=['id', 'f_sub'])
 
-        return host_cat
+        return subhalo_cat
 
     def _filter_cat(self, myfilters, cat, copy=False):
         """
