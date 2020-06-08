@@ -22,13 +22,13 @@ def get_default_base_filters(particle_mass, subhalos):
     """
     return {
         **particle_mass_filter(particle_mass, subhalos),
-        'upid': lambda x: (x == -1 if not subhalos else x >= 0),
+        "upid": lambda x: (x == -1 if not subhalos else x >= 0),
         # the ones after seem to have no effect after for not subhalos.
-        'spin': lambda x: x != 0,
-        'q': lambda x: x != 0,
-        'vrms': lambda x: x != 0,
-        'mag2_a': lambda x: x != 0,
-        'mag2_j': lambda x: x != 0,
+        "spin": lambda x: x != 0,
+        "q": lambda x: x != 0,
+        "vrms": lambda x: x != 0,
+        "mag2_a": lambda x: x != 0,
+        "mag2_j": lambda x: x != 0,
     }
 
 
@@ -46,8 +46,10 @@ def particle_mass_filter(particle_mass, subhalos):
     if subhalos:
         warnings.warn("Making same cut in subhalos as in host halos")
 
-    return {'mvir': lambda mvirs: (np.log10(mvirs) > np.log10(particle_mass * 1e3)) & (
-            np.log10(mvirs) < 14.18)}
+    return {
+        "mvir": lambda mvirs: (np.log10(mvirs) > np.log10(particle_mass * 1e3))
+        & (np.log10(mvirs) < 14.18)
+    }
 
 
 def catalog_mass_filter(catalog_name):
@@ -57,14 +59,15 @@ def catalog_mass_filter(catalog_name):
     :return:
     """
 
-    if catalog_name == 'Bolshoi' or catalog_name == 'BolshoiP':
+    if catalog_name == "Bolshoi" or catalog_name == "BolshoiP":
+
         def myfilter(mvirs):
             return np.log10(mvirs) < 13.75
 
     else:
         raise NotImplementedError("Implemented other catalogs yet.")
 
-    return {'mvir': myfilter}
+    return {"mvir": myfilter}
 
 
 def get_relaxed_filters(relaxed_name):
@@ -73,16 +76,16 @@ def get_relaxed_filters(relaxed_name):
     :return:
     """
 
-    if relaxed_name == 'power2011':
+    if relaxed_name == "power2011":
         return {
-            'x0': lambda x: x < 0.04,
+            "x0": lambda x: x < 0.04,
         }
 
-    if relaxed_name == 'neto2007':
+    if relaxed_name == "neto2007":
         return {
             # 'fsub': lambda x: x < 0.1,
-            'x0': lambda x: x < 0.07,
-            'eta': lambda x: x < 1.35
+            "x0": lambda x: x < 0.07,
+            "eta": lambda x: x < 1.35,
         }
 
     else:

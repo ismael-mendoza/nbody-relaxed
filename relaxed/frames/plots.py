@@ -16,11 +16,19 @@ from .. import utils
 
 
 class Plot(object):
-
-    def __init__(self, plot_func, params, param_locs=None, nrows=1, ncols=1,
-                 figsize=(8, 8),
-                 title='', title_size=20, tick_size=24,
-                 plot_kwargs=None):
+    def __init__(
+        self,
+        plot_func,
+        params,
+        param_locs=None,
+        nrows=1,
+        ncols=1,
+        figsize=(8, 8),
+        title="",
+        title_size=20,
+        tick_size=24,
+        plot_kwargs=None,
+    ):
         """
         Represents a single plot to draw and produce. Each plot will be outputted in a single page of a pdf.
 
@@ -38,10 +46,9 @@ class Plot(object):
         self.nrows = nrows
         self.ncols = ncols
 
-        self.fig, self.axes, self.param_locs = self.get_subplots_config(self.nrows,
-                                                                        self.ncols,
-                                                                        param_locs,
-                                                                        figsize)
+        self.fig, self.axes, self.param_locs = self.get_subplots_config(
+            self.nrows, self.ncols, param_locs, figsize
+        )
 
         self.plot_kwargs = {} if None else plot_kwargs
         self.cached_args = []
@@ -62,7 +69,7 @@ class Plot(object):
     def finale(self):
 
         for ax in self.axes:
-            ax.tick_params(axis='both', which='major', labelsize=self.tick_size)
+            ax.tick_params(axis="both", which="major", labelsize=self.tick_size)
 
         self.fig.tight_layout(rect=[0, 0.03, 1, 0.95])
 
@@ -91,13 +98,17 @@ class Plot(object):
     @staticmethod
     def get_subplots_config(nrows, ncols, param_locs, figsize):
         # just plot sequentially if locations were not specified.
-        new_param_locs = param_locs if param_locs else [(i, j) for i in range(nrows) for j
-                                                        in range(ncols)]
+        new_param_locs = (
+            param_locs
+            if param_locs
+            else [(i, j) for i in range(nrows) for j in range(ncols)]
+        )
 
         fig, _ = plt.subplots(squeeze=False, figsize=figsize)
-        axes = [plt.subplot2grid((nrows, ncols), param_loc, fig=fig) for param_loc in
-                new_param_locs
-                ]
+        axes = [
+            plt.subplot2grid((nrows, ncols), param_loc, fig=fig)
+            for param_loc in new_param_locs
+        ]
 
         return fig, axes, new_param_locs
 
@@ -110,9 +121,15 @@ class BiPlot(Plot):
     def run(self, cat, **kwargs):
         for (ax, param_pair) in zip(self.axes, self.params):
             param1, param2 = param_pair
-            self.plot_func(cat, param1, param2, ax, xlabel=param1.text,
-                           ylabel=param2.text,
-                           **kwargs)
+            self.plot_func(
+                cat,
+                param1,
+                param2,
+                ax,
+                xlabel=param1.text,
+                ylabel=param2.text,
+                **kwargs
+            )
 
 
 class UniPlot(Plot):
@@ -133,9 +150,9 @@ class Histogram(UniPlot):
 
     def generate_from_cached(self):
         # first we obtain the bin edges.
-        assert 'bins' in self.plot_kwargs
+        assert "bins" in self.plot_kwargs
 
-        num_bins = self.plot_kwargs['bins']
+        num_bins = self.plot_kwargs["bins"]
         bin_edges = []
         for param in self.params:
             param_values = []
@@ -153,7 +170,7 @@ class Histogram(UniPlot):
         for i, (ax, param) in enumerate(zip(self.axes, self.params)):
             if bin_edges:
                 bin_edge = bin_edges[i]
-                assert 'bins' in kwargs
+                assert "bins" in kwargs
                 kwargs.update(dict(bins=bin_edge))
 
             self.plot_func(cat, param, ax, xlabel=param.text, **kwargs)
@@ -249,7 +266,6 @@ class StackedHistogram(Histogram):
 
 
 class MatrixPlot(Plot):
-
     def __init__(self, matrix_func, params, symmetric=False, **kwargs):
         """
 
@@ -258,22 +274,31 @@ class MatrixPlot(Plot):
         """
         self.matrix_func = matrix_func
         self.symmetric = symmetric
-        super(MatrixPlot, self).__init__(matrix_func, params, ncols=1, nrows=1, **kwargs)
+        super(MatrixPlot, self).__init__(
+            matrix_func, params, ncols=1, nrows=1, **kwargs
+        )
         self.ax = self.axes[0]
 
     def run(self, cat, label_size=16, show_cell_text=False, **kwargs):
         matrix = self.matrix_func(self.params, cat)
         mask = np.tri(matrix.shape[0], k=-1) if self.symmetric else None
         a = np.ma.array(matrix, mask=mask)
-        im = self.ax.matshow(a, cmap='bwr', vmin=-1, vmax=1)
+        im = self.ax.matshow(a, cmap="bwr", vmin=-1, vmax=1)
         plt.colorbar(im, ax=self.ax)
 
         if show_cell_text:
             for i in range(matrix.shape[0]):
                 for j in range(matrix.shape[1]):
-                    _ = self.ax.text(j, i, round(matrix[i, j], 2),
-                                     ha="center", va="center", color="k", size=14)
+                    _ = self.ax.text(
+                        j,
+                        i,
+                        round(matrix[i, j], 2),
+                        ha="center",
+                        va="center",
+                        color="k",
+                        size=14,
+                    )
 
         latex_params = [param.get_text(only_param=True) for param in self.params]
-        self.ax.set_xticklabels([''] + latex_params, size=label_size)
-        self.ax.set_yticklabels([''] + latex_params, size=label_size)
+        self.ax.set_xticklabels([""] + latex_params, size=label_size)
+        self.ax.set_yticklabels([""] + latex_params, size=label_size)
