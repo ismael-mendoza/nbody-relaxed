@@ -13,15 +13,10 @@ def get_phi_l(cat):
     :return: Value of phi_l for each row of the catalog cat.
     :rtype: astropy.Column
     """
-    return np.arccos(
-        (
-            (cat["ax"] * cat["jx"] + cat["ay"] * cat["jy"] + cat["az"] * cat["jz"])
-            / (
-                np.sqrt(cat["ax"] ** 2 + cat["ay"] ** 2 + cat["az"] ** 2)
-                * np.sqrt(cat["jx"] ** 2 + cat["jy"] ** 2 + cat["jz"] ** 2)
-            )
-        )
-    )
+    numerator = cat["ax"] * cat["jx"] + cat["ay"] * cat["jy"] + cat["az"] * cat["jz"]
+    denominator = np.sqrt(cat["ax"] ** 2 + cat["ay"] ** 2 + cat["az"] ** 2)
+    denominator *= np.sqrt(cat["jx"] ** 2 + cat["jy"] ** 2 + cat["jz"] ** 2)
+    return np.arccos(numerator / denominator)
 
 
 class Param(object):
@@ -184,7 +179,7 @@ info_params = {
     "f_sub": (None, None, "f_{\\rm sub}"),
     "a2": (None, None, "a_{\\ 1/2}"),
     # usually excluded quantities necessary for filtering
-    "upid": (None, "", "", ""),
+    "upid": (None, None, None),
     "mag2_a": (
         (
             lambda cat: cat["ax"] ** 2 + cat["ay"] ** 2 + cat["ax"] ** 2,
@@ -209,10 +204,8 @@ params_dict = {
     for (key, value) in info_params.items()
 }
 
-# TODO: make this a bit more flexible so not every param added has to be calculated like above.
-# but can still add units , etc.
+# but can still add units, etc.
 param_names = params_dict.keys()
-default_params_to_exclude = {"mag2_a", "mag2_j"}
-default_params_to_include = [
-    param for param in param_names if param not in default_params_to_exclude
-]
+params_to_exclude = {"mag2_a", "mag2_j"}
+params_add_later = {"a2", "f_sub"}
+params_to_include = [param for param in param_names if param not in params_to_exclude]

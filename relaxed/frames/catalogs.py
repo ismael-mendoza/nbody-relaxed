@@ -14,9 +14,9 @@ from pminh import minh
 
 # particle mass (Msun/h), total particles, box size (Mpc/h).
 catalog_properties = {
-    'Bolshoi': (1.35e8, 2048 ** 3, 250),
-    'BolshoiP': (1.55e8, 2048 ** 3, 250),
-    'MDPL2': (1.51e9, 3840 ** 3, 1000)
+    "Bolshoi": (1.35e8, 2048 ** 3, 250),
+    "BolshoiP": (1.55e8, 2048 ** 3, 250),
+    "MDPL2": (1.51e9, 3840 ** 3, 1000),
 }
 
 
@@ -24,11 +24,11 @@ def intersection(cat, scat):
     # intersect two catalogs by their id attribute.
     # scat ids are ideally a subset of cat ids
     # can also just repeat with switched order and will work in the end.
-    cat.sort('id')
-    scat.sort('id')
+    cat.sort("id")
+    scat.sort("id")
 
-    ids = cat['id']
-    sids = scat['id']
+    ids = cat["id"]
+    sids = scat["id"]
 
     indx = np.searchsorted(sids, ids)
     indx_ok = indx < len(sids)
@@ -40,12 +40,19 @@ def intersection(cat, scat):
 
 
 class HaloCatalog(object):
-
-    def __init__(self, filepath, catalog_name, subhalos=False,
-                 extract_sub=False, add_progenitor=None,
-                 base_filters=None,
-                 params_to_include: List[str] = None, verbose=False,
-                 catalog_label='all halos'):
+    def __init__(
+        self,
+        filepath,
+        catalog_name,
+        subhalos=False,
+        add_subhalo=False,
+        add_progenitor=None,
+        base_filters=None,
+        params_to_include: List[str] = None,
+        params_add_later: List[str] = None,
+        verbose=False,
+        catalog_label="all halos",
+    ):
         """
 
         :param filepath:
@@ -58,34 +65,43 @@ class HaloCatalog(object):
 
         self.filepath = filepath
         assert self.filepath.name.endswith(
-            '.minh'), "Using Phil's format exclusively now."
+            ".minh"
+        ), "Using Phil's format exclusively now."
 
         self.catalog_name = catalog_name
         self.verbose = verbose
         self.add_progenitor = add_progenitor
 
         self.subhalos = subhalos
-        self.extract_sub = extract_sub
-        assert not extract_sub or not subhalos, "Cannot have both."
+        self.extract_sub = add_subhalo
+        assert not add_subhalo or not subhalos, "Cannot have both."
 
         self.particle_mass, self.total_particles, self.box_size = catalog_properties[
-            self.catalog_name]
+            self.catalog_name
+        ]
         self.catalog_label = catalog_label  # for use in things like legends.
 
         # name of all params that will be needed for filtering and
         # params we actually want to have at the end in the output catalog.
         self.param_names = params.param_names
-        self.params_to_include = (params_to_include if params_to_include
-                                  else params.default_params_to_include)
+        self.params_to_include = (
+            params_to_include if params_to_include else params.params_to_include
+        )
+        self.params_add_later = (
+            params_add_later if params_add_later else params.params_add_later
+        )
 
-        self._filters = (base_filters if base_filters is not None else
-                         filters.get_default_base_filters(
-                             self.particle_mass, self.subhalos))
+        self._filters = (
+            base_filters
+            if base_filters is not None
+            else filters.get_default_base_filters(self.particle_mass, self.subhalos)
+        )
 
         if not set(self._filters.keys()).issubset(set(self.param_names)):
             raise ValueError(
                 "filtering will fail since not all params are in self.param_names,"
-                "need to update params.py")
+                "need to update params.py"
+            )
 
         # will be potentially defined later.
         self.use_minh = None
@@ -108,7 +124,7 @@ class HaloCatalog(object):
         return self._filters
 
     @contextmanager
-    def using_filters(self, myfilters, catalog_label='filtered catalog'):
+    def using_filters(self, myfilters, catalog_label="filtered catalog"):
         old_label = self.catalog_label
 
         try:
@@ -119,14 +135,17 @@ class HaloCatalog(object):
             self._cat = self._bcat
             self.catalog_label = old_label
 
+    @contextmanager
     def using_relaxed_filters(self, relaxed_name=None):
-        self.using_filters(filters.get_relaxed_filters(relaxed_name),
-                           catalog_label=f"{relaxed_name} relaxed")
+        self.using_filters(
+            filters.get_relaxed_filters(relaxed_name),
+            catalog_label=f"{relaxed_name} relaxed",
+        )
 
     def save_base_cat(self, filepath):
         assert self._cat is not None, "cat must be loaded"
-        assert filepath.suffix == '.csv', "format supported will be csv for now"
-        ascii.write(self._bcat, filepath, format='csv', fast_writer=True)
+        assert filepath.suffix == ".csv", "format supported will be csv for now"
+        ascii.write(self._bcat, filepath, format="csv", fast_writer=True)
 
     def load_base_cat(self, use_minh=False, bcat=None):
         """
@@ -136,9 +155,13 @@ class HaloCatalog(object):
         :param bcat:
         :return:
         """
-        assert use_minh is False, "Not implemented this functionality yet, for now just return " \
-                                  "full catalog. "
-        assert self._bcat is None, "Overriding catalog that is already created. (probably wasteful)"
+        assert use_minh is False, (
+            "Not implemented this functionality yet, for now just return "
+            "full catalog. "
+        )
+        assert (
+            self._bcat is None
+        ), "Overriding catalog that is already created. (probably wasteful)"
 
         self.use_minh = use_minh
         if not bcat:
@@ -169,7 +192,8 @@ class HaloCatalog(object):
             if self.verbose:
                 warnings.warn(
                     "Ignoring dividing by zero and invalid errors that should "
-                    "be filtered out anyways.")
+                    "be filtered out anyways."
+                )
 
             # actually extract the data from gcats and read it into memory.
             # do filtering on the fly so don't actually ever read unfiltered catalog.
@@ -183,10 +207,11 @@ class HaloCatalog(object):
                 # be obtained in any order.
                 # * Ignore warning of possible parameters that are divided by zero,
                 # this will be filtered out later.
-                with np.errstate(divide='ignore', invalid='ignore'):
+                with np.errstate(divide="ignore", invalid="ignore"):
                     for param in self.param_names:
-                        values = self._get_not_log_value_minh(param, minh_cat, b)
-                        new_cat.add_column(values, name=param)
+                        if param not in params.params_add_later:
+                            values = self._get_not_log_value_minh(param, minh_cat, b)
+                            new_cat.add_column(values, name=param)
 
                 # once all needed params are in new_cat, we filter it out to reduce size.
                 new_cat = self._filter_cat(self._filters, new_cat)
@@ -199,28 +224,32 @@ class HaloCatalog(object):
 
             fcat = astropy.table.vstack(cats)
 
-            if self.extract_sub:
+            if self.add_subhalo:
                 if self.verbose:
                     print("extracting subhalo properties")
-                assert np.all(fcat['upid'] == -1), "Needs to be a host catalog"
+                assert np.all(fcat["upid"] == -1), "Needs to be a host catalog"
                 subhalo_cat = self._extract_subhalo(fcat, minh_cat)
-                fcat = astropy.table.join(fcat, subhalo_cat, keys='id')
-                self.params_to_include.append('f_sub')
+                fcat = astropy.table.join(fcat, subhalo_cat, keys="id")
+                self.params_to_include.append("f_sub")
 
             if self.add_progenitor:
                 if self.verbose:
                     print("Adding progenitor properties")
-                pcat = Table.read(self.add_progenitor)  # catalog with progenitor summary.
+
+                # catalog with progenitor summary.
+                pcat = Table.read(self.add_progenitor)
 
                 pcat = intersection(pcat, fcat)
                 fcat = intersection(fcat, pcat)
 
-                fcat = astropy.table.join(fcat, pcat, keys='id')
+                fcat = astropy.table.join(fcat, pcat, keys="id")
                 pcat_params = pcat.colnames
-                pcat_params.remove('id')
+                pcat_params.remove("id")
                 self.params_to_include += pcat_params
 
-            warnings.warn("We only include parameters in `params.default_params_to_include`")
+            warnings.warn(
+                "We only include parameters in `params.default_params_to_include`"
+            )
             fcat = fcat[self.params_to_include]
 
             return fcat
@@ -231,12 +260,12 @@ class HaloCatalog(object):
     def _extract_subhalo(host_cat, minh_cat):
         # now we also want to add subhalo fraction and we follow Phil's lead
 
-        host_ids = host_cat['id']
-        host_mvir = host_cat['mvir']
+        host_ids = host_cat["id"]
+        host_mvir = host_cat["mvir"]
         M_sub_sum = np.zeros(len(host_mvir))
 
         for b in range(minh_cat.blocks):
-            upid, mvir = minh_cat.block(b, ['upid', 'mvir'])
+            upid, mvir = minh_cat.block(b, ["upid", "mvir"])
 
             # need to contain only ids of host_ids for it to work.
             sub_pids = upid[upid != -1]
@@ -244,7 +273,7 @@ class HaloCatalog(object):
             M_sub_sum += subhalo.m_sub(host_ids, sub_pids, sub_mvir)
 
         f_sub = M_sub_sum / host_mvir  # subhalo mass fraction.
-        subhalo_cat = Table(data=[host_ids, f_sub], names=['id', 'f_sub'])
+        subhalo_cat = Table(data=[host_ids, f_sub], names=["id", "f_sub"])
 
         return subhalo_cat
 
@@ -272,11 +301,6 @@ class HaloCatalog(object):
 
     @staticmethod
     def _get_not_log_value_minh(key, mcat, b=None):
-        """
-        Only purpose is for the filters.
-        :param key:
-        :return:
-        """
         return params.Param(key, log=False).get_values_minh(mcat, b)
 
     @staticmethod
@@ -292,7 +316,9 @@ class HaloCatalog(object):
         return len(self._cat)
 
     @classmethod
-    def create_filtered_from_base(cls, old_hcat, myfilters, catalog_label='filtered cat'):
+    def create_filtered_from_base(
+        cls, old_hcat, myfilters, catalog_label="filtered cat"
+    ):
         """
         This will copy the `_cat` attribute of the old_hcat.
         :param old_hcat:
@@ -300,16 +326,23 @@ class HaloCatalog(object):
         :param catalog_label:
         :return:
         """
-        assert old_hcat.get_cat() is not None, "Catalog of old_hcat should already be set."
-        assert set(myfilters.keys()).issubset(
-            set(old_hcat.get_cat().colnames)), "This will fail because the " \
-                                               "cat of old_hcat does " \
-                                               "not contain filtered parameters."
+        assert (
+            old_hcat.get_cat() is not None
+        ), "Catalog of old_hcat should already be set."
+        assert set(myfilters.keys()).issubset(set(old_hcat.get_cat().colnames)), (
+            "This will fail because the "
+            "cat of old_hcat does "
+            "not contain filtered parameters."
+        )
 
-        new_hcat = cls(old_hcat.filepath, old_hcat.catalog_name,
-                       subhalos=old_hcat.subhalos,
-                       base_filters=old_hcat.get_cfilters(), catalog_label=catalog_label,
-                       params_to_include=old_hcat.params_to_include)
+        new_hcat = cls(
+            old_hcat.filepath,
+            old_hcat.catalog_name,
+            subhalos=old_hcat.subhalos,
+            base_filters=old_hcat.get_cfilters(),
+            catalog_label=catalog_label,
+            params_to_include=old_hcat.params_to_include,
+        )
 
         # it is ok to have a view for the base cat, since filtering will create a copy.
         new_hcat.load_base_cat(use_minh=False, bcat=old_hcat.get_cat())
@@ -318,9 +351,11 @@ class HaloCatalog(object):
 
     @classmethod
     def create_relaxed_from_base(cls, old_hcat, relaxed_name):
-        return cls.create_filtered_from_base(old_hcat,
-                                             filters.get_relaxed_filters(relaxed_name),
-                                             catalog_label=f"{relaxed_name} relaxed")
+        return cls.create_filtered_from_base(
+            old_hcat,
+            filters.get_relaxed_filters(relaxed_name),
+            catalog_label=f"{relaxed_name} relaxed",
+        )
 
     @classmethod
     def create_from_saved_cat(cls, cat_file, *args, **kwargs):
@@ -332,6 +367,6 @@ class HaloCatalog(object):
         :return:
         """
         hcat = cls(cat_file, *args, **kwargs)
-        cat = ascii.read(cat_file, format='csv')
+        cat = ascii.read(cat_file, format="csv")
         hcat.load_base_cat(use_minh=False, bcat=cat)
         return hcat
