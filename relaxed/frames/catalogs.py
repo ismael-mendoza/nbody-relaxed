@@ -73,7 +73,7 @@ class HaloCatalog(object):
         self.add_progenitor = add_progenitor
 
         self.subhalos = subhalos
-        self.extract_sub = add_subhalo
+        self.add_subhalo = add_subhalo
         assert not add_subhalo or not subhalos, "Cannot have both."
 
         self.particle_mass, self.total_particles, self.box_size = catalog_properties[
