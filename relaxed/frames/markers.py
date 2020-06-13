@@ -25,5 +25,8 @@
 # (7) The above is the general procedure, you have to do this for all the progenitor cats first
 # and then calculate the percentile rank for each scale slice.
 
-# pandas table 
+# pandas table
 # * a column entry can be pandas.
+
+
+# TODO: Write each of the m(a) for each a (99 ?) to a separate file

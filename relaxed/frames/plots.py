@@ -143,9 +143,8 @@ class UniPlot(Plot):
 
 
 class Histogram(UniPlot):
-    """
-    Creates histograms which is a subclass of UniPlot but uses caching to set the bin sizes of all catalogs
-    to be the same.
+    """Creates histograms which is a subclass of UniPlot but uses caching to set the bin sizes of
+    all catalogs to be the same.
     """
 
     def generate_from_cached(self):
@@ -178,9 +177,9 @@ class Histogram(UniPlot):
 
 class StackedHistogram(Histogram):
     """
-    Create a stacked histogram, this is specifically useful to reproduce plots like in Figure 3 of
-    https://arxiv.org/pdf/1404.4634.pdf, where the top histogram are all the individual plots and the bottom row
-    shows the ratio of each with respect to the total.
+    Create a stacked histogram, this is specifically useful to reproduce plots like in Figure 3
+    of https://arxiv.org/pdf/1404.4634.pdf, where the top histogram are all the individual plots
+    and the bottom row shows the ratio of each with respect to the total.
 
     * Pass in nrow as if this wasn't stacked (just thinking of normal histogram.
     * Used: https://stackoverflow.com/questions/37737538/merge-matplotlib-subplots-with-shared-x-axis
@@ -267,11 +266,6 @@ class StackedHistogram(Histogram):
 
 class MatrixPlot(Plot):
     def __init__(self, matrix_func, params, symmetric=False, **kwargs):
-        """
-
-        :param matrix_func: A function that returns a matrix of shape len(self.params) x len(self.params).
-        :param args:
-        """
         self.matrix_func = matrix_func
         self.symmetric = symmetric
         super(MatrixPlot, self).__init__(
@@ -281,6 +275,8 @@ class MatrixPlot(Plot):
 
     def run(self, cat, label_size=16, show_cell_text=False, **kwargs):
         matrix = self.matrix_func(self.params, cat)
+
+        # mask out lower off-diagonal elements if requested.
         mask = np.tri(matrix.shape[0], k=-1) if self.symmetric else None
         a = np.ma.array(matrix, mask=mask)
         im = self.ax.matshow(a, cmap="bwr", vmin=-1, vmax=1)

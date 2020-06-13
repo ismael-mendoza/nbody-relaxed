@@ -178,6 +178,7 @@ info_params = {
     # will be added later via a more complicated procedure.
     "f_sub": (None, None, "f_{\\rm sub}"),
     "a2": (None, None, "a_{\\ 1/2}"),
+    "alpha": (None, None, "\\alpha"),
     # usually excluded quantities necessary for filtering
     "upid": (None, None, None),
     "mag2_a": (
@@ -205,7 +206,11 @@ params_dict = {
 }
 
 # but can still add units, etc.
-param_names = params_dict.keys()
+param_names = list(params_dict.keys())
 params_to_exclude = {"mag2_a", "mag2_j"}
-params_add_later = {"a2", "f_sub"}
-params_to_include = [param for param in param_names if param not in params_to_exclude]
+params_add_later = {"a2", "f_sub", "alpha"}
+params_to_include = [
+    param
+    for param in param_names
+    if param not in params_to_exclude and param not in params_add_later
+]

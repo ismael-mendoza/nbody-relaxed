@@ -7,6 +7,10 @@ import numpy as np
 import warnings
 
 
+def get_bound_filter(param, low=-np.inf, high=np.inf, modifier=lambda x: x):
+    return {param: lambda x: (modifier(x) > low) & (modifier(x) < high)}
+
+
 def get_default_base_filters(particle_mass, subhalos):
     """
     NOTE: Always assume that the values of the catalog are returned without log10ing first.
@@ -36,7 +40,6 @@ def particle_mass_filter(particle_mass, subhalos):
     """
     We introduce two default cuts on mass:
         * The first part is to account for having too few particles (<1000).
-         * The second is too account for bins that are undersampled in Bolshoi.
 
     Args:
         particle_mass: The mass of each particle in the halo catalog.
@@ -46,16 +49,13 @@ def particle_mass_filter(particle_mass, subhalos):
     if subhalos:
         warnings.warn("Making same cut in subhalos as in host halos")
 
-    return {
-        "mvir": lambda mvirs: (np.log10(mvirs) > np.log10(particle_mass * 1e3))
-        & (np.log10(mvirs) < 14.18)
-    }
+    return {"mvir": lambda mvirs: (np.log10(mvirs) > np.log10(particle_mass * 1e3))}
 
 
 def catalog_mass_filter(catalog_name):
     """
     * The cuts on mvir are based on Phil's comment that Bolshoi/BolshoiP only give reasonable
-    results up to log10(Mvir) ~ 13.5 - 13.75.
+    results up to log10(Mvir) ~ 13.5 - 13.75. Larger masses are undersampled in Bolshoi/BolshoiP
     :return:
     """
 
@@ -83,7 +83,7 @@ def get_relaxed_filters(relaxed_name):
 
     if relaxed_name == "neto2007":
         return {
-            # 'fsub': lambda x: x < 0.1,
+            "f_sub": lambda x: x < 0.1,
             "x0": lambda x: x < 0.07,
             "eta": lambda x: x < 1.35,
         }

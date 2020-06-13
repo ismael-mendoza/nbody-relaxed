@@ -3,7 +3,7 @@ import gzip
 from os.path import dirname
 from pathlib import Path
 
-root_path = Path(dirname(dirname(dirname(__file__))))
+root_path = Path(dirname(dirname(__file__)))
 relaxed_path = root_path.joinpath("relaxed")
 figure_path = root_path.joinpath("figures")
 packages_path = root_path.joinpath("packages")
@@ -21,7 +21,7 @@ def is_iterable(obj):
 
 
 def get_stem(filename: str):
-    return filename.split('.')[0]
+    return filename.split(".")[0]
 
 
 def hlist_dat_to_csv(hlist_file):
@@ -31,19 +31,20 @@ def hlist_dat_to_csv(hlist_file):
     hlist_file = Path(hlist_file)
 
     filename_stem = get_stem(hlist_file.name)
-    new_filename = f'{filename_stem}.csv'
+    new_filename = f"{filename_stem}.csv"
     hlist_new_file = hlist_file.parent.joinpath(new_filename)
 
-    with gzip.open(hlist_file, 'rt') as f:
-        with open(hlist_new_file, mode='w') as csvfile:
+    with gzip.open(hlist_file, "rt") as f:
+        with open(hlist_new_file, mode="w") as csvfile:
             for i, line in enumerate(f):
 
                 if i % 10000 == 0:  # show progress.
                     print(i)
 
                 if i == 0:  # header
-                    fieldnames = [name[:name.rfind('(')].strip('#') for name in
-                                  line.split()]
+                    fieldnames = [
+                        name[: name.rfind("(")].strip("#") for name in line.split()
+                    ]
                     writer = csv.DictWriter(csvfile, fieldnames)
                     writer.writeheader()
 

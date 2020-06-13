@@ -3,7 +3,7 @@ import numpy as np
 from . import plot_funcs
 from ..frames import plots
 from ..frames.params import Param
-import stats
+from .. import stats
 
 
 # ToDo: (Future) some of the redundancy in the functions below can be improved.
@@ -20,11 +20,13 @@ def generate_and_save(pdf, hcats, hplots, uplots, colors=None, cached=False):
 
         for plot in hplot:
             if not cached:
-                plot.generate(hcat.get_cat(), legend_label=hcat.catalog_label,
-                              color=color)
+                plot.generate(
+                    hcat.get_cat(), legend_label=hcat.catalog_label, color=color
+                )
             else:
-                plot.load_arguments(hcat.get_cat(), legend_label=hcat.catalog_label,
-                                    color=color)
+                plot.load_arguments(
+                    hcat.get_cat(), legend_label=hcat.catalog_label, color=color
+                )
 
     for plot in uplots:
         if cached:
@@ -50,37 +52,59 @@ def plot_multiple_basic(hcats, pdf, colors):
 
     # this are the default values that we will be using throughout the plots.
     general_kwargs = dict(xlabel_size=28, ylabel_size=28)
-    hist_kwargs = dict(bins=30, histtype='step', extra_hist_kwargs=dict(), log_y=True,
-                       **general_kwargs)
-    hist_kwargs2 = dict(bins=30, histtype='step', extra_hist_kwargs=dict(), log_y=True,
-                        vline='median',
-                        **general_kwargs)
+    hist_kwargs = dict(
+        bins=30, histtype="step", extra_hist_kwargs=dict(), log_y=True, **general_kwargs
+    )
+    hist_kwargs2 = dict(
+        bins=30,
+        histtype="step",
+        extra_hist_kwargs=dict(),
+        log_y=True,
+        vline="median",
+        **general_kwargs
+    )
     binning_kwargs = dict(nxbins=10, no_bars=True, show_bands=True, **general_kwargs)
 
     # (1) Need to create all the plots and specify their parameters in kwargss.
 
     # Plot 1: histogram of Mvir
-    params = [Param('mvir', log=True)]
-    plot1 = plots.Histogram(plot_funcs.histogram, params, nrows=1, ncols=1,
-                            plot_kwargs=hist_kwargs)
+    params = [Param("mvir", log=True)]
+    plot1 = plots.Histogram(
+        plot_funcs.histogram, params, nrows=1, ncols=1, plot_kwargs=hist_kwargs
+    )
 
     # Plot 2: mean-centered histogram of relevant quantities
     # title = "Mean centered histograms"
     modifiers = [lambda x: (x - np.mean(x)) / np.std(x)]
-    param_names = ['mvir', 'cvir', 'eta', 'x0', 'v0', 'spin', 'q', 'phi_l']
-    params = [Param(param_name, log=True, modifiers=modifiers) for param_name in
-              param_names]
-    plot2 = plots.Histogram(plot_funcs.histogram, params, ncols=2, nrows=4,
-                            figsize=(12, 20),
-                            title=None, title_size=24, plot_kwargs=hist_kwargs2)
+    param_names = ["mvir", "cvir", "eta", "x0", "v0", "spin", "q", "phi_l"]
+    params = [
+        Param(param_name, log=True, modifiers=modifiers) for param_name in param_names
+    ]
+    plot2 = plots.Histogram(
+        plot_funcs.histogram,
+        params,
+        ncols=2,
+        nrows=4,
+        figsize=(12, 20),
+        title=None,
+        title_size=24,
+        plot_kwargs=hist_kwargs2,
+    )
 
     # Plot 3: Relaxedness parameters and mvir
-    relaxedness_param_names = ['eta', 'x0', 'v0', 'xoff', 'voff', 'q', 'cvir']
-    params = [(Param('mvir', log=True), Param(relaxed_param, log=True)) for relaxed_param
-              in relaxedness_param_names]
-    plot3 = plots.BiPlot(plot_funcs.scatter_binning, params, nrows=4, ncols=2,
-                         figsize=(18, 22),
-                         plot_kwargs=binning_kwargs)
+    relaxedness_param_names = ["eta", "x0", "v0", "xoff", "voff", "q", "cvir"]
+    params = [
+        (Param("mvir", log=True), Param(relaxed_param, log=True))
+        for relaxed_param in relaxedness_param_names
+    ]
+    plot3 = plots.BiPlot(
+        plot_funcs.scatter_binning,
+        params,
+        nrows=4,
+        ncols=2,
+        figsize=(18, 22),
+        plot_kwargs=binning_kwargs,
+    )
 
     # (2) Update the unique plots
     uplots = [plot1, plot2, plot3]
@@ -105,13 +129,18 @@ def plot_correlation_matrix_basic(hcats, pdf):
     uplots = []
 
     # Plot 4: Matrix correlations
-    param_names = ['mvir', 'cvir', 'eta', 'x0', 'v0', 'q', 'spin', 'phi_l']
+    param_names = ["mvir", "cvir", "eta", "x0", "v0", "q", "spin", "phi_l"]
     params = [Param(param_name, log=True) for param_name in param_names]
     for hcat, hplot in zip(hcats, hplots):
         kwargs = dict(label_size=20, show_cell_text=True)
-        plot = plots.MatrixPlot(stats.get_corrs, params, symmetric=False,
-                                plot_kwargs=kwargs,
-                                title=hcat.catalog_label, title_size=24)
+        plot = plots.MatrixPlot(
+            stats.get_corrs,
+            params,
+            symmetric=False,
+            plot_kwargs=kwargs,
+            title=hcat.catalog_label,
+            title_size=24,
+        )
         uplots.append(plot)
         hplot.append(plot)
 
@@ -119,13 +148,13 @@ def plot_correlation_matrix_basic(hcats, pdf):
 
 
 def plot_decades_basic(hcats, pdf, colors):
-    """
-    Produce all the basic plots that require decade separation
-    :return:
+    """Produce all the basic plots that require decade separation
     """
 
     general_kwargs = dict(xlabel_size=28, ylabel_size=28)
-    binning_3d_kwargs = dict(nxbins=8, no_bars=False, show_bands=False, **general_kwargs)
+    binning_3d_kwargs = dict(
+        nxbins=8, no_bars=False, show_bands=False, **general_kwargs
+    )
     binning_kwargs = dict(nxbins=8, no_bars=True, show_bands=True, **general_kwargs)
 
     figsize = (24, 24)
@@ -136,19 +165,16 @@ def plot_decades_basic(hcats, pdf, colors):
     # of mass half decades.
     # params to include:  't/|u|', 'x0', 'v0', 'xoff', 'Voff', 'q', 'cvir'
     params = [
-        (Param('t/|u|', log=True), Param('x0', log=True)),
-        (Param('t/|u|', log=True), Param('v0', log=True)),
-        (Param('t/|u|', log=True), Param('q', log=True)),
-        (Param('t/|u|', log=True), Param('cvir', log=True)),
-
-        (Param('x0', log=True), Param('v0', log=True)),
-        (Param('x0', log=True), Param('q', log=True)),
-        (Param('x0', log=True), Param('cvir', log=True)),
-
-        (Param('v0', log=True), Param('q', log=True)),
-        (Param('v0', log=True), Param('cvir', log=True)),
-
-        (Param('q', log=True), Param('cvir', log=True)),
+        (Param("t/|u|", log=True), Param("x0", log=True)),
+        (Param("t/|u|", log=True), Param("v0", log=True)),
+        (Param("t/|u|", log=True), Param("q", log=True)),
+        (Param("t/|u|", log=True), Param("cvir", log=True)),
+        (Param("x0", log=True), Param("v0", log=True)),
+        (Param("x0", log=True), Param("q", log=True)),
+        (Param("x0", log=True), Param("cvir", log=True)),
+        (Param("v0", log=True), Param("q", log=True)),
+        (Param("v0", log=True), Param("cvir", log=True)),
+        (Param("q", log=True), Param("cvir", log=True)),
     ]  # total = 10
     param_locs = []  # triangular pattern, user defined param_locs.
     for i in range(4):
@@ -157,18 +183,30 @@ def plot_decades_basic(hcats, pdf, colors):
 
     # this plot is complicated, so we make one separate for each catalog.
     for hcat, hplot in zip(hcats, hplots):
-        plot1 = plots.BiPlot(plot_funcs.binning3d_mass, params, nrows=4, ncols=4,
-                             figsize=figsize,
-                             param_locs=param_locs, plot_kwargs=binning_3d_kwargs,
-                             title=hcat.catalog_label,
-                             title_size=40)
+        plot1 = plots.BiPlot(
+            plot_funcs.binning3d_mass,
+            params,
+            nrows=4,
+            ncols=4,
+            figsize=figsize,
+            param_locs=param_locs,
+            plot_kwargs=binning_3d_kwargs,
+            title=hcat.catalog_label,
+            title_size=40,
+        )
         uplots.append(plot1)
         hplot.append(plot1)
 
     # Plot 6: Same plot as above but without any decades and this one is overlaid for all hcats.
-    plot2 = plots.BiPlot(plot_funcs.scatter_binning, params, nrows=4, ncols=4,
-                         figsize=figsize,
-                         param_locs=param_locs, plot_kwargs=binning_kwargs)
+    plot2 = plots.BiPlot(
+        plot_funcs.scatter_binning,
+        params,
+        nrows=4,
+        ncols=4,
+        figsize=figsize,
+        param_locs=param_locs,
+        plot_kwargs=binning_kwargs,
+    )
     uplots.append(plot2)
     for hplot in hplots:
         hplot.append(plot2)

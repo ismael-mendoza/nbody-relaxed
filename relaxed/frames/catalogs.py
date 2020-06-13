@@ -7,6 +7,8 @@ import astropy
 from astropy.table import Table
 from astropy.io import ascii
 
+from copy import deepcopy
+
 from . import filters
 from . import params
 from ..subhalos import subhalo
@@ -49,7 +51,6 @@ class HaloCatalog(object):
         add_progenitor=None,
         base_filters=None,
         params_to_include: List[str] = None,
-        params_add_later: List[str] = None,
         verbose=False,
         catalog_label="all halos",
     ):
@@ -83,13 +84,13 @@ class HaloCatalog(object):
 
         # name of all params that will be needed for filtering and
         # params we actually want to have at the end in the output catalog.
-        self.param_names = params.param_names
+        self.param_names = deepcopy(params.param_names)
         self.params_to_include = (
-            params_to_include if params_to_include else params.params_to_include
+            params_to_include
+            if params_to_include
+            else deepcopy(params.params_to_include)
         )
-        self.params_add_later = (
-            params_add_later if params_add_later else params.params_add_later
-        )
+        self.params_add_later = deepcopy(params.params_add_later)
 
         self._filters = (
             base_filters
@@ -129,7 +130,7 @@ class HaloCatalog(object):
 
         try:
             self.catalog_label = catalog_label
-            self._cat = self._filter_cat(self._cat, myfilters)
+            self._cat = self._filter_cat(myfilters, self._cat)
             yield self
         finally:
             self._cat = self._bcat
@@ -138,6 +139,16 @@ class HaloCatalog(object):
     @contextmanager
     def using_relaxed_filters(self, relaxed_name=None):
         self.using_filters(
+            filters.get_relaxed_filters(relaxed_name),
+            catalog_label=f"{relaxed_name} relaxed",
+        )
+
+    def with_filters(self, myfilters, catalog_label="filtered catalog"):
+        self.catalog_label = catalog_label
+        self._cat = self._filter_cat(myfilters, self._cat,)
+
+    def with_relaxed_filters(self, relaxed_name=None):
+        self.with_filters(
             filters.get_relaxed_filters(relaxed_name),
             catalog_label=f"{relaxed_name} relaxed",
         )
@@ -209,7 +220,7 @@ class HaloCatalog(object):
                 # this will be filtered out later.
                 with np.errstate(divide="ignore", invalid="ignore"):
                     for param in self.param_names:
-                        if param not in params.params_add_later:
+                        if param not in self.params_add_later:
                             values = self._get_not_log_value_minh(param, minh_cat, b)
                             new_cat.add_column(values, name=param)
 
@@ -222,8 +233,8 @@ class HaloCatalog(object):
                     if b % 10 == 0:
                         print(b)
 
+            # TODO: add f1 = fraction of most massive subhalo to host halo mass.
             fcat = astropy.table.vstack(cats)
-
             if self.add_subhalo:
                 if self.verbose:
                     print("extracting subhalo properties")
@@ -339,7 +350,7 @@ class HaloCatalog(object):
             old_hcat.filepath,
             old_hcat.catalog_name,
             subhalos=old_hcat.subhalos,
-            base_filters=old_hcat.get_cfilters(),
+            base_filters=old_hcat.get_filters(),
             catalog_label=catalog_label,
             params_to_include=old_hcat.params_to_include,
         )
