@@ -37,7 +37,7 @@ class Param(object):
         self.latex_param = params_dict[key]["latex_param"]
 
         # units.
-        self.units, self.latex_units = "", ""
+        self.units, self.latex_units = None, None
         unit_pair = params_dict[key]["units"]
         if unit_pair:
             self.units = unit_pair[0]
@@ -118,7 +118,7 @@ class Param(object):
 
         if self.log:
             log_tex = "\\log_{10}"
-        elif self.latex_units is not None:
+        if self.latex_units is not None:
             units_tex = "\\; [{}]".format(self.latex_units)
 
         return template.format(log_tex, self.latex_param, units_tex)
@@ -132,11 +132,11 @@ info_params = {
     # The key is the actual way name to access from the catalog.
     "id": (None, None, ""),
     "mvir": (None, ("Msun/h", "h^{-1} \\, M_{\\odot}"), "M_{\\rm vir}"),
-    "rvir": (None, ("kpc/h", "h^{-1} \\, kpc"), "R_{\\rm vir}"),
-    "rs": (None, ("kpc/h", "h^{-1} \\, kpc"), "R_{\\rm vir}"),
-    "xoff": (None, ("kpc/h", "h^{-1} \\, kpc"), "X_{\\rm off}"),
-    "voff": (None, ("km/s", "km \\, s^{-1}"), "V_{\\rm off}"),
-    "vrms": (None, ("km/s", "km \\, s^{-1}"), "V_{\\rm rms}"),
+    "rvir": (None, ("kpc/h", "h^{-1} \\, \\rm kpc"), "R_{\\rm vir}"),
+    "rs": (None, ("kpc/h", "h^{-1} \\, \\rm kpc"), "R_{\\rm vir}"),
+    "xoff": (None, ("kpc/h", "h^{-1} \\, \\rm kpc"), "X_{\\rm off}"),
+    "voff": (None, ("km/s", "\\rm km \\, s^{-1}"), "V_{\\rm off}"),
+    "vrms": (None, ("km/s", "\\rm km \\, s^{-1}"), "V_{\\rm rms}"),
     "gamma_tdyn": (
         None,
         ("Msun/h/yr", "h^{-1}\\, yr^{-1} \\, M_{\\odot}"),
@@ -177,7 +177,7 @@ info_params = {
     # '', '\\tau_{\\rm dyn}'), (notesheet)
     # will be added later via a more complicated procedure.
     "f_sub": (None, None, "f_{\\rm sub}"),
-    "a2": (None, None, "a_{\\ 1/2}"),
+    "a2": (None, None, "a_{1/2}"),
     "alpha": (None, None, "\\alpha"),
     # usually excluded quantities necessary for filtering
     "upid": (None, None, None),

@@ -58,15 +58,10 @@ class Plot(object):
         Produce the plot and save into the axes objects.
         :return: None
         """
-        self.preamble()
-        self.run(cat, **kwargs, **self.plot_kwargs)
-        self.finale()
-
-    def preamble(self):
         self.fig.suptitle(self.title, fontsize=self.title_size)
         plt.ioff()
 
-    def finale(self):
+        self.run(cat, **kwargs, **self.plot_kwargs)
 
         for ax in self.axes:
             ax.tick_params(axis="both", which="major", labelsize=self.tick_size)
@@ -278,8 +273,8 @@ class MatrixPlot(Plot):
 
         # mask out lower off-diagonal elements if requested.
         mask = np.tri(matrix.shape[0], k=-1) if self.symmetric else None
-        a = np.ma.array(matrix, mask=mask)
-        im = self.ax.matshow(a, cmap="bwr", vmin=-1, vmax=1)
+        matrix = np.ma.array(matrix, mask=mask)
+        im = self.ax.matshow(matrix, cmap="bwr", vmin=-1, vmax=1)
         plt.colorbar(im, ax=self.ax)
 
         if show_cell_text:
@@ -296,5 +291,8 @@ class MatrixPlot(Plot):
                     )
 
         latex_params = [param.get_text(only_param=True) for param in self.params]
-        self.ax.set_xticklabels([""] + latex_params, size=label_size)
-        self.ax.set_yticklabels([""] + latex_params, size=label_size)
+        self.ax.set_xticks(range(len(latex_params)))
+        self.ax.set_yticks(range(len(latex_params)))
+
+        self.ax.set_xticklabels(latex_params, size=label_size)
+        self.ax.set_yticklabels(latex_params, size=label_size)
