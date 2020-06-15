@@ -3,3 +3,9 @@
 *data
 /packages/
 .idea
+*.fdb_latexmk
+*.fls
+*.aux
+*.log
+*.blg
+*.bbl
