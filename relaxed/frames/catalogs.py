@@ -52,7 +52,7 @@ class HaloCatalog(object):
         base_filters=None,
         params_to_include: List[str] = None,
         verbose=False,
-        catalog_label="all halos",
+        label="all halos",
     ):
         """
 
@@ -80,7 +80,7 @@ class HaloCatalog(object):
         self.particle_mass, self.total_particles, self.box_size = catalog_properties[
             self.catalog_name
         ]
-        self.catalog_label = catalog_label  # for use in things like legends.
+        self.label = label  # for use in things like legends.
 
         # name of all params that will be needed for filtering and
         # params we actually want to have at the end in the output catalog.
@@ -125,32 +125,30 @@ class HaloCatalog(object):
         return self._filters
 
     @contextmanager
-    def using_filters(self, myfilters, catalog_label="filtered catalog"):
-        old_label = self.catalog_label
+    def using_filters(self, myfilters, label="filtered catalog"):
+        old_label = self.label
 
         try:
-            self.catalog_label = catalog_label
+            self.label = label
             self._cat = self._filter_cat(myfilters, self._cat)
             yield self
         finally:
             self._cat = self._bcat
-            self.catalog_label = old_label
+            self.label = old_label
 
     @contextmanager
     def using_relaxed_filters(self, relaxed_name=None):
         self.using_filters(
-            filters.get_relaxed_filters(relaxed_name),
-            catalog_label=f"{relaxed_name} relaxed",
+            filters.get_relaxed_filters(relaxed_name), label=f"{relaxed_name} relaxed",
         )
 
-    def with_filters(self, myfilters, catalog_label="filtered catalog"):
-        self.catalog_label = catalog_label
+    def with_filters(self, myfilters, label="filtered catalog"):
+        self.label = label
         self._cat = self._filter_cat(myfilters, self._cat,)
 
     def with_relaxed_filters(self, relaxed_name=None):
         self.with_filters(
-            filters.get_relaxed_filters(relaxed_name),
-            catalog_label=f"{relaxed_name} relaxed",
+            filters.get_relaxed_filters(relaxed_name), label=f"{relaxed_name} relaxed",
         )
 
     def save_base_cat(self, filepath):
@@ -327,16 +325,8 @@ class HaloCatalog(object):
         return len(self._cat)
 
     @classmethod
-    def create_filtered_from_base(
-        cls, old_hcat, myfilters, catalog_label="filtered cat"
-    ):
-        """
-        This will copy the `_cat` attribute of the old_hcat.
-        :param old_hcat:
-        :param myfilters:
-        :param catalog_label:
-        :return:
-        """
+    def create_filtered_from_base(cls, old_hcat, myfilters, label="filtered cat"):
+        # This will copy the `_cat` attribute of the old_hcat.
         assert (
             old_hcat.get_cat() is not None
         ), "Catalog of old_hcat should already be set."
@@ -351,13 +341,13 @@ class HaloCatalog(object):
             old_hcat.catalog_name,
             subhalos=old_hcat.subhalos,
             base_filters=old_hcat.get_filters(),
-            catalog_label=catalog_label,
+            label=label,
             params_to_include=old_hcat.params_to_include,
         )
 
         # it is ok to have a view for the base cat, since filtering will create a copy.
         new_hcat.load_base_cat(use_minh=False, bcat=old_hcat.get_cat())
-        new_hcat.with_filters(myfilters, catalog_label=catalog_label)
+        new_hcat.with_filters(myfilters, label=label)
         return new_hcat
 
     @classmethod
@@ -365,7 +355,7 @@ class HaloCatalog(object):
         return cls.create_filtered_from_base(
             old_hcat,
             filters.get_relaxed_filters(relaxed_name),
-            catalog_label=f"{relaxed_name} relaxed",
+            label=f"{relaxed_name} relaxed",
         )
 
     @classmethod

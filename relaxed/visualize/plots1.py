@@ -7,8 +7,6 @@ from .. import stats
 
 
 # ToDo: (Future) some of the redundancy in the functions below can be improved.
-
-
 def generate_and_save(pdf, hcats, hplots, uplots, colors=None, cached=False):
     if colors is None:
         colors = [None for _ in range(len(hcats))]
@@ -55,14 +53,7 @@ def plot_multiple_basic(hcats, pdf, colors):
     hist_kwargs = dict(
         bins=30, histtype="step", extra_hist_kwargs=dict(), log_y=True, **general_kwargs
     )
-    hist_kwargs2 = dict(
-        bins=30,
-        histtype="step",
-        extra_hist_kwargs=dict(),
-        log_y=True,
-        vline="median",
-        **general_kwargs
-    )
+
     binning_kwargs = dict(nxbins=10, no_bars=True, show_bands=True, **general_kwargs)
 
     # (1) Need to create all the plots and specify their parameters in kwargss.
@@ -71,24 +62,6 @@ def plot_multiple_basic(hcats, pdf, colors):
     params = [Param("mvir", log=True)]
     plot1 = plots.Histogram(
         plot_funcs.histogram, params, nrows=1, ncols=1, plot_kwargs=hist_kwargs
-    )
-
-    # Plot 2: mean-centered histogram of relevant quantities
-    # title = "Mean centered histograms"
-    modifiers = [lambda x: (x - np.mean(x)) / np.std(x)]
-    param_names = ["mvir", "cvir", "eta", "x0", "v0", "spin", "q", "phi_l"]
-    params = [
-        Param(param_name, log=True, modifiers=modifiers) for param_name in param_names
-    ]
-    plot2 = plots.Histogram(
-        plot_funcs.histogram,
-        params,
-        ncols=2,
-        nrows=4,
-        figsize=(12, 20),
-        title=None,
-        title_size=24,
-        plot_kwargs=hist_kwargs2,
     )
 
     # Plot 3: Relaxedness parameters and mvir
@@ -107,7 +80,7 @@ def plot_multiple_basic(hcats, pdf, colors):
     )
 
     # (2) Update the unique plots
-    uplots = [plot1, plot2, plot3]
+    uplots = [plot1, plot3]
 
     # (3) Now specify which hcat to plot in which of the plots via `hplots`.
     # we will use the same plots for both cats, which means we overlay them.
@@ -115,6 +88,41 @@ def plot_multiple_basic(hcats, pdf, colors):
 
     # (4) Now, we generate and save all the plots.
     generate_and_save(pdf, hcats, hplots, uplots, colors=colors, cached=True)
+
+
+def plot_mean_centered_hists(hcats, pdf, colors):
+    general_kwargs = dict(xlabel_size=28, ylabel_size=28)
+
+    hist_kwargs2 = dict(
+        bins=30,
+        histtype="step",
+        extra_hist_kwargs=dict(),
+        log_y=True,
+        vline="median",
+        **general_kwargs
+    )
+
+    # Plot 2: mean-centered histogram of relevant quantities
+    # title = "Mean centered histograms"
+    modifiers = [lambda x: (x - np.mean(x)) / np.std(x)]
+    param_names = ["cvir", "eta", "x0", "v0", "spin", "q", "phi_l"]
+    params = [
+        Param(param_name, log=True, modifiers=modifiers) for param_name in param_names
+    ]
+    plot2 = plots.Histogram(
+        plot_funcs.histogram,
+        params,
+        ncols=2,
+        nrows=4,
+        figsize=(12, 20),
+        title=None,
+        title_size=24,
+        plot_kwargs=hist_kwargs2,
+    )
+
+    uplots = [plot2]
+    hplots = [[uplot for uplot in uplots] for _ in hcats]
+    generate_and_save(pdf, hcats, hplots, uplots, colors=colors, cached=False)
 
 
 def plot_correlation_matrix_basic(hcats, pdf):
