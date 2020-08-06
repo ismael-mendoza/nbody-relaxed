@@ -1,7 +1,7 @@
 import numpy as np
 from astropy.table import Column, Table
 
-from .. import utils
+from relaxed import utils
 
 
 # functions to get derived quantities.

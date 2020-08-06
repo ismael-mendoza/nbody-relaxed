@@ -9,9 +9,9 @@ from astropy.io import ascii
 
 from copy import deepcopy
 
-from . import filters
-from . import params
-from ..subhalos import subhalo
+import filters
+import params
+from subhalos import subhalo
 from pminh import minh
 
 # particle mass (Msun/h), total particles, box size (Mpc/h).

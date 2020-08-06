@@ -1,8 +1,8 @@
 import numpy as np
 
 from . import plot_funcs
-from ..frames import plots
-from ..frames.params import Param
+import plots
+from params import Param
 from .. import stats
 
 

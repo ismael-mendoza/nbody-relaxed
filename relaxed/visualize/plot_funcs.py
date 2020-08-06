@@ -4,7 +4,7 @@ Plotting functions that are useful for visualizing things like correlations.
 
 import numpy as np
 
-from ..frames import params
+import params
 
 
 def general_ax_settings(
