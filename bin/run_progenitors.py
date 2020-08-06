@@ -55,7 +55,7 @@ def summarize(paths):
 
 def save_tables(paths, ids_file):
     # save all progenitors into tables in a single h5py file.
-    # ids_file is a pickle file with ids that should be saved.
+    # ids_file is a pickle file with ids that will be saved
     assert ids_file is not None
     with open(ids_file, "r") as fp:
         ids = pickle.load(fp)

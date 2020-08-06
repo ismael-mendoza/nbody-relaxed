@@ -46,8 +46,7 @@ def download_trees(ncubes, dir_name, url_skeleton):
 
 
 def write_main_line_progenitors(tree_dir, out_file_prefix, Mcut, cpus=5):
-    """
-    Use the consistent trees package to extract main progenitor lines from downloaded trees.
+    """Use the consistent trees package to extract main progenitor lines from downloaded trees.
     """
     subprocess.run(f"cd {utils.read_tree_path.as_posix()}; make", shell=True)
     cmds = []
@@ -66,8 +65,7 @@ def write_main_line_progenitors(tree_dir, out_file_prefix, Mcut, cpus=5):
 
 
 def merge_progenitors(progenitor_dir, progenitor_file):
-    """
-    Merge all progenitor files into one, put it in tree_dir with name "progenitors.txt"
+    """Merge all progenitor files into one, put it in tree_dir with name "progenitors.txt"
     """
     with open(progenitor_file, "w") as pf:
         for p in progenitor_dir.iterdir():
@@ -79,8 +77,7 @@ def merge_progenitors(progenitor_dir, progenitor_file):
 
 
 def summarize_progenitors(progenitor_file, out_file):
-    """
-    Write the summary statistics of all the progenitors in progenitor_dir into a
+    """Write the summary statistics of all the progenitors in progenitor_file into a
     table with the root id.
     """
     assert out_file.as_posix().endswith(".csv")

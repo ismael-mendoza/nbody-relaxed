@@ -3,11 +3,7 @@ from scipy.stats import spearmanr
 
 
 def get_corrs(params, cat):
-    """
-    This function returns the correlation matrix of a list of
-    :param params:
-    :param cat:
-    :return:
+    """This function returns the correlation matrix of a list of params.
     """
     corrs = np.zeros((len(params), len(params)))
 
