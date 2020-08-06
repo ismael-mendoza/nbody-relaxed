@@ -15,30 +15,46 @@ from ..subhalos import subhalo
 from pminh import minh
 
 # particle mass (Msun/h), total particles, box size (Mpc/h).
-catalog_properties = {
+catalog_props = {
     "Bolshoi": (1.35e8, 2048 ** 3, 250),
     "BolshoiP": (1.55e8, 2048 ** 3, 250),
     "MDPL2": (1.51e9, 3840 ** 3, 1000),
 }
 
+catalog_props = {
+    key: {"particle_mass": value[0], "total_particles": value[1], "box_size": value[2]}
+    for key, value in catalog_props.items()
+}
 
-def intersection(cat, scat):
-    # intersect two catalogs by their id attribute.
-    # scat ids are ideally a subset of cat ids
-    # can also just repeat with switched order and will work in the end.
+
+def intersection(cat, sub_cat):
+    """Intersect two catalogs by their id attribute.
+    * Returns all rows of cat whose ids are in sub_cat.
+    * Full intersection by repeating operation but switching order.
+    """
     cat.sort("id")
-    scat.sort("id")
+    sub_cat.sort("id")
 
     ids = cat["id"]
-    sids = scat["id"]
+    sub_ids = sub_cat["id"]
 
-    indx = np.searchsorted(sids, ids)
-    indx_ok = indx < len(sids)
-    indx_ok[indx_ok] &= sids[indx[indx_ok]] == ids[indx_ok]
+    indx = np.searchsorted(sub_ids, ids)
+    indx_ok = indx < len(sub_ids)
+    indx_ok[indx_ok] &= sub_ids[indx[indx_ok]] == ids[indx_ok]
 
     new_cat = cat[indx_ok]
 
     return new_cat
+
+
+# ToDo: For the generator case we want to returned a modified generator with the filtered
+#  values.
+#  ToDo: Make everything work together property if not default filters or params
+#   to include.
+#   ToDo: Delay obtaining filters so that we can use parameters of catalog in
+#    the user-defined filters. (Necessary?)
+#    ToDo: Change everything in place or create
+#     copy for every catalog (relaxed, mass bins, etc.)? for now everything is copy.
 
 
 class HaloCatalog(object):
@@ -55,35 +71,25 @@ class HaloCatalog(object):
         label="all halos",
     ):
         """
-
-        :param filepath:
-        :param catalog_name: Should be one of `Bolshoi / BolshoiP / MDPL2`
-        :param add_progenitor: filename of summary progenitor table.
-        :param base_filters:
+        * catalog_name: Should be one of `Bolshoi / BolshoiP / MDPL2`
+        * add_progenitor: filename of summary progenitor table.
+        * add_subhalo: add catalog halo properties that depend on their subhalos.
+        * labels: useful when plotting (titles, etc.)
         """
-        assert catalog_name in catalog_properties, "Catalog name is not recognized."
+        assert catalog_name in catalog_props, "Catalog name is not recognized."
         assert subhalos is False, "Not implemented subhalo functionality."
+        assert filepath.name.endswith(".minh")
+        assert not add_subhalo or not subhalos, "Cannot have both."
 
         self.filepath = filepath
-        assert self.filepath.name.endswith(
-            ".minh"
-        ), "Using Phil's format exclusively now."
-
         self.catalog_name = catalog_name
         self.verbose = verbose
         self.add_progenitor = add_progenitor
-
         self.subhalos = subhalos
         self.add_subhalo = add_subhalo
-        assert not add_subhalo or not subhalos, "Cannot have both."
+        self.cat_props = catalog_props[self.catalog_name]
+        self.label = label
 
-        self.particle_mass, self.total_particles, self.box_size = catalog_properties[
-            self.catalog_name
-        ]
-        self.label = label  # for use in things like legends.
-
-        # name of all params that will be needed for filtering and
-        # params we actually want to have at the end in the output catalog.
         self.param_names = deepcopy(params.param_names)
         self.params_to_include = (
             params_to_include
@@ -95,7 +101,9 @@ class HaloCatalog(object):
         self._filters = (
             base_filters
             if base_filters is not None
-            else filters.get_default_base_filters(self.particle_mass, self.subhalos)
+            else filters.get_default_base_filters(
+                self.cat_props["particle_mass"], self.subhalos
+            )
         )
 
         if not set(self._filters.keys()).issubset(set(self.param_names)):
@@ -108,15 +116,6 @@ class HaloCatalog(object):
         self.use_minh = None
         self._bcat = None  # base cat.
         self._cat = None  # cat to actually return.
-
-        # ToDo: For the generator case we want to returned a modified generator with the filtered
-        #  values.
-        #  ToDo: Make everything work together property if not default filters or params
-        #   to include.
-        #   ToDo: Delay obtaining filters so that we can use parameters of catalog in
-        #    the user-defined filters. (Necessary?)
-        #    ToDo: Change everything in place or create
-        #     copy for every catalog (relaxed, mass bins, etc.)? for now everything is copy.
 
     def get_cat(self):
         return self._cat
@@ -296,10 +295,6 @@ class HaloCatalog(object):
         can be (optionally) removed according to self.params_to_include.
 
         NOTE: All filters assumed no logging has been done on the raw catalog columns.
-
-        :param cat:
-        :param myfilters:
-        :return:
         """
         new_cat = cat.copy() if copy else cat
 
