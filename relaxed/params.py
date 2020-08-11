@@ -19,7 +19,7 @@ def get_phi_l(cat):
     return np.arccos(numerator / denominator)
 
 
-class Param(object):
+class HaloParam(object):
     def __init__(self, key, log=False, modifiers=None, text=None):
         """
         Class implementing a Param object which manages how data is accessed from catalog

@@ -117,12 +117,6 @@ class HaloCatalog(object):
         self._bcat = None  # base cat.
         self._cat = None  # cat to actually return.
 
-    def get_cat(self):
-        return self._cat
-
-    def get_filters(self):
-        return self._filters
-
     @contextmanager
     def using_filters(self, myfilters, label="filtered catalog"):
         old_label = self.label
@@ -186,9 +180,7 @@ class HaloCatalog(object):
     def _load_cat(self):
         """
         Return either the catalog as a table or as a generator. Should only be called by set_cat.
-
         NOTE: We filter using the cfilters (cat filters).
-        :return:
         """
         minh_cat = self._get_minh_cat()
 
@@ -305,7 +297,7 @@ class HaloCatalog(object):
 
     @staticmethod
     def _get_not_log_value_minh(key, mcat, b=None):
-        return params.Param(key, log=False).get_values_minh(mcat, b)
+        return params.HaloParam(key, log=False).get_values_minh(mcat, b)
 
     @staticmethod
     def _get_not_log_value(key, cat):
@@ -314,7 +306,7 @@ class HaloCatalog(object):
         :param key:
         :return:
         """
-        return params.Param(key, log=False).get_values(cat)
+        return params.HaloParam(key, log=False).get_values(cat)
 
     def __len__(self):
         return len(self._cat)

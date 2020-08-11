@@ -79,7 +79,7 @@ def binning3d_mass(
     mass_bins = [(x, y) for x, y in zip(mass_decades, mass_decades[1:])]
     colors = ["b", "r", "g"]
     for mass_bin, color in zip(mass_bins, colors):
-        log_mvir = params.Param("mvir", log=True).get_values(cat)
+        log_mvir = params.HaloParam("mvir", log=True).get_values(cat)
         mmask = (log_mvir > mass_bin[0]) & (log_mvir < mass_bin[1])
         mcat = cat[mmask]
         label = "$" + str(mass_bin[0]) + "< M_{\\rm vir} <" + str(mass_bin[1]) + "$"
