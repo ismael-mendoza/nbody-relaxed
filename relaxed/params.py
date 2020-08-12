@@ -6,80 +6,43 @@ from relaxed import utils
 
 
 class HaloParam(ABC):
-    def __init__(self, key, log=False, modifiers=None, text=None):
+    def __init__(self, log=False, modifiers=None, text=None):
         """
         Class implementing a Param object which manages how data is accessed from catalog
         and attributes like its name and its text representation for plots.
 
-
-        :param key: is the actual string used to access the corresponding parameter from
-                    the catalogue.
         :param log: Whether to log the values when returning them and change the label to
                     indicate that there is a log.
         :param modifiers: Extra modifiers to the values passed in as a list of lambda
                          functions. This will be applied  after logging.
         """
-        self.key = key
-        self.latex_param = params_dict[key]["latex_param"]
-
-        # units.
-        self.units, self.latex_units = None, None
-        unit_pair = params_dict[key]["units"]
-        if unit_pair:
-            self.units = unit_pair[0]
-            self.latex_units = unit_pair[1]
-
-        # deriving parameter.
-        self.derive_func, self.required_derive_params = None, None
-        derivation_pair = params_dict[key]["derive"]
-        if derivation_pair:
-            self.derive_func = derivation_pair[0]
-            self.required_derive_params = derivation_pair[1]
-            assert utils.is_iterable(self.required_derive_params)
 
         self.log = log
         self.modifiers = modifiers
-
         self.text = self.get_text() if not text else text
         self.values = None
 
-    def get_values_minh(self, mcat, b=None):
+    def get_values_minh_block(self, mcat, b):
 
-        if not self.derive_func:
-            if b is None:
-                data = mcat.read([self.key]).pop()
-
-            else:
-                data = mcat.block(b, [self.key]).pop()
-
-            return Column(data=data, name=self.key)
-
-        else:
-            if b is None:
-                t = Table(
-                    mcat.read(self.required_derive_params),
-                    names=self.required_derive_params,
-                )
-            else:
-                t = Table(
-                    mcat.block(b, self.required_derive_params),
-                    names=self.required_derive_params,
-                )
-
+        if self.derive:
+            t = Table(
+                mcat.block(b, self.derive["requires"]), names=self.derive["requires"]
+            )
             return self.get_values(t)
 
+        else:
+            return mcat.block(b, [self.name]).pop()
+
     def get_values(self, cat):
-        if self.key not in cat.colnames and self.derive_func is None:
-            raise ValueError(
-                f"Cannot obtained the parameter {self.key} for " f"the given catalog."
-            )
+        if self.name not in cat.colnames and self.derive is None:
+            raise ValueError(f"cannot derive {self.name} from given cat")
 
         if self.values is not None:
             return self.values
-        elif self.key in cat.colnames:
-            values = cat[self.key]
+        elif self.name in cat.colnames:
+            values = cat[self.name]
         else:
-            values = self.derive_func(cat)
+            values = self.derive["func"](cat)
 
         if self.log:
             values = np.log10(values)
@@ -100,7 +63,7 @@ class HaloParam(ABC):
         units_tex = ""
 
         if only_param:
-            return template.format(log_tex, self.latex_param, units_tex)
+            return template.format(log_tex, self.latex["form"], units_tex)
 
         if self.log:
             log_tex = "\\log_{10}"
@@ -116,11 +79,11 @@ class HaloParam(ABC):
 
     @property
     def latex(self):
-        return {}
+        return {"form": "", "units": ""}
 
     @property
     def derive(self):
-        return {}
+        return {"func": lambda x: x, "requires": ()}
 
 
 class ID(HaloParam):
@@ -306,7 +269,7 @@ class Cvir(HaloParam):
 
     @property
     def derive(self):
-        return {"func": lambda cat: cat["rvir"] / cat["rs"], "depends": ("rvir", "rs")}
+        return {"func": lambda cat: cat["rvir"] / cat["rs"], "requires": ("rvir", "rs")}
 
 
 class Eta(HaloParam):
@@ -325,7 +288,7 @@ class Eta(HaloParam):
 
     @property
     def derive(self):
-        return {"func": lambda cat: 2 * cat["t/|u|"], "depends": ("t/|u|",)}
+        return {"func": lambda cat: 2 * cat["t/|u|"], "requires": ("t/|u|",)}
 
 
 class Q(HaloParam):
@@ -346,7 +309,7 @@ class Q(HaloParam):
     def derive(self):
         return {
             "func": lambda cat: (1 / 2) * (cat["b_to_a"] + cat["c_to_a"]),
-            "depends": ("b_to_a", "c_to_a"),
+            "requires": ("b_to_a", "c_to_a"),
         }
 
 
@@ -383,7 +346,7 @@ class Phi_L(HaloParam):
     def derive(self):
         return {
             "func": self.get_phi_l,
-            "depends": ("ax", "ay", "az", "jx", "jy", "jz"),
+            "requires": ("ax", "ay", "az", "jx", "jy", "jz"),
         }
 
 
@@ -405,7 +368,7 @@ class X0(HaloParam):
     def derive(self):
         return {
             "func": lambda cat: cat["xoff"] / cat["rvir"],
-            "depends": ("xoff", "rvir"),
+            "requires": ("xoff", "rvir"),
         }
 
 
@@ -427,8 +390,16 @@ class V0(HaloParam):
     def derive(self):
         return {
             "func": lambda cat: cat["voff"] / cat["vrms"],
-            "depends": ("voff", "vrms"),
+            "requires": ("voff", "vrms"),
         }
+
+
+class UPID(HaloParam):
+    units = ""
+
+    @property
+    def name(self):
+        return "upid"
 
 
 class Fsub(HaloParam):
@@ -445,6 +416,9 @@ class Fsub(HaloParam):
             "form": "f_{\\rm sub}",
         }
 
+    def get_values_minh(self, mcat, b=None):
+        raise NotImplementedError("Cannot obtain f_sub from minh")
+
 
 class A2(HaloParam):
     units = ""
@@ -460,13 +434,8 @@ class A2(HaloParam):
             "form": "a_{1/2}",
         }
 
-
-class UPID(HaloParam):
-    units = ""
-
-    @property
-    def name(self):
-        return "upid"
+    def get_values_minh(self, mcat, b=None):
+        raise NotImplementedError("Cannot obtain a2 from minh")
 
 
 # nicer format.
