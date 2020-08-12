@@ -431,18 +431,43 @@ class V0(HaloParam):
         }
 
 
-# TODO: Remove 'mvir' from f_sub.
-# non-derived quantities are by default included.
-info_params = {
-    # 'tdyn': (lambda cat: np.sqrt(2) * cat['rvir'] / cat['vrms'], 'kpc/h / km/s',
-    # '', '\\tau_{\\rm dyn}'), (notesheet)
-    # will be added later via a more complicated procedure.
-    "f_sub": (None, None, "f_{\\rm sub}"),
-    "a2": (None, None, "a_{1/2}"),
-    "alpha": (None, None, "\\alpha"),
-    # usually excluded quantities necessary for filtering
-    "upid": (None, None, None),
-}
+class Fsub(HaloParam):
+    units = ""
+
+    @property
+    def name(self):
+        return "f_sub"
+
+    @property
+    def latex(self):
+        return {
+            "units": "",
+            "form": "f_{\\rm sub}",
+        }
+
+
+class A2(HaloParam):
+    units = ""
+
+    @property
+    def name(self):
+        return "a2"
+
+    @property
+    def latex(self):
+        return {
+            "units": "",
+            "form": "a_{1/2}",
+        }
+
+
+class UPID(HaloParam):
+    units = ""
+
+    @property
+    def name(self):
+        return "upid"
+
 
 # nicer format.
 params_dict = {

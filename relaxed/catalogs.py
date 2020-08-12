@@ -10,7 +10,7 @@ from astropy.io import ascii
 from copy import deepcopy
 
 import filters
-from params import params
+import params
 from subhalos import subhalo
 from pminh import minh
 

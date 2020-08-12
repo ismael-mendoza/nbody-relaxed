@@ -2,7 +2,7 @@ import numpy as np
 
 from . import plot_funcs
 import plots
-from params.params import HaloParam
+from params import HaloParam
 from .. import stats
 
 
