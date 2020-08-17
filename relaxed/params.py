@@ -1,12 +1,10 @@
 import numpy as np
-from astropy.table import Column, Table
+from astropy.table import Table
 from abc import ABC, abstractmethod
-
-from relaxed import utils
 
 
 class HaloParam(ABC):
-    def __init__(self, log=False, modifiers=None, text=None):
+    def __init__(self, log=False, modifiers=(lambda x: x,), text=None):
         """
         Class implementing a Param object which manages how data is accessed from catalog
         and attributes like its name and its text representation for plots.
@@ -20,7 +18,6 @@ class HaloParam(ABC):
         self.log = log
         self.modifiers = modifiers
         self.text = self.get_text() if not text else text
-        self.values = None
 
     def get_values_minh_block(self, mcat, b):
 
@@ -33,13 +30,14 @@ class HaloParam(ABC):
         else:
             return mcat.block(b, [self.name]).pop()
 
+    def get_values_minh(self, mcat):
+        raise NotImplementedError()
+
     def get_values(self, cat):
-        if self.name not in cat.colnames and self.derive is None:
+        if self.name not in cat.colnames and not self.derive:
             raise ValueError(f"cannot derive {self.name} from given cat")
 
-        if self.values is not None:
-            return self.values
-        elif self.name in cat.colnames:
+        if self.name in cat.colnames:
             values = cat[self.name]
         else:
             values = self.derive["func"](cat)
@@ -47,9 +45,9 @@ class HaloParam(ABC):
         if self.log:
             values = np.log10(values)
 
-        if self.modifiers:
-            for modifier in self.modifiers:
-                values = modifier(values)
+        # apply modifiers
+        for modifier in self.modifiers:
+            values = modifier(values)
 
         return values
 
@@ -67,15 +65,15 @@ class HaloParam(ABC):
 
         if self.log:
             log_tex = "\\log_{10}"
-        if self.latex_units is not None:
-            units_tex = "\\; [{}]".format(self.latex_units)
+        if self.latex["units"]:
+            units_tex = "\\; [{}]".format(self.latex["units"])
 
-        return template.format(log_tex, self.latex_param, units_tex)
+        return template.format(log_tex, self.latex["form"], units_tex)
 
     @property
     @abstractmethod
     def name(self):
-        pass
+        return ""
 
     @property
     def latex(self):
@@ -438,21 +436,4 @@ class A2(HaloParam):
         raise NotImplementedError("Cannot obtain a2 from minh")
 
 
-# nicer format.
-params_dict = {
-    key: {"derive": value[0], "units": value[1], "latex_param": value[2]}
-    for (key, value) in info_params.items()
-}
-param_names = list(params_dict.keys())
-
-
-# functions to get derived quantities.
-
-
-# params_to_exclude = {"mag2_a", "mag2_j"}
-# params_add_later = {"a2", "f_sub", "alpha"}
-# params_to_include = [
-#     param
-#     for param in param_names
-#     if param not in params_to_exclude and param not in params_add_later
-# ]
+param_dict = {c().name for c in HaloParam.__subclasses__()}
