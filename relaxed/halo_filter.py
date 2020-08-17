@@ -68,10 +68,10 @@ def get_relaxed_filters(relaxed_name):
 
 
 class CatalogFilters:
-    def __init__(self, hcat):
+    def __init__(self, hcat, filters=None):
         self.particle_mass = hcat.cat_props["particle_mass"]
         self.subhalos = hcat.subhalos
-        self.filters = self._get_default_base_filters()
+        self.filters = self._get_default_base_filters() if not filters else filters
 
     def _get_default_base_filters(self):
         """
@@ -97,4 +97,5 @@ class CatalogFilters:
         }
 
     def get_cat(self):
-        pass
+        for param_name, filtr in self.filters.items():
+            new_cat = new_cat[filtr(self._get_not_log_value(param_name, new_cat))]

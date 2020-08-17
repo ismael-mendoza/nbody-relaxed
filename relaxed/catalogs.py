@@ -1,4 +1,3 @@
-from typing import List
 import warnings
 from contextlib import contextmanager
 
@@ -9,8 +8,7 @@ from astropy.io import ascii
 
 from copy import deepcopy
 
-import filters
-import params
+import halo_filter, halo_param
 from subhalos import subhalo
 from pminh import minh
 
@@ -47,56 +45,47 @@ def intersection(cat, sub_cat):
     return new_cat
 
 
-# ToDo: For the generator case we want to returned a modified generator with the filtered
-#  values.
 #  ToDo: Make everything work together property if not default filters or params
 #   to include.
 #   ToDo: Delay obtaining filters so that we can use parameters of catalog in
 #    the user-defined filters. (Necessary?)
-#    ToDo: Change everything in place or create
-#     copy for every catalog (relaxed, mass bins, etc.)? for now everything is copy.
 
 
 class HaloCatalog(object):
     def __init__(
         self,
-        filepath,
-        catalog_name,
+        cat_path,
+        cat_name,
+        params=None,
+        hfilter=None,
         subhalos=False,
         add_subhalo=False,
         add_progenitor=None,
-        filters=None,
-        params=None,
         verbose=False,
         label="all halos",
     ):
         """
-        * catalog_name: Should be one of `Bolshoi / BolshoiP / MDPL2`
+        * cat_name: Should be one of `Bolshoi / BolshoiP / MDPL2`
         * add_progenitor: filename of summary progenitor table.
         * add_subhalo: add catalog halo properties that depend on their subhalos.
         * labels: useful when plotting (titles, etc.)
         """
-        assert catalog_name in catalog_props, "Catalog name is not recognized."
+        assert cat_name in catalog_props, "Catalog name is not recognized."
         assert subhalos is False, "Not implemented subhalo functionality."
-        assert filepath.name.endswith(".minh")
+        assert cat_path.name.endswith(".minh")
         assert not add_subhalo or not subhalos, "Cannot have both."
 
-        self.filepath = filepath
-        self.catalog_name = catalog_name
+        self.cat_path = cat_path
+        self.cat_name = cat_name
+        self.cat_props = catalog_props[self.cat_name]
         self.verbose = verbose
         self.add_progenitor = add_progenitor
         self.subhalos = subhalos
         self.add_subhalo = add_subhalo
-        self.cat_props = catalog_props[self.catalog_name]
         self.label = label
 
-        self.params = self.get_default_params(params)
-        self.params_to_include = (
-            params_to_include
-            if params_to_include
-            else deepcopy(params.params_to_include)
-        )
-        self.params_add_later = deepcopy(params.params_add_later)
+        self.params = params if params else self.get_default_params()
+        self.filters = halo_filter if halo_filter else self.get_default_hfilters()
 
         self._filters = (
             base_filters
@@ -117,6 +106,14 @@ class HaloCatalog(object):
         self._bcat = None  # base cat.
         self._cat = None  # cat to actually return.
 
+    @staticmethod
+    def get_default_params():
+        return ["id", "mvir", "rvir", "rs", "xoff", "voff", "x0", "v0", "cvir"]
+
+    @staticmethod
+    def get_default_hfilter():
+        return {}
+
     @contextmanager
     def using_filters(self, myfilters, label="filtered catalog"):
         old_label = self.label
@@ -132,7 +129,8 @@ class HaloCatalog(object):
     @contextmanager
     def using_relaxed_filters(self, relaxed_name=None):
         self.using_filters(
-            filters.get_relaxed_filters(relaxed_name), label=f"{relaxed_name} relaxed",
+            halo_filter.get_relaxed_filters(relaxed_name),
+            label=f"{relaxed_name} relaxed",
         )
 
     def with_filters(self, myfilters, label="filtered catalog"):
@@ -141,7 +139,8 @@ class HaloCatalog(object):
 
     def with_relaxed_filters(self, relaxed_name=None):
         self.with_filters(
-            filters.get_relaxed_filters(relaxed_name), label=f"{relaxed_name} relaxed",
+            halo_filter.get_relaxed_filters(relaxed_name),
+            label=f"{relaxed_name} relaxed",
         )
 
     def save_base_cat(self, filepath):
@@ -175,7 +174,7 @@ class HaloCatalog(object):
         self._cat = self._bcat  # filtering will create a copy later if necessary.
 
     def _get_minh_cat(self):
-        return minh.open(self.filepath)
+        return minh.open(self.cat_path)
 
     def _load_cat(self):
         """
@@ -297,7 +296,7 @@ class HaloCatalog(object):
 
     @staticmethod
     def _get_not_log_value_minh(key, mcat, b=None):
-        return params.HaloParam(key, log=False).get_values_minh(mcat, b)
+        return halo_param.HaloParam(key, log=False).get_values_minh(mcat, b)
 
     @staticmethod
     def _get_not_log_value(key, cat):
@@ -306,7 +305,7 @@ class HaloCatalog(object):
         :param key:
         :return:
         """
-        return params.HaloParam(key, log=False).get_values(cat)
+        return halo_param.HaloParam(key, log=False).get_values(cat)
 
     def __len__(self):
         return len(self._cat)
@@ -324,8 +323,8 @@ class HaloCatalog(object):
         )
 
         new_hcat = cls(
-            old_hcat.filepath,
-            old_hcat.catalog_name,
+            old_hcat.cat_path,
+            old_hcat.cat_name,
             subhalos=old_hcat.subhalos,
             base_filters=old_hcat.get_filters(),
             label=label,
@@ -341,7 +340,7 @@ class HaloCatalog(object):
     def create_relaxed_from_base(cls, old_hcat, relaxed_name):
         return cls.create_filtered_from_base(
             old_hcat,
-            filters.get_relaxed_filters(relaxed_name),
+            halo_filter.get_relaxed_filters(relaxed_name),
             label=f"{relaxed_name} relaxed",
         )
 
