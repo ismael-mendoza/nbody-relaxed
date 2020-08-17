@@ -6,8 +6,6 @@ import astropy
 from astropy.table import Table
 from astropy.io import ascii
 
-from copy import deepcopy
-
 import halo_filter, halo_param
 from subhalos import subhalo
 from pminh import minh
@@ -57,10 +55,8 @@ class HaloCatalog(object):
         cat_path,
         cat_name,
         params=None,
-        hfilter=None,
+        filters=None,
         subhalos=False,
-        add_subhalo=False,
-        add_progenitor=None,
         verbose=False,
         label="all halos",
     ):
@@ -73,33 +69,17 @@ class HaloCatalog(object):
         assert cat_name in catalog_props, "Catalog name is not recognized."
         assert subhalos is False, "Not implemented subhalo functionality."
         assert cat_path.name.endswith(".minh")
-        assert not add_subhalo or not subhalos, "Cannot have both."
 
         self.cat_path = cat_path
         self.cat_name = cat_name
         self.cat_props = catalog_props[self.cat_name]
         self.verbose = verbose
-        self.add_progenitor = add_progenitor
         self.subhalos = subhalos
-        self.add_subhalo = add_subhalo
         self.label = label
 
         self.params = params if params else self.get_default_params()
-        self.filters = halo_filter if halo_filter else self.get_default_hfilters()
-
-        self._filters = (
-            base_filters
-            if base_filters is not None
-            else filters.get_default_base_filters(
-                self.cat_props["particle_mass"], self.subhalos
-            )
-        )
-
-        if not set(self._filters.keys()).issubset(set(self.param_names)):
-            raise ValueError(
-                "filtering will fail since not all params are in self.param_names,"
-                "need to update params.py"
-            )
+        self.filters = filters if filters else self.get_default_filters()
+        assert set(self.filters.keys()).issubset(set(self.params))
 
         # will be potentially defined later.
         self.use_minh = None
@@ -111,7 +91,7 @@ class HaloCatalog(object):
         return ["id", "mvir", "rvir", "rs", "xoff", "voff", "x0", "v0", "cvir"]
 
     @staticmethod
-    def get_default_hfilter():
+    def get_default_filters():
         return {}
 
     @contextmanager
@@ -208,9 +188,8 @@ class HaloCatalog(object):
                 # this will be filtered out later.
                 with np.errstate(divide="ignore", invalid="ignore"):
                     for param in self.param_names:
-                        if param not in self.params_add_later:
-                            values = self._get_not_log_value_minh(param, minh_cat, b)
-                            new_cat.add_column(values, name=param)
+                        values = self._get_not_log_value_minh(param, minh_cat, b)
+                        new_cat.add_column(values, name=param)
 
                 # once all needed params are in new_cat, we filter it out to reduce size.
                 new_cat = self._filter_cat(self._filters, new_cat)
@@ -220,31 +199,6 @@ class HaloCatalog(object):
                 if self.verbose:
                     if b % 10 == 0:
                         print(b)
-
-            # TODO: add f1 = fraction of most massive subhalo to host halo mass.
-            fcat = astropy.table.vstack(cats)
-            if self.add_subhalo:
-                if self.verbose:
-                    print("extracting subhalo properties")
-                assert np.all(fcat["upid"] == -1), "Needs to be a host catalog"
-                subhalo_cat = self._extract_subhalo(fcat, minh_cat)
-                fcat = astropy.table.join(fcat, subhalo_cat, keys="id")
-                self.params_to_include.append("f_sub")
-
-            if self.add_progenitor:
-                if self.verbose:
-                    print("Adding progenitor properties")
-
-                # catalog with progenitor summary.
-                pcat = Table.read(self.add_progenitor)
-
-                pcat = intersection(pcat, fcat)
-                fcat = intersection(fcat, pcat)
-
-                fcat = astropy.table.join(fcat, pcat, keys="id")
-                pcat_params = pcat.colnames
-                pcat_params.remove("id")
-                self.params_to_include += pcat_params
 
             warnings.warn(
                 "We only include parameters in `params.default_params_to_include`"
