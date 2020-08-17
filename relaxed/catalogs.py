@@ -65,8 +65,8 @@ class HaloCatalog(object):
         subhalos=False,
         add_subhalo=False,
         add_progenitor=None,
-        base_filters=None,
-        params_to_include: List[str] = None,
+        filters=None,
+        params=None,
         verbose=False,
         label="all halos",
     ):
@@ -90,7 +90,7 @@ class HaloCatalog(object):
         self.cat_props = catalog_props[self.catalog_name]
         self.label = label
 
-        self.param_names = deepcopy(params.param_names)
+        self.params = self.get_default_params(params)
         self.params_to_include = (
             params_to_include
             if params_to_include
