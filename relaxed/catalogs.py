@@ -2,7 +2,7 @@ import warnings
 from contextlib import contextmanager
 
 import numpy as np
-from astropy.table import Table
+from astropy.table import Table, vstack
 from astropy.io import ascii
 
 import halo_filter, halo_param
@@ -48,7 +48,7 @@ class HaloCatalog(object):
         cat_path,
         cat_name,
         params=None,
-        filters=None,
+        hfilter=None,
         subhalos=False,
         verbose=False,
         label="all halos",
@@ -71,19 +71,24 @@ class HaloCatalog(object):
         self.label = label
 
         self.params = params if params else self.get_default_params()
-        self.filters = filters if filters else self.get_default_filters()
+        self.hfilter = hfilter if hfilter else self.get_default_hfilter()
         assert set(self.filters.keys()).issubset(set(self.params))
 
         self.cat = self.load_cat()
+
+    def __len__(self):
+        return len(self._cat)
 
     @staticmethod
     def get_default_params():
         return ["id", "mvir", "rvir", "rs", "xoff", "voff", "x0", "v0", "cvir"]
 
-    def get_default_filters(self):
-        return halo_filter.get_default_filters(
+    def get_default_hfilter(self):
+        default_filters = halo_filter.get_default_filters(
             self.cat_props["particle_mass"], self.subhalos
         )
+        hfilter = halo_filter.HaloFilters(default_filters)
+        return hfilter
 
     def save_cat(self, cat_path):
         assert self.cat is not None, "cat must be loaded"
@@ -92,84 +97,33 @@ class HaloCatalog(object):
 
     def load_cat_csv(self):
         assert self.cat_path.name.endswith(".csv")
+        self.cat = ascii.read(self.cat_path, format="csv", fast_reader=True)
 
     def load_cat_minh(self):
         assert self.cat_path.name.endswith(".minh")
+        if self.verbose:
+            warnings.warn("Divide by zero errors are ignored, but filtered out.")
 
-    def load_base_cat(self, use_minh=False, bcat=None):
-        """This function is used to set the cat attribute in the hcat to the catalog so it
-        can be used in the future.
-        """
-        assert use_minh is False, (
-            "Not implemented this functionality yet, for now just return "
-            "full catalog. "
-        )
-        assert (
-            self._bcat is None
-        ), "Overriding catalog that is already created. (probably wasteful)"
+        # do filter on the fly, to avoid memory errors.
+        mcat = minh.open(self.cat_path)
+        cats = []
+        hfilter = halo_filter.HaloFilters(self.filters)
 
-        self.use_minh = use_minh
-        if not bcat:
-            self._bcat = self._load_cat()
+        for b in range(minh_cat.blocks):
+            cat = Table()
 
-        else:
-            self._bcat = bcat
+            # obtain all params from minh and their values.
+            with np.errstate(divide="ignore", invalid="ignore"):
+                for param in self.params:
+                    hparam = halo_param.get_hparam(param, log=False)
+                    values = hparam.get_values_minh_block(mcat, b)
+                    cat.add_column(values, name=param)
 
-        self._cat = self._bcat  # filtering will create a copy later if necessary.
+            # filter to reduce size.
+            cat = self.hfilter.filter_cat(cat)
+            cats.append(cat)
 
-    def _get_minh_cat(self):
-        return minh.open(self.cat_path)
-
-    def _load_cat(self):
-        """
-        Return either the catalog as a table or as a generator. Should only be called by set_cat.
-        NOTE: We filter using the cfilters (cat filters).
-        """
-        minh_cat = self._get_minh_cat()
-
-        if self.use_minh:
-            # will do operations in each of the blocks through another interface.
-            return minh_cat
-
-        else:
-            if self.verbose:
-                warnings.warn(
-                    "Ignoring dividing by zero and invalid errors that should "
-                    "be filtered out anyways."
-                )
-
-            # actually extract the data from gcats and read it into memory.
-            # do filtering on the fly so don't actually ever read unfiltered catalog.
-            cats = []
-
-            for b in range(minh_cat.blocks):
-                new_cat = Table()
-
-                # * First obtain all the parameters that we want to have.
-                # each block in minh is complete so all parameters can
-                # be obtained in any order.
-                # * Ignore warning of possible parameters that are divided by zero,
-                # this will be filtered out later.
-                with np.errstate(divide="ignore", invalid="ignore"):
-                    for param in self.param_names:
-                        values = self._get_not_log_value_minh(param, minh_cat, b)
-                        new_cat.add_column(values, name=param)
-
-                # once all needed params are in new_cat, we filter it out to reduce size.
-                new_cat = self._filter_cat(self._filters, new_cat)
-
-                cats.append(new_cat)
-
-                if self.verbose:
-                    if b % 10 == 0:
-                        print(b)
-
-            warnings.warn(
-                "We only include parameters in `params.default_params_to_include`"
-            )
-            fcat = fcat[self.params_to_include]
-
-            return fcat
+        return vstack(cats)
 
     # TODO: Might need to change if require lower mass host halos.
     # TODO: make process more similar to adding other parameters.
@@ -193,53 +147,3 @@ class HaloCatalog(object):
         subhalo_cat = Table(data=[host_ids, f_sub], names=["id", "f_sub"])
 
         return subhalo_cat
-
-    @staticmethod
-    def _get_not_log_value_minh(key, mcat, b=None):
-        return halo_param.HaloParam(key, log=False).get_values_minh(mcat, b)
-
-    @staticmethod
-    def _get_not_log_value(key, cat):
-        """
-        Only purpose is for the filters.
-        :param key:
-        :return:
-        """
-        return halo_param.HaloParam(key, log=False).get_values(cat)
-
-    def __len__(self):
-        return len(self._cat)
-
-    @classmethod
-    def create_filtered_from_base(cls, old_hcat, myfilters, label="filtered cat"):
-        # This will copy the `_cat` attribute of the old_hcat.
-        assert (
-            old_hcat.get_cat() is not None
-        ), "Catalog of old_hcat should already be set."
-        assert set(myfilters.keys()).issubset(set(old_hcat.get_cat().colnames)), (
-            "This will fail because the "
-            "cat of old_hcat does "
-            "not contain filtered parameters."
-        )
-
-        new_hcat = cls(
-            old_hcat.cat_path,
-            old_hcat.cat_name,
-            subhalos=old_hcat.subhalos,
-            base_filters=old_hcat.get_filters(),
-            label=label,
-            params_to_include=old_hcat.params_to_include,
-        )
-
-        # it is ok to have a view for the base cat, since filtering will create a copy.
-        new_hcat.load_base_cat(use_minh=False, bcat=old_hcat.get_cat())
-        new_hcat.with_filters(myfilters, label=label)
-        return new_hcat
-
-    @classmethod
-    def create_relaxed_from_base(cls, old_hcat, relaxed_name):
-        return cls.create_filtered_from_base(
-            old_hcat,
-            halo_filter.get_relaxed_filters(relaxed_name),
-            label=f"{relaxed_name} relaxed",
-        )

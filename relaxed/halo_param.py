@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 
 
 class HaloParam(ABC):
-    def __init__(self, log=False, modifiers=(lambda x: x,), text=None):
+    def __init__(self, log=False, modifiers=(lambda x: x,)):
         """
         Class implementing a Param object which manages how data is accessed from catalog
         and attributes like its name and its text representation for plots.
@@ -14,13 +14,11 @@ class HaloParam(ABC):
         :param modifiers: Extra modifiers to the values passed in as a list of lambda
                          functions. This will be applied  after logging.
         """
-
         self.log = log
         self.modifiers = modifiers
-        self.text = self.get_text() if not text else text
+        self.text = self.get_text()
 
     def get_values_minh_block(self, mcat, b):
-
         t = Table(mcat.block(b, self.derive["requires"]), names=self.derive["requires"])
         return self.get_values(t)
 
