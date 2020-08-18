@@ -21,26 +21,14 @@ class HaloParam(ABC):
 
     def get_values_minh_block(self, mcat, b):
 
-        if self.derive:
-            t = Table(
-                mcat.block(b, self.derive["requires"]), names=self.derive["requires"]
-            )
-            return self.get_values(t)
-
-        else:
-            return mcat.block(b, [self.name]).pop()
+        t = Table(mcat.block(b, self.derive["requires"]), names=self.derive["requires"])
+        return self.get_values(t)
 
     def get_values_minh(self, mcat):
         raise NotImplementedError()
 
     def get_values(self, cat):
-        if self.name not in cat.colnames and not self.derive:
-            raise ValueError(f"cannot derive {self.name} from given cat")
-
-        if self.name in cat.colnames:
-            values = cat[self.name]
-        else:
-            values = self.derive["func"](cat)
+        values = self.derive["func"](cat)
 
         if self.log:
             values = np.log10(values)
@@ -81,7 +69,10 @@ class HaloParam(ABC):
 
     @property
     def derive(self):
-        return {"func": lambda x: x, "requires": ()}
+        return {
+            "func": lambda cat: cat[self.name],
+            "requires": (self.name,),
+        }
 
 
 class ID(HaloParam):
@@ -437,3 +428,7 @@ class A2(HaloParam):
 
 
 param_dict = {c().name: c for c in HaloParam.__subclasses__()}
+
+
+def get_hparam(param, **kwargs):
+    return halo_param.param_dict[param](**kwargs)

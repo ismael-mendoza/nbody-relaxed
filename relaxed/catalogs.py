@@ -42,12 +42,6 @@ def intersection(cat, sub_cat):
     return new_cat
 
 
-#  ToDo: Make everything work together property if not default filters or params
-#   to include.
-#   ToDo: Delay obtaining filters so that we can use parameters of catalog in
-#    the user-defined filters. (Necessary?)
-
-
 class HaloCatalog(object):
     def __init__(
         self,
@@ -67,7 +61,7 @@ class HaloCatalog(object):
         """
         assert cat_name in catalog_props, "Catalog name is not recognized."
         assert subhalos is False, "Not implemented subhalo functionality."
-        assert cat_path.name.endswith(".minh")
+        assert cat_path.name.endswith(".minh") or cat_path.name.endswith(".csv")
 
         self.cat_path = cat_path
         self.cat_name = cat_name
@@ -80,60 +74,31 @@ class HaloCatalog(object):
         self.filters = filters if filters else self.get_default_filters()
         assert set(self.filters.keys()).issubset(set(self.params))
 
-        # will be potentially defined later.
-        self.use_minh = None
-        self._bcat = None  # base cat.
-        self._cat = None  # cat to actually return.
+        self.cat = self.load_cat()
 
     @staticmethod
     def get_default_params():
         return ["id", "mvir", "rvir", "rs", "xoff", "voff", "x0", "v0", "cvir"]
 
-    @staticmethod
-    def get_default_filters():
-        return {}
-
-    @contextmanager
-    def using_filters(self, myfilters, label="filtered catalog"):
-        old_label = self.label
-
-        try:
-            self.label = label
-            self._cat = self._filter_cat(myfilters, self._cat)
-            yield self
-        finally:
-            self._cat = self._bcat
-            self.label = old_label
-
-    @contextmanager
-    def using_relaxed_filters(self, relaxed_name=None):
-        self.using_filters(
-            halo_filter.get_relaxed_filters(relaxed_name),
-            label=f"{relaxed_name} relaxed",
+    def get_default_filters(self):
+        return halo_filter.get_default_filters(
+            self.cat_props["particle_mass"], self.subhalos
         )
 
-    def with_filters(self, myfilters, label="filtered catalog"):
-        self.label = label
-        self._cat = self._filter_cat(myfilters, self._cat,)
+    def save_cat(self, cat_path):
+        assert self.cat is not None, "cat must be loaded"
+        assert cat_path.suffix == ".csv", "format supported will be csv for now"
+        ascii.write(self.cat, cat_path, format="csv", fast_writer=True)
 
-    def with_relaxed_filters(self, relaxed_name=None):
-        self.with_filters(
-            halo_filter.get_relaxed_filters(relaxed_name),
-            label=f"{relaxed_name} relaxed",
-        )
+    def load_cat_csv(self):
+        assert self.cat_path.name.endswith(".csv")
 
-    def save_base_cat(self, filepath):
-        assert self._cat is not None, "cat must be loaded"
-        assert filepath.suffix == ".csv", "format supported will be csv for now"
-        ascii.write(self._bcat, filepath, format="csv", fast_writer=True)
+    def load_cat_minh(self):
+        assert self.cat_path.name.endswith(".minh")
 
     def load_base_cat(self, use_minh=False, bcat=None):
-        """
-        This function is used to set the cat attribute in the hcat to the catalog so it
+        """This function is used to set the cat attribute in the hcat to the catalog so it
         can be used in the future.
-        :param use_minh:
-        :param bcat:
-        :return:
         """
         assert use_minh is False, (
             "Not implemented this functionality yet, for now just return "
@@ -229,24 +194,6 @@ class HaloCatalog(object):
 
         return subhalo_cat
 
-    def _filter_cat(self, myfilters, cat, copy=False):
-        """
-        * Do all the appropriate filtering required when not reading the generator
-        expression, in particular cat is assumed to contain all the parameter in
-        param_names before value filters are applied.
-
-        * Not all parameters are actually required once filtering is complete so they
-        can be (optionally) removed according to self.params_to_include.
-
-        NOTE: All filters assumed no logging has been done on the raw catalog columns.
-        """
-        new_cat = cat.copy() if copy else cat
-
-        for param_name, myfilter in myfilters.items():
-            new_cat = new_cat[myfilter(self._get_not_log_value(param_name, new_cat))]
-
-        return new_cat
-
     @staticmethod
     def _get_not_log_value_minh(key, mcat, b=None):
         return halo_param.HaloParam(key, log=False).get_values_minh(mcat, b)
@@ -296,17 +243,3 @@ class HaloCatalog(object):
             halo_filter.get_relaxed_filters(relaxed_name),
             label=f"{relaxed_name} relaxed",
         )
-
-    @classmethod
-    def create_from_saved_cat(cls, cat_file, *args, **kwargs):
-        """
-        Create catalog from saved (smaller/filtered) cat to reduce waiting time of having
-        to filter every time, etc.
-
-        :param cat_file: The file location specified as Path object and save using
-        :return:
-        """
-        hcat = cls(cat_file, *args, **kwargs)
-        cat = ascii.read(cat_file, format="csv")
-        hcat.load_base_cat(use_minh=False, bcat=cat)
-        return hcat
