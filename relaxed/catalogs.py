@@ -2,7 +2,6 @@ import warnings
 from contextlib import contextmanager
 
 import numpy as np
-import astropy
 from astropy.table import Table
 from astropy.io import ascii
 

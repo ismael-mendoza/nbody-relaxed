@@ -11,16 +11,14 @@ setup_requirements = ["pip"]
 author = "Ismael Mendoza"
 
 setup(
-    name='relaxed',
+    name="relaxed",
     author=author,
     author_email="imendoza@umich.edu",
     description="N-body Relaxed data analysis",
     long_description=readme,
-    package_dir={'relaxed': 'relaxed'},
+    package_dir={"relaxed": "relaxed"},
     python_requires=">=3.7",
-    packages=[
-        'relaxed'
-    ],
+    packages=["relaxed"],
     setup_requires=setup_requirements,
     url="https://github.com/ismael2395/nbody-relaxed",
     version="0.1.0",
