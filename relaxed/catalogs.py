@@ -90,11 +90,6 @@ class HaloCatalog(object):
         hfilter = halo_filter.HaloFilters(default_filters)
         return hfilter
 
-    def save_cat(self, cat_path):
-        assert self.cat is not None, "cat must be loaded"
-        assert cat_path.suffix == ".csv", "format supported will be csv for now"
-        ascii.write(self.cat, cat_path, format="csv", fast_writer=True)
-
     def load_cat_csv(self):
         assert self.cat_path.name.endswith(".csv")
         self.cat = ascii.read(self.cat_path, format="csv", fast_reader=True)
@@ -123,3 +118,8 @@ class HaloCatalog(object):
             cats.append(cat)
 
         return vstack(cats)
+
+    def save_cat(self, cat_path):
+        assert self.cat is not None, "cat must be loaded"
+        assert cat_path.suffix == ".csv", "format supported will be csv for now"
+        ascii.write(self.cat, cat_path, format="csv", fast_writer=True)
