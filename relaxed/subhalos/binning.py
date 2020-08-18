@@ -26,23 +26,23 @@ def bin_ints(idx, n_bins, out_bins=None, out_bin_edges=None):
     All arrays must have dtype=int.
     """
 
-    assert (idx.dtype == int)
+    assert idx.dtype == int
 
     # Set up out_bins
     if out_bins is None:
         out_bins = np.zeros(len(idx), dtype=int)
     else:
-        assert (len(out_bins) >= len(idx))
-        assert (out_bins.dtype == int)
-        out_bins = idx[:len(idx)]
+        assert len(out_bins) >= len(idx)
+        assert out_bins.dtype == int
+        out_bins = idx[: len(idx)]
 
     # Set up out_bin_edges
     if out_bin_edges is None:
         out_bin_edges = np.zeros(n_bins + 1, dtype=int)
     else:
-        assert (n_bins + 1 <= len(out_bin_edges))
-        assert (out_bin_edges.dtype == int)
-        out_bin_edges = out_bin_edges[:n_bins + 1]
+        assert n_bins + 1 <= len(out_bin_edges)
+        assert out_bin_edges.dtype == int
+        out_bin_edges = out_bin_edges[: n_bins + 1]
 
     # Run the Cython routine
     cy_binning.bin_ints(idx, out_bins, out_bin_edges)
@@ -50,7 +50,7 @@ def bin_ints(idx, n_bins, out_bins=None, out_bin_edges=None):
 
     # Convert to a list
     for i in range(n_bins):
-        out[i] = out_bins[out_bin_edges[i]: out_bin_edges[i + 1]]
+        out[i] = out_bins[out_bin_edges[i] : out_bin_edges[i + 1]]
 
     return out
 
@@ -64,29 +64,36 @@ class Bin2DWorkspace(object):
 
 
 def bin_2d(points, n_bins, L, workspace=None):
-    assert (points.dtype == float)
-    assert (len(points.shape) == 2)
-    assert (points.shape[0] == 2)
+    assert points.dtype == float
+    assert len(points.shape) == 2
+    assert points.shape[0] == 2
 
     n = points.shape[1]
 
     # Set up workspace.
     if workspace is None:
         workspace = Bin2DWorkspace(n, n_bins)
-    assert (n == workspace.n)
-    assert (n_bins == workspace.n_bins)
+    assert n == workspace.n
+    assert n_bins == workspace.n_bins
 
     # Run Cython routine.
     n_bins = int(n_bins)
     L = float(L)
-    cy_binning.bin_2d(points, n_bins, L, workspace.out_idx,
-                      workspace.out_bins, workspace.out_bin_edges)
+    cy_binning.bin_2d(
+        points,
+        n_bins,
+        L,
+        workspace.out_idx,
+        workspace.out_bins,
+        workspace.out_bin_edges,
+    )
     out = [None] * (n_bins * n_bins)
 
     # Convert to a list.
     for i in range(n_bins * n_bins):
-        out[i] = workspace.out_bins[workspace.out_bin_edges[i]:
-                                    workspace.out_bin_edges[i + 1]]
+        out[i] = workspace.out_bins[
+            workspace.out_bin_edges[i] : workspace.out_bin_edges[i + 1]
+        ]
 
     return out
 
@@ -100,29 +107,36 @@ class Bin3DWorkspace(object):
 
 
 def bin_3d(points, n_bins, L, workspace=None):
-    assert (points.dtype == float)
-    assert (len(points.shape) == 2)
-    assert (points.shape[0] == 3)
+    assert points.dtype == float
+    assert len(points.shape) == 2
+    assert points.shape[0] == 3
 
     n = points.shape[1]
 
     # Set up workspace.
     if workspace is None:
         workspace = Bin3DWorkspace(n, n_bins)
-    assert (n == workspace.n)
-    assert (n_bins == workspace.n_bins)
+    assert n == workspace.n
+    assert n_bins == workspace.n_bins
 
     # Run Cython routine.
     n_bins = int(n_bins)
     L = float(L)
-    cy_binning.bin_3d(points, n_bins, L, workspace.out_idx,
-                      workspace.out_bins, workspace.out_bin_edges)
+    cy_binning.bin_3d(
+        points,
+        n_bins,
+        L,
+        workspace.out_idx,
+        workspace.out_bins,
+        workspace.out_bin_edges,
+    )
     out = [None] * (n_bins * n_bins * n_bins)
 
     # Convert to a list.
     for i in range(n_bins * n_bins * n_bins):
-        out[i] = workspace.out_bins[workspace.out_bin_edges[i]:
-                                    workspace.out_bin_edges[i + 1]]
+        out[i] = workspace.out_bins[
+            workspace.out_bin_edges[i] : workspace.out_bin_edges[i + 1]
+        ]
 
     return out
 
@@ -149,12 +163,14 @@ def main():
         print("Bins = %d^3" % n_bins)
         exp_mean = float(n) / n_bins ** 3
         exp_std = np.sqrt(exp_mean)
-        print("Expected mean = %.4g, expected std = %.3g" %
-              (exp_mean, exp_std))
-        print("Actual mean =   %.4g, actual std =   %.3g" %
-              (np.mean(bin_sizes), np.std(bin_sizes)))
+        print("Expected mean = %.4g, expected std = %.3g" % (exp_mean, exp_std))
+        print(
+            "Actual mean =   %.4g, actual std =   %.3g"
+            % (np.mean(bin_sizes), np.std(bin_sizes))
+        )
         print("dt = %.3g" % (t1 - t0))
         print()
 
 
-if __name__ == "__main__": main()
+if __name__ == "__main__":
+    main()

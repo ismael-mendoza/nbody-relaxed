@@ -1,8 +1,8 @@
 import numpy as np
 
 from . import plot_funcs
-from ..frames import plots
-from ..frames.params import Param
+import plots
+from halo_param import HaloParam
 from .. import stats
 
 
@@ -59,24 +59,24 @@ def plot_with_mass1(hcats, pdf, colors):
     # (1) Need to create all the plots and specify their parameters in kwargss.
 
     # Plot 1: histogram of Mvir
-    params = [Param("mvir", log=True)]
+    params = [HaloParam("mvir", log=True)]
     plot1 = plots.Histogram(
         plot_funcs.histogram, params, nrows=1, ncols=1, plot_kwargs=hist_kwargs
     )
 
     # Plot 2: Relaxedness parameters and mvir
     relaxed_params = [
-        Param("eta", log=True),
-        Param("x0", log=True),
-        Param("v0", log=True),
-        Param("xoff", log=True),
-        Param("voff", log=True),
-        Param("q", log=True),
-        Param("cvir", log=True),
-        Param("f_sub", log=False),
-        Param("a2", log=True),
+        HaloParam("eta", log=True),
+        HaloParam("x0", log=True),
+        HaloParam("v0", log=True),
+        HaloParam("xoff", log=True),
+        HaloParam("voff", log=True),
+        HaloParam("q", log=True),
+        HaloParam("cvir", log=True),
+        HaloParam("f_sub", log=False),
+        HaloParam("a2", log=True),
     ]
-    params = [(Param("mvir", log=True), param) for param in relaxed_params]
+    params = [(HaloParam("mvir", log=True), param) for param in relaxed_params]
 
     plot2 = plots.BiPlot(
         plot_funcs.scatter_binning,
@@ -114,14 +114,14 @@ def plot_mean_centered_hists(hcats, pdf, colors):
     # title = "Mean centered histograms"
     modifiers = [lambda x: (x - np.mean(x)) / np.std(x)]
     params = [
-        Param("cvir", log=True, modifiers=modifiers),
-        Param("eta", log=True, modifiers=modifiers),
-        Param("x0", log=True, modifiers=modifiers),
-        Param("v0", log=True, modifiers=modifiers),
-        Param("spin", log=True, modifiers=modifiers),
-        Param("q", log=True, modifiers=modifiers),
-        Param("phi_l", log=True, modifiers=modifiers),
-        Param("f_sub", log=False),
+        HaloParam("cvir", log=True, modifiers=modifiers),
+        HaloParam("eta", log=True, modifiers=modifiers),
+        HaloParam("x0", log=True, modifiers=modifiers),
+        HaloParam("v0", log=True, modifiers=modifiers),
+        HaloParam("spin", log=True, modifiers=modifiers),
+        HaloParam("q", log=True, modifiers=modifiers),
+        HaloParam("phi_l", log=True, modifiers=modifiers),
+        HaloParam("f_sub", log=False),
     ]
     plot2 = plots.Histogram(
         plot_funcs.histogram,
@@ -152,16 +152,16 @@ def plot_correlation_matrix_basic(hcats, pdf=None):
 
     # Plot 4: Matrix correlations
     params = [
-        Param("mvir", log=True),
-        Param("cvir", log=True),
-        Param("eta", log=True),
-        Param("x0", log=True),
-        Param("v0", log=True),
-        Param("spin", log=True),
-        Param("q", log=True),
-        Param("f_sub", log=False),
-        Param("a2", log=True),
-        Param("phi_l", log=True),
+        HaloParam("mvir", log=True),
+        HaloParam("cvir", log=True),
+        HaloParam("eta", log=True),
+        HaloParam("x0", log=True),
+        HaloParam("v0", log=True),
+        HaloParam("spin", log=True),
+        HaloParam("q", log=True),
+        HaloParam("f_sub", log=False),
+        HaloParam("a2", log=True),
+        HaloParam("phi_l", log=True),
     ]
     for hcat, hplot in zip(hcats, hplots):
         kwargs = dict(label_size=10, show_cell_text=True)
@@ -194,16 +194,16 @@ def plot_decades_basic(hcats, pdf, colors):
     # of mass half decades.
     # params to include:  't/|u|', 'x0', 'v0', 'xoff', 'Voff', 'q', 'cvir'
     params = [
-        (Param("t/|u|", log=True), Param("x0", log=True)),
-        (Param("t/|u|", log=True), Param("v0", log=True)),
-        (Param("t/|u|", log=True), Param("q", log=True)),
-        (Param("t/|u|", log=True), Param("cvir", log=True)),
-        (Param("x0", log=True), Param("v0", log=True)),
-        (Param("x0", log=True), Param("q", log=True)),
-        (Param("x0", log=True), Param("cvir", log=True)),
-        (Param("v0", log=True), Param("q", log=True)),
-        (Param("v0", log=True), Param("cvir", log=True)),
-        (Param("q", log=True), Param("cvir", log=True)),
+        (HaloParam("t/|u|", log=True), HaloParam("x0", log=True)),
+        (HaloParam("t/|u|", log=True), HaloParam("v0", log=True)),
+        (HaloParam("t/|u|", log=True), HaloParam("q", log=True)),
+        (HaloParam("t/|u|", log=True), HaloParam("cvir", log=True)),
+        (HaloParam("x0", log=True), HaloParam("v0", log=True)),
+        (HaloParam("x0", log=True), HaloParam("q", log=True)),
+        (HaloParam("x0", log=True), HaloParam("cvir", log=True)),
+        (HaloParam("v0", log=True), HaloParam("q", log=True)),
+        (HaloParam("v0", log=True), HaloParam("cvir", log=True)),
+        (HaloParam("q", log=True), HaloParam("cvir", log=True)),
     ]  # total = 10
     param_locs = []  # triangular pattern, user defined param_locs.
     for i in range(4):

@@ -5,35 +5,11 @@ check `get_default_base_filters` below for an example.
 """
 import numpy as np
 import warnings
+from . import halo_param
 
 
 def get_bound_filter(param, low=-np.inf, high=np.inf, modifier=lambda x: x):
     return {param: lambda x: (modifier(x) > low) & (modifier(x) < high)}
-
-
-def get_default_base_filters(particle_mass, subhalos):
-    """
-    NOTE: Always assume that the values of the catalog are returned without log10ing first.
-
-    * x in the lambda functions represents the values of the keys.
-
-    * upid >=0 indicates a subhalo, upid=-1 indicates a distinct halo. Phil's comment: "This is -1
-    for distinct halos and a halo ID for subhalos."
-
-    >> cat_distinct = cat[cat['upid'] == -1]
-    >> cat_sub = cat[cat['upid'] >= 0]
-    :return:
-    """
-    return {
-        **particle_mass_filter(particle_mass, subhalos),
-        "upid": lambda x: (x == -1 if not subhalos else x >= 0),
-        # the ones after seem to have no effect after for not subhalos.
-        "spin": lambda x: x != 0,
-        "q": lambda x: x != 0,
-        "vrms": lambda x: x != 0,
-        "mag2_a": lambda x: x != 0,
-        "mag2_j": lambda x: x != 0,
-    }
 
 
 def particle_mass_filter(particle_mass, subhalos):
@@ -90,3 +66,41 @@ def get_relaxed_filters(relaxed_name):
 
     else:
         raise NotImplementedError("The required relaxed name has not been implemented.")
+
+
+def get_default_filters(particle_mass, subhalos):
+    """
+    NOTE: Always assume that the values of the catalog are returned without log10ing first.
+
+    * x in the lambda functions represents the values of the keys.
+
+    * upid >=0 indicates a subhalo, upid=-1 indicates a distinct halo. Phil's comment: "This is -1
+    for distinct halos and a halo ID for subhalos."
+
+    >> cat_distinct = cat[cat['upid'] == -1]
+    >> cat_sub = cat[cat['upid'] >= 0]
+    """
+    return {
+        **particle_mass_filter(particle_mass, subhalos),
+        "upid": lambda x: (x == -1 if not self.subhalos else x >= 0),
+        # the ones after seem to have no effect after for not subhalos.
+        "spin": lambda x: x != 0,
+        "q": lambda x: x != 0,
+        "vrms": lambda x: x != 0,
+    }
+
+
+class HaloFilters:
+    def __init__(self, filters):
+        self.filters = filters
+
+    def filter_cat(self, cat):
+        for param, ft in self.filters.items():
+            hparam = halo_param.get_hparam(param, log=False)
+            cat = cat[ft(hparam.get_values(cat))]
+        return cat
+
+    def filter_hcat(self, hcat):
+        new_cat = self.filter_cat(hcat.cat)
+        hcat.cat = new_cat
+        return hcat
