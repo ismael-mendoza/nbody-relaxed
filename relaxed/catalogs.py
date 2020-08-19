@@ -119,7 +119,7 @@ class HaloCatalog(object):
             cat = self.hfilter.filter_cat(cat)
             cats.append(cat)
 
-        return vstack(cats)
+        self.cat = vstack(cats)
 
     def save_cat(self, cat_path):
         assert self.cat is not None, "cat must be loaded"
