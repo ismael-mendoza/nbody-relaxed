@@ -26,7 +26,11 @@ class HaloParam(ABC):
         raise NotImplementedError()
 
     def get_values(self, cat):
-        values = self.derive["func"](cat)
+        if self.name in cat.colnames:
+            values = cat[self.name]
+
+        else:
+            values = self.derive["func"](cat)
 
         if self.log:
             values = np.log10(values)
@@ -98,7 +102,7 @@ class Rvir(HaloParam):
 
     @property
     def name(self):
-        return "kpc/h"
+        return "rvir"
 
     @property
     def latex(self):
@@ -240,6 +244,36 @@ class ScaleOfLastMM(HaloParam):
         }
 
 
+class BToA(HaloParam):
+    units = ""
+
+    @property
+    def name(self):
+        return "b_to_a"
+
+    @property
+    def latex(self):
+        return {
+            "units": "",
+            "form": "b/a",
+        }
+
+
+class CToA(HaloParam):
+    units = ""
+
+    @property
+    def name(self):
+        return "c_to_a"
+
+    @property
+    def latex(self):
+        return {
+            "units": "",
+            "form": "c/a",
+        }
+
+
 class Cvir(HaloParam):
     units = ""
 
@@ -283,7 +317,7 @@ class Q(HaloParam):
 
     @property
     def name(self):
-        return "cvir"
+        return "q"
 
     @property
     def latex(self):
@@ -425,8 +459,8 @@ class A2(HaloParam):
         raise NotImplementedError("Cannot obtain a2 from minh")
 
 
-param_dict = {c().name: c for c in HaloParam.__subclasses__()}
+hparam_dict = {c().name: c for c in HaloParam.__subclasses__()}
 
 
 def get_hparam(param, **kwargs):
-    return halo_param.param_dict[param](**kwargs)
+    return hparam_dict[param](**kwargs)

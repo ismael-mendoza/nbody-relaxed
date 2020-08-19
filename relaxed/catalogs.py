@@ -1,24 +1,24 @@
 import warnings
-from contextlib import contextmanager
 
 import numpy as np
 from astropy.table import Table, vstack
 from astropy.io import ascii
 
-import halo_filter, halo_param
-from subhalos import subhalo
 from pminh import minh
 
+from . import hfilters
+from . import parameters
+
 # particle mass (Msun/h), total particles, box size (Mpc/h).
-catalog_props = {
+_props = {
     "Bolshoi": (1.35e8, 2048 ** 3, 250),
     "BolshoiP": (1.55e8, 2048 ** 3, 250),
     "MDPL2": (1.51e9, 3840 ** 3, 1000),
 }
 
-catalog_props = {
+props = {
     key: {"particle_mass": value[0], "total_particles": value[1], "box_size": value[2]}
-    for key, value in catalog_props.items()
+    for key, value in _props.items()
 }
 
 
@@ -59,35 +59,37 @@ class HaloCatalog(object):
         * add_subhalo: add catalog halo properties that depend on their subhalos.
         * labels: useful when plotting (titles, etc.)
         """
-        assert cat_name in catalog_props, "Catalog name is not recognized."
+        assert cat_name in props, "Catalog name is not recognized."
         assert subhalos is False, "Not implemented subhalo functionality."
         assert cat_path.name.endswith(".minh") or cat_path.name.endswith(".csv")
 
         self.cat_path = cat_path
         self.cat_name = cat_name
-        self.cat_props = catalog_props[self.cat_name]
+        self.cat_props = props[self.cat_name]
         self.verbose = verbose
         self.subhalos = subhalos
         self.label = label
 
         self.params = params if params else self.get_default_params()
         self.hfilter = hfilter if hfilter else self.get_default_hfilter()
-        assert set(self.filters.keys()).issubset(set(self.params))
+        assert set(self.hfilter.filters.keys()).issubset(set(self.params))
 
-        self.cat = self.load_cat()
+        self.cat = None  # will be loaded later.
 
     def __len__(self):
-        return len(self._cat)
+        return len(self.cat)
 
     @staticmethod
     def get_default_params():
-        return ["id", "mvir", "rvir", "rs", "xoff", "voff", "x0", "v0", "cvir"]
+        params1 = ["id", "upid", "mvir", "rvir", "rs", "xoff", "voff"]
+        params2 = ["x0", "v0", "cvir", "spin", "q", "vrms"]
+        return params1 + params2
 
     def get_default_hfilter(self):
-        default_filters = halo_filter.get_default_filters(
+        default_filters = hfilters.get_default_filters(
             self.cat_props["particle_mass"], self.subhalos
         )
-        hfilter = halo_filter.HaloFilters(default_filters)
+        hfilter = hfilters.HaloFilters(default_filters)
         return hfilter
 
     def load_cat_csv(self):
@@ -100,26 +102,28 @@ class HaloCatalog(object):
             warnings.warn("Divide by zero errors are ignored, but filtered out.")
 
         # do filter on the fly, to avoid memory errors.
-        mcat = minh.open(self.cat_path)
-        cats = []
 
-        for b in range(minh_cat.blocks):
-            cat = Table()
+        with minh.open(self.cat_path) as mcat:
 
-            # obtain all params from minh and their values.
-            with np.errstate(divide="ignore", invalid="ignore"):
-                for param in self.params:
-                    hparam = halo_param.get_hparam(param, log=False)
-                    values = hparam.get_values_minh_block(mcat, b)
-                    cat.add_column(values, name=param)
+            cats = []
 
-            # filter to reduce size.
-            cat = self.hfilter.filter_cat(cat)
-            cats.append(cat)
+            for b in range(mcat.blocks):
+                cat = Table()
 
-        return vstack(cats)
+                # obtain all params from minh and their values.
+                with np.errstate(divide="ignore", invalid="ignore"):
+                    for param in self.params:
+                        hparam = parameters.get_hparam(param, log=False)
+                        values = hparam.get_values_minh_block(mcat, b)
+                        cat.add_column(values, name=param)
+
+                # filter to reduce size.
+                cat = self.hfilter.filter_cat(cat)
+                cats.append(cat)
+
+            self.cat = vstack(cats)
 
     def save_cat(self, cat_path):
         assert self.cat is not None, "cat must be loaded"
         assert cat_path.suffix == ".csv", "format supported will be csv for now"
-        ascii.write(self.cat, cat_path, format="csv", fast_writer=True)
+        ascii.write(self.cat, cat_path, format="csv")

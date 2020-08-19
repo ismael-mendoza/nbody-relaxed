@@ -1,10 +1,13 @@
 from ..catalogs import intersection
+import astropy.table
+from astropy.table import Table
 
 
 def add_progenitor_info(hcat, progenitor_file):
     # catalog with progenitor summary.
     cat = hcat.cat
     pcat = Table.read(progenitor_file)
+    assert set(pcat.colnames).intersection(set(cat.colnames)).pop() == "id"
 
     pcat = intersection(pcat, cat)
     cat = intersection(cat, pcat)

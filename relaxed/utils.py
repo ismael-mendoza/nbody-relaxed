@@ -14,7 +14,7 @@ read_tree_path = packages_path.joinpath("consistent-trees/read_tree")
 def is_iterable(obj):
     try:
         iter(obj)
-    except Exception:
+    except TypeError:
         return False
     else:
         return True
