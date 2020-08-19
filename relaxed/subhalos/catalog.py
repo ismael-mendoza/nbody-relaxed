@@ -31,7 +31,8 @@ def add_subhalo_info(host_hcat, minh_cat):
     # host_hcat contains only host haloes w/ upid == -1
     host_cat = host_hcat.cat
     assert np.all(host_cat["upid"] == -1), "Needs to be a host catalog"
-    assert "mvir" in host_cat.colnames and "ids" in host_cat.colnames
+    assert "mvir" in host_cat.colnames and "id" in host_cat.colnames
+    assert "f_sub" not in host_cat.colnames, "Already processed."
     subhalo_cat = extract_subhalo(host_cat, minh_cat)
     fcat = astropy.table.join(host_cat, subhalo_cat, keys="id")
     host_hcat.cat = fcat

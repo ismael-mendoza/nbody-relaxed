@@ -102,24 +102,26 @@ class HaloCatalog(object):
             warnings.warn("Divide by zero errors are ignored, but filtered out.")
 
         # do filter on the fly, to avoid memory errors.
-        mcat = minh.open(self.cat_path)
-        cats = []
 
-        for b in range(mcat.blocks):
-            cat = Table()
+        with minh.open(self.cat_path) as mcat:
 
-            # obtain all params from minh and their values.
-            with np.errstate(divide="ignore", invalid="ignore"):
-                for param in self.params:
-                    hparam = parameters.get_hparam(param, log=False)
-                    values = hparam.get_values_minh_block(mcat, b)
-                    cat.add_column(values, name=param)
+            cats = []
 
-            # filter to reduce size.
-            cat = self.hfilter.filter_cat(cat)
-            cats.append(cat)
+            for b in range(mcat.blocks):
+                cat = Table()
 
-        self.cat = vstack(cats)
+                # obtain all params from minh and their values.
+                with np.errstate(divide="ignore", invalid="ignore"):
+                    for param in self.params:
+                        hparam = parameters.get_hparam(param, log=False)
+                        values = hparam.get_values_minh_block(mcat, b)
+                        cat.add_column(values, name=param)
+
+                # filter to reduce size.
+                cat = self.hfilter.filter_cat(cat)
+                cats.append(cat)
+
+            self.cat = vstack(cats)
 
     def save_cat(self, cat_path):
         assert self.cat is not None, "cat must be loaded"
