@@ -4,9 +4,10 @@ import numpy as np
 from astropy.table import Table, vstack
 from astropy.io import ascii
 
-import hfilters
-import parameters
-import pminh
+from pminh import minh
+
+from . import hfilters
+from . import parameters
 
 # particle mass (Msun/h), total particles, box size (Mpc/h).
 _props = {
@@ -80,7 +81,9 @@ class HaloCatalog(object):
 
     @staticmethod
     def get_default_params():
-        return ["id", "mvir", "rvir", "rs", "xoff", "voff", "x0", "v0", "cvir"]
+        params1 = ["id", "upid", "mvir", "rvir", "rs", "xoff", "voff"]
+        params2 = ["x0", "v0", "cvir", "spin", "q", "vrms"]
+        return params1 + params2
 
     def get_default_hfilter(self):
         default_filters = hfilters.get_default_filters(
@@ -99,7 +102,7 @@ class HaloCatalog(object):
             warnings.warn("Divide by zero errors are ignored, but filtered out.")
 
         # do filter on the fly, to avoid memory errors.
-        mcat = pminh.minh.open(self.cat_path)
+        mcat = minh.open(self.cat_path)
         cats = []
 
         for b in range(mcat.blocks):

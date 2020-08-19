@@ -98,7 +98,7 @@ class Rvir(HaloParam):
 
     @property
     def name(self):
-        return "kpc/h"
+        return "rvir"
 
     @property
     def latex(self):
@@ -283,7 +283,7 @@ class Q(HaloParam):
 
     @property
     def name(self):
-        return "cvir"
+        return "q"
 
     @property
     def latex(self):
@@ -425,8 +425,8 @@ class A2(HaloParam):
         raise NotImplementedError("Cannot obtain a2 from minh")
 
 
-param_dict = {c().name: c for c in HaloParam.__subclasses__()}
+hparam_dict = {c().name: c for c in HaloParam.__subclasses__()}
 
 
 def get_hparam(param, **kwargs):
-    return halo_param.param_dict[param](**kwargs)
+    return hparam_dict[param](**kwargs)
