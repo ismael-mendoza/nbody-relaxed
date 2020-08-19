@@ -90,7 +90,7 @@ def summarize_progenitors(progenitor_file, out_file):
 
     t = Table(rows=rows, names=names)
 
-    ascii.write(t, out_file, format="csv", fast_writer=True)
+    ascii.write(t, out_file, format="csv")
 
 
 def save_tables(progenitor_file, output_file, ids):

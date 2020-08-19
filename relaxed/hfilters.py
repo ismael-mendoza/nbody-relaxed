@@ -5,7 +5,7 @@ check `get_default_base_filters` below for an example.
 """
 import numpy as np
 import warnings
-from . import halo_param
+from . import parameters
 
 
 def get_bound_filter(param, low=-np.inf, high=np.inf, modifier=lambda x: x):
@@ -82,7 +82,7 @@ def get_default_filters(particle_mass, subhalos):
     """
     return {
         **particle_mass_filter(particle_mass, subhalos),
-        "upid": lambda x: (x == -1 if not self.subhalos else x >= 0),
+        "upid": lambda x: (x == -1 if not subhalos else x >= 0),
         # the ones after seem to have no effect after for not subhalos.
         "spin": lambda x: x != 0,
         "q": lambda x: x != 0,
@@ -96,7 +96,7 @@ class HaloFilters:
 
     def filter_cat(self, cat):
         for param, ft in self.filters.items():
-            hparam = halo_param.get_hparam(param, log=False)
+            hparam = parameters.get_hparam(param, log=False)
             cat = cat[ft(hparam.get_values(cat))]
         return cat
 

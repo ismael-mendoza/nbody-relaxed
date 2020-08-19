@@ -1,5 +1,11 @@
-# TODO: Might need to change if require lower mass host halos.
+import numpy as np
+from . import subhalo
+import astropy
+from astropy.table import Table
+
+
 def extract_subhalo(host_cat, minh_cat):
+    # TODO: change this function to accommodate lower mass host halos.
     # now we also want to add subhalo fraction and we follow Phil's lead
 
     host_ids = host_cat["id"]
@@ -26,7 +32,7 @@ def add_subhalo_info(host_hcat, minh_cat):
     host_cat = host_hcat.cat
     assert np.all(host_cat["upid"] == -1), "Needs to be a host catalog"
     assert "mvir" in host_cat.colnames and "ids" in host_cat.colnames
-    subhalo_cat = self.extract_subhalo(host_cat, minh_cat)
-    fcat = astropy.table.join(cat, subhalo_cat, keys="id")
+    subhalo_cat = extract_subhalo(host_cat, minh_cat)
+    fcat = astropy.table.join(host_cat, subhalo_cat, keys="id")
     host_hcat.cat = fcat
     return host_hcat

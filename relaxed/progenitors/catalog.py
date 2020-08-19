@@ -1,4 +1,6 @@
 from ..catalogs import intersection
+import astropy.table
+from astropy.table import Table
 
 
 def add_progenitor_info(hcat, progenitor_file):
