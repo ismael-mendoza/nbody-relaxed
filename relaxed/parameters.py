@@ -26,7 +26,11 @@ class HaloParam(ABC):
         raise NotImplementedError()
 
     def get_values(self, cat):
-        values = self.derive["func"](cat)
+        if self.name in cat.colnames:
+            values = cat[self.name]
+
+        else:
+            values = self.derive["func"](cat)
 
         if self.log:
             values = np.log10(values)
@@ -237,6 +241,36 @@ class ScaleOfLastMM(HaloParam):
         return {
             "units": "",
             "form": "\\delta_{\\rm MM}",
+        }
+
+
+class BToA(HaloParam):
+    units = ""
+
+    @property
+    def name(self):
+        return "b_to_a"
+
+    @property
+    def latex(self):
+        return {
+            "units": "",
+            "form": "b/a",
+        }
+
+
+class CToA(HaloParam):
+    units = ""
+
+    @property
+    def name(self):
+        return "c_to_a"
+
+    @property
+    def latex(self):
+        return {
+            "units": "",
+            "form": "c/a",
         }
 
 
