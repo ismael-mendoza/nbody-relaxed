@@ -7,10 +7,6 @@ import numpy as np
 
 from relaxed import utils
 
-# ToDo: Possibility of merging two plots with two different sets of kwargs, sort of like a matrix merge.
-#  it will be annoying to specify kwargs for each of the nrows x ncols but a more global thing
-#  ==> make kwargs an attribute of the plot and not just at runtime.
-
 # ToDo: Change to accommodate reading chunkified code.
 # ToDo: Mantra to keep in mind: One plot per PDF page.
 
