@@ -54,8 +54,8 @@ class Plot(ABC):
 
         self.plot_func = plot_func
         self.hparams = hparams
-        self.params = {hparam.name for hparam in self.hparams}
-        assert len(self.params) == len(self.hparams)
+        self.hparam_dict = {hparam.name: hparam for hparam in self.hparams}
+        assert len(self.hparam_dict) == len(self.hparams)
 
         self.nrows = nrows
         self.ncols = ncols
@@ -126,18 +126,23 @@ class BiPlot(Plot):
     """Class that creates the standard x vs. y plots.
     """
 
-    def run(self, cat, **kwargs):
-        for (ax, param_pair) in zip(self.axes, self.params):
-            param1, param2 = param_pair
-            self.plot_func(
-                cat,
-                param1,
-                param2,
-                ax,
-                xlabel=param1.text,
-                ylabel=param2.text,
-                **kwargs
-            )
+    def _run(self, plot_params, **kwargs):
+        # plot_params = [(param11, param12), (param21,param22)...]
+        for idx in self.values:
+            for (ax, param_pair) in zip(self.axes, plot_params):
+                param1, param2 = param_pair
+                param1_values = self.values[idx][param1]
+                param2_values = self.values[idx][param2]
+                param1_text = self.hparam_dict[param1].text
+                param2_text = self.hparam_dict[param2].text
+                self.plot_func(
+                    param1_values,
+                    param2_values,
+                    ax,
+                    xlabel=param1_text,
+                    ylabel=param2_text,
+                    **kwargs
+                )
 
 
 class UniPlot(Plot):
