@@ -2,6 +2,7 @@
 This file contains classes that represent the different plots that are produced. The purpose is to
 have more reproducible plots and separate the plotting procedure from the images produced.
 """
+from abc import ABC, abstractmethod
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -11,118 +12,114 @@ from relaxed import utils
 def general_ax_settings(
     ax,
     ax_title="",
-    xlabel=None,
-    ylabel=None,
-    legend_label=None,
+    xlabel="",
+    ylabel="",
+    legend_label="",
     xlabel_size=18,
     ylabel_size=18,
     legend_size=18,
-    title_size=22,
+    ax_title_size=22,
 ):
-    ax.set_title(ax_title, fontsize=title_size)
-
-    if xlabel is not None:
-        ax.set_xlabel(xlabel, size=xlabel_size)
-
-    if ylabel is not None:
-        ax.set_ylabel(ylabel, size=ylabel_size)
+    ax.set_title(ax_title, fontsize=ax_title_size)
+    ax.set_xlabel(xlabel, size=xlabel_size)
+    ax.set_ylabel(ylabel, size=ylabel_size)
 
     if legend_label:
         ax.legend(loc="best", prop={"size": legend_size})
 
 
-class Plot(object):
+class Plot(ABC):
     def __init__(
         self,
         plot_func,
-        params,
+        hparams,
         nrows=1,
         ncols=1,
         figsize=(8, 8),
         title="",
         title_size=20,
         tick_size=24,
-        param_locs=None,
+        grid_locs=None,
         plot_kwargs=None,
     ):
-        """
-        Represents a single plot to draw and produce. Each plot will be outputted
+        """Represents a single plot to draw and produce. Each plot will be outputted
         in a single page of a pdf.
 
-        * To overlay a different plot (say relaxed), just call self.run() again w/ the relaxed catalog and color!
-        :param params: Represents a list of :class:`Param`:, could be tuples of params too depending on the plot_func.
+        hparams (list) : A list containing all unique halo params necessary for plotting.
         """
 
         self.title = title
         self.title_size = title_size
         self.tick_size = tick_size
 
-        self.params = params
         self.plot_func = plot_func
+        self.hparams = hparams
+        self.params = {hparam.name for hparam in self.hparams}
+        assert len(self.params) == len(self.hparams)
 
         self.nrows = nrows
         self.ncols = ncols
 
-        self.fig, self.axes, self.param_locs = self.get_subplots_config(
-            self.nrows, self.ncols, param_locs, figsize
-        )
-
         self.plot_kwargs = {} if None else plot_kwargs
-        self.cached_args = []
+        self.values = {}
 
-    def generate(self, cat, *args, **kwargs):
-        """
-        Produce the plot and save into the axes objects.
-        :return: None
-        """
-        self.fig.suptitle(self.title, fontsize=self.title_size)
-        plt.ioff()
-
-        self.run(cat, **kwargs, **self.plot_kwargs)
-
-        for ax in self.axes:
-            ax.tick_params(axis="both", which="major", labelsize=self.tick_size)
-
-        self.fig.tight_layout(rect=[0, 0.03, 1, 0.95])
-
-    def run(self, cat, **kwargs):
-        pass
-
-    def save(self, fname=None, pdf=None):
-        plt.rc("text", usetex=True)
-
-        if fname is not None:
-            self.fig.savefig(utils.figure_path.joinpath(fname))
-
-        elif pdf is not None:
-            pdf.savefig(self.fig)
-
-        else:
-            raise ValueError("Need to specify either a filename or a pdf")
-
-    def load_arguments(self, cat, **kwargs):
-        self.cached_args.append((cat, kwargs))
-
-    def generate_from_cached(self):
-        for (cat, kwargs) in self.cached_args:
-            self.generate(cat, **kwargs)
+        self._setup_fig_and_axes(grid_locs, figsize)
 
     @staticmethod
-    def get_subplots_config(nrows, ncols, param_locs, figsize):
+    def _get_subplots_config(nrows, ncols, grid_locs, figsize):
         # just plot sequentially if locations were not specified.
-        new_param_locs = (
-            param_locs
-            if param_locs
-            else [(i, j) for i in range(nrows) for j in range(ncols)]
-        )
+        if not grid_locs:
+            grid_locs = [(i, j) for i in range(nrows) for j in range(ncols)]
 
         fig, _ = plt.subplots(squeeze=False, figsize=figsize)
         axes = [
             plt.subplot2grid((nrows, ncols), param_loc, fig=fig)
-            for param_loc in new_param_locs
+            for param_loc in grid_locs
         ]
 
-        return fig, axes, new_param_locs
+        return fig, axes, grid_locs
+
+    def _setup_fig_and_axes(self, grid_locs, figsize):
+        # setup figure and axes
+        plt.ioff()
+        self.fig, self.axes, self.grid_locs = self._get_subplots_config(
+            self.nrows, self.ncols, grid_locs, figsize
+        )
+        self.fig.suptitle(self.title, fontsize=self.title_size)
+        for ax in self.axes:
+            ax.tick_params(axis="both", which="major", labelsize=self.tick_size)
+        self.fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+
+    def save(self, fname=None, pdf=None):
+        assert fname or pdf, "one should be specified"
+        plt.rc("text", usetex=True)
+
+        if fname:
+            self.fig.savefig(utils.figure_path.joinpath(fname))
+
+        else:
+            pdf.savefig(self.fig)
+
+    def load(self, hcat, idx):
+        """Load the parameter values that will be needed for plotting.
+        """
+        # idx = idx of catalog added.
+        assert idx not in self.values, "Overwriting!"
+        values_i = self.values.get(idx, {})
+        for hparam in self.hparams:
+            values_i[hparam.name] = hparam.get_values(hcat.cat)
+
+    def generate(self, plot_params, **kwargs):
+        """
+        Produce the plot and save into the axes objects.
+        :return: None
+        """
+
+        self._run(plot_params, **kwargs, **self.plot_kwargs)
+
+    @abstractmethod
+    def _run(self, plot_params, **kwargs):
+        pass
 
 
 class BiPlot(Plot):
@@ -144,13 +141,51 @@ class BiPlot(Plot):
 
 
 class UniPlot(Plot):
-    """
-    Creates plot that only depend on one variable at a time, like histograms.
+    """Creates plot that only depend on one variable at a time, like histograms.
     """
 
     def run(self, cat, **kwargs):
         for (ax, param) in zip(self.axes, self.params):
             self.plot_func(cat, param, ax, xlabel=param.text, **kwargs)
+
+
+class MatrixPlot(Plot):
+    def __init__(self, matrix_func, params, symmetric=False, **kwargs):
+        self.matrix_func = matrix_func
+        self.symmetric = symmetric
+        super(MatrixPlot, self).__init__(
+            matrix_func, params, ncols=1, nrows=1, **kwargs
+        )
+        self.ax = self.axes[0]
+
+    def run(self, cat, label_size=16, show_cell_text=False, **kwargs):
+        matrix = self.matrix_func(self.params, cat)
+
+        # mask out lower off-diagonal elements if requested.
+        mask = np.tri(matrix.shape[0], k=-1) if self.symmetric else None
+        matrix = np.ma.array(matrix, mask=mask)
+        im = self.ax.matshow(matrix, cmap="bwr", vmin=-1, vmax=1)
+        plt.colorbar(im, ax=self.ax)
+
+        if show_cell_text:
+            for i in range(matrix.shape[0]):
+                for j in range(matrix.shape[1]):
+                    _ = self.ax.text(
+                        j,
+                        i,
+                        round(matrix[i, j], 2),
+                        ha="center",
+                        va="center",
+                        color="k",
+                        size=14,
+                    )
+
+        latex_params = [param.get_text(only_param=True) for param in self.params]
+        self.ax.set_xticks(range(len(latex_params)))
+        self.ax.set_yticks(range(len(latex_params)))
+
+        self.ax.set_xticklabels(latex_params, size=label_size)
+        self.ax.set_yticklabels(latex_params, size=label_size)
 
 
 class Histogram(UniPlot):
@@ -273,42 +308,3 @@ class StackedHistogram(Histogram):
     #     for i, (ax, param) in enumerate(zip(self.axes, self.params)):
     #         if bin_edges:
     #             bin_edge1, bin_edge2 = bin_edges[i]
-
-
-class MatrixPlot(Plot):
-    def __init__(self, matrix_func, params, symmetric=False, **kwargs):
-        self.matrix_func = matrix_func
-        self.symmetric = symmetric
-        super(MatrixPlot, self).__init__(
-            matrix_func, params, ncols=1, nrows=1, **kwargs
-        )
-        self.ax = self.axes[0]
-
-    def run(self, cat, label_size=16, show_cell_text=False, **kwargs):
-        matrix = self.matrix_func(self.params, cat)
-
-        # mask out lower off-diagonal elements if requested.
-        mask = np.tri(matrix.shape[0], k=-1) if self.symmetric else None
-        matrix = np.ma.array(matrix, mask=mask)
-        im = self.ax.matshow(matrix, cmap="bwr", vmin=-1, vmax=1)
-        plt.colorbar(im, ax=self.ax)
-
-        if show_cell_text:
-            for i in range(matrix.shape[0]):
-                for j in range(matrix.shape[1]):
-                    _ = self.ax.text(
-                        j,
-                        i,
-                        round(matrix[i, j], 2),
-                        ha="center",
-                        va="center",
-                        color="k",
-                        size=14,
-                    )
-
-        latex_params = [param.get_text(only_param=True) for param in self.params]
-        self.ax.set_xticks(range(len(latex_params)))
-        self.ax.set_yticks(range(len(latex_params)))
-
-        self.ax.set_xticklabels(latex_params, size=label_size)
-        self.ax.set_yticklabels(latex_params, size=label_size)
