@@ -1,6 +1,6 @@
 import numpy as np
 
-from . import plot_funcs
+import plot_funcs
 import plots
 from parameters import HaloParam
 from .. import stats

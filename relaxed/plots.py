@@ -1,14 +1,34 @@
 """
-This file contains classes that represent the different plots that are produced. The purpose is to have more
-reproducible plots and separate the plotting procedure from the images produced.
+This file contains classes that represent the different plots that are produced. The purpose is to
+have more reproducible plots and separate the plotting procedure from the images produced.
 """
 import matplotlib.pyplot as plt
 import numpy as np
 
 from relaxed import utils
 
-# ToDo: Change to accommodate reading chunkified code.
-# ToDo: Mantra to keep in mind: One plot per PDF page.
+
+def general_ax_settings(
+    ax,
+    ax_title="",
+    xlabel=None,
+    ylabel=None,
+    legend_label=None,
+    xlabel_size=18,
+    ylabel_size=18,
+    legend_size=18,
+    title_size=22,
+):
+    ax.set_title(ax_title, fontsize=title_size)
+
+    if xlabel is not None:
+        ax.set_xlabel(xlabel, size=xlabel_size)
+
+    if ylabel is not None:
+        ax.set_ylabel(ylabel, size=ylabel_size)
+
+    if legend_label:
+        ax.legend(loc="best", prop={"size": legend_size})
 
 
 class Plot(object):
@@ -16,17 +36,18 @@ class Plot(object):
         self,
         plot_func,
         params,
-        param_locs=None,
         nrows=1,
         ncols=1,
         figsize=(8, 8),
         title="",
         title_size=20,
         tick_size=24,
+        param_locs=None,
         plot_kwargs=None,
     ):
         """
-        Represents a single plot to draw and produce. Each plot will be outputted in a single page of a pdf.
+        Represents a single plot to draw and produce. Each plot will be outputted
+        in a single page of a pdf.
 
         * To overlay a different plot (say relaxed), just call self.run() again w/ the relaxed catalog and color!
         :param params: Represents a list of :class:`Param`:, could be tuples of params too depending on the plot_func.
@@ -105,8 +126,7 @@ class Plot(object):
 
 
 class BiPlot(Plot):
-    """
-    Class that creates the standard x vs. y plots.
+    """Class that creates the standard x vs. y plots.
     """
 
     def run(self, cat, **kwargs):
@@ -134,8 +154,8 @@ class UniPlot(Plot):
 
 
 class Histogram(UniPlot):
-    """Creates histograms which is a subclass of UniPlot but uses caching to set the bin sizes of
-    all catalogs to be the same.
+    """Creates histograms which is a subclass of UniPlot, but uses caching to set the bin sizes of
+    all the catalogs plotted to be the same.
     """
 
     def generate_from_cached(self):

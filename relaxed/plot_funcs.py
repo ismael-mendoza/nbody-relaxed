@@ -1,33 +1,9 @@
-"""
-Plotting functions that are useful for visualizing things like correlations.
+"""Plotting functions that can be used along with the Plot class in plots.py
 """
 
 import numpy as np
-
 import parameters
-
-
-def general_ax_settings(
-    ax,
-    ax_title="",
-    xlabel=None,
-    ylabel=None,
-    xlabel_size=18,
-    ylabel_size=18,
-    legend_label=None,
-    legend_size=18,
-    title_size=22,
-):
-    ax.set_title(ax_title, fontsize=title_size)
-
-    if xlabel is not None:
-        ax.set_xlabel(xlabel, size=xlabel_size)
-
-    if ylabel is not None:
-        ax.set_ylabel(ylabel, size=ylabel_size)
-
-    if legend_label:
-        ax.legend(loc="best", prop={"size": legend_size})
+from .plots import general_ax_settings
 
 
 def histogram(
@@ -40,7 +16,7 @@ def histogram(
     legend_label=None,
     vline=None,
     log_y=True,
-    extra_hist_kwargs=None,
+    hist_kwargs=None,
     **general_kwargs
 ):
     if extra_hist_kwargs is None:
@@ -53,7 +29,7 @@ def histogram(
         histtype=histtype,
         color=color,
         label=legend_label,
-        **extra_hist_kwargs
+        **hist_kwargs
     )
 
     # add a vertical line.
@@ -98,9 +74,9 @@ def scatter_binning(
     param2,
     ax,
     n_xbins=10,
-    bin_bds=None,
     color="r",
     show_bands=False,
+    bin_bds=None,
     xlabel=None,
     ylabel=None,
     legend_label=None,
