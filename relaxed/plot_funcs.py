@@ -2,13 +2,11 @@
 """
 
 import numpy as np
-import parameters
 from .plots import general_ax_settings
 
 
 def histogram(
-    cat,
-    param,
+    values,
     ax,
     bins=30,
     histtype="step",
@@ -19,10 +17,9 @@ def histogram(
     hist_kwargs=None,
     **general_kwargs
 ):
-    if extra_hist_kwargs is None:
-        extra_hist_kwargs = {}
+    if hist_kwargs is None:
+        hist_kwargs = {}
 
-    values = param.get_values(cat)
     ax.hist(
         values,
         bins=bins,
@@ -43,35 +40,9 @@ def histogram(
     general_ax_settings(ax, legend_label=legend_label, **general_kwargs)
 
 
-def binning3d_mass(
-    cat,
-    param1,
-    param2,
-    ax,
-    ax_title=None,
-    mass_decades=np.arange(11, 15, 1),
-    **scatter_binning_kwargs
-):
-    mass_bins = [(x, y) for x, y in zip(mass_decades, mass_decades[1:])]
-    colors = ["b", "r", "g"]
-    for mass_bin, color in zip(mass_bins, colors):
-        log_mvir = parameters.HaloParam("mvir", log=True).get_values(cat)
-        mmask = (log_mvir > mass_bin[0]) & (log_mvir < mass_bin[1])
-        mcat = cat[mmask]
-        label = "$" + str(mass_bin[0]) + "< M_{\\rm vir} <" + str(mass_bin[1]) + "$"
-
-        # avoid conflict with legend_label inside kwargs.
-        scatter_binning_kwargs.update(dict(legend_label=label, color=color))
-
-        scatter_binning(
-            mcat, param1, param2, ax_title=ax_title, ax=ax, **scatter_binning_kwargs
-        )
-
-
 def scatter_binning(
-    cat,
-    param1,
-    param2,
+    x,
+    y,
     ax,
     n_xbins=10,
     color="r",
@@ -83,8 +54,6 @@ def scatter_binning(
     **general_kwargs
 ):
     # ToDo: Deal with empty bins better, right now it just skips that bin.
-    x = param1.get_values(cat)
-    y = param2.get_values(cat)
 
     if bin_bds is not None:
         x_bds = np.array(
@@ -123,3 +92,29 @@ def scatter_binning(
     general_ax_settings(
         ax, xlabel=xlabel, ylabel=ylabel, legend_label=legend_label, **general_kwargs
     )
+
+
+# def binning3d_mass(
+#     values1,
+#     values2,
+#     log_mvir,
+#     ax,
+#     ax_title=None,
+#     mass_decades=np.arange(11, 15, 1),
+#     **scatter_binning_kwargs
+# ):
+#     mass_bins = [(x, y) for x, y in zip(mass_decades, mass_decades[1:])]
+#     colors = ["b", "r", "g"]
+#     for mass_bin, color in zip(mass_bins, colors):
+#         Mvir = parameters.HaloParam("mvir", log=True)
+#         log_mvir = .get_values(cat)
+#         mask = (log_mvir > mass_bin[0]) & (log_mvir < mass_bin[1])
+#         mcat = cat[mask]
+#         label = "$" + str(mass_bin[0]) + "< M_{\\rm vir} <" + str(mass_bin[1]) + "$"
+#
+#         # avoid conflict with legend_label inside kwargs.
+#         scatter_binning_kwargs.update(dict(legend_label=label, color=color))
+#
+#         scatter_binning(
+#             mcat, param1, param2, ax_title=ax_title, ax=ax, **scatter_binning_kwargs
+#         )

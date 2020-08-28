@@ -100,8 +100,8 @@ class HaloFilters:
             cat = cat[ft(hparam.get_values(cat))]
         return cat
 
-    def filter_hcat(self, hcat, name="filtered cat"):
+    def filter_hcat(self, hcat, new_name="filtered cat"):
         new_cat = self.filter_cat(hcat.cat)
         hcat.cat = new_cat
-        hcat.name = name
+        hcat.name = new_name
         return hcat

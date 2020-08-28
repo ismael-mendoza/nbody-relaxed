@@ -100,13 +100,14 @@ class Plot(ABC):
         else:
             pdf.savefig(self.fig)
 
-    def load(self, hcat, idx):
+    def load(self, hcat):
         """Load the parameter values that will be used for plotting."""
         # idx = idx of catalog added.
-        assert idx not in self.values, "Overwriting!"
-        values_i = self.values.get(idx, {})
+        assert hcat.name not in self.values, "Cat already loaded."
+        values_i = {}
         for hparam in self.hparams:
             values_i[hparam.name] = hparam.get_values(hcat.cat)
+        self.values[hcat.name] = values_i
 
     def generate(self, plot_params, **kwargs):
         """
@@ -117,6 +118,10 @@ class Plot(ABC):
 
     @abstractmethod
     def _run(self, plot_params, **kwargs):
+        """Actually create the plots.
+        Args:
+            plot_params: Always a collection of strings.
+        """
         pass
 
 
@@ -124,12 +129,12 @@ class BiPlot(Plot):
     """Class that creates the standard x vs. y plots."""
 
     def _run(self, plot_params, **kwargs):
-        # plot_params = [(param11, param12), (param21,param22)...]
-        for idx in self.values:
+        # plot_params = [(param11, param12), (param21,param22)...] (strings)
+        for cat_name in self.values:
             for (ax, param_pair) in zip(self.axes, plot_params):
                 param1, param2 = param_pair
-                param1_values = self.values[idx][param1]
-                param2_values = self.values[idx][param2]
+                param1_values = self.values[cat_name][param1]
+                param2_values = self.values[cat_name][param2]
                 param1_text = self.hparam_dict[param1].text
                 param2_text = self.hparam_dict[param2].text
                 self.plot_func(
@@ -145,22 +150,24 @@ class BiPlot(Plot):
 class UniPlot(Plot):
     """Creates plot that only depend on one variable at a time, like histograms."""
 
-    def run(self, cat, **kwargs):
-        for (ax, param) in zip(self.axes, self.params):
-            self.plot_func(cat, param, ax, xlabel=param.text, **kwargs)
+    def _run(self, plot_params, **kwargs):
+        for cat_name in self.values:
+            for (ax, param) in zip(self.axes, plot_params):
+                param_value = self.values[cat_name][param]
+                self.plot_func(param_value, ax, xlabel=param.text, **kwargs)
 
 
 class MatrixPlot(Plot):
-    def __init__(self, matrix_func, params, symmetric=False, **kwargs):
+    def __init__(self, matrix_func, hparams, symmetric=False, **kwargs):
+        super().__init__(matrix_func, hparams, ncols=1, nrows=1, **kwargs)
         self.matrix_func = matrix_func
         self.symmetric = symmetric
-        super(MatrixPlot, self).__init__(
-            matrix_func, params, ncols=1, nrows=1, **kwargs
-        )
         self.ax = self.axes[0]
 
-    def run(self, cat, label_size=16, show_cell_text=False, **kwargs):
-        matrix = self.matrix_func(self.params, cat)
+    def _run(self, label_size=16, show_cell_text=False, **kwargs):
+        assert len(self.values) == 1
+        name, values = self.values.popitem()
+        matrix = self.matrix_func(values)
 
         # mask out lower off-diagonal elements if requested.
         mask = np.tri(matrix.shape[0], k=-1) if self.symmetric else None
