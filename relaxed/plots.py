@@ -101,8 +101,7 @@ class Plot(ABC):
             pdf.savefig(self.fig)
 
     def load(self, hcat, idx):
-        """Load the parameter values that will be needed for plotting.
-        """
+        """Load the parameter values that will be used for plotting."""
         # idx = idx of catalog added.
         assert idx not in self.values, "Overwriting!"
         values_i = self.values.get(idx, {})
@@ -114,7 +113,6 @@ class Plot(ABC):
         Produce the plot and save into the axes objects.
         :return: None
         """
-
         self._run(plot_params, **kwargs, **self.plot_kwargs)
 
     @abstractmethod
@@ -123,8 +121,7 @@ class Plot(ABC):
 
 
 class BiPlot(Plot):
-    """Class that creates the standard x vs. y plots.
-    """
+    """Class that creates the standard x vs. y plots."""
 
     def _run(self, plot_params, **kwargs):
         # plot_params = [(param11, param12), (param21,param22)...]
@@ -146,8 +143,7 @@ class BiPlot(Plot):
 
 
 class UniPlot(Plot):
-    """Creates plot that only depend on one variable at a time, like histograms.
-    """
+    """Creates plot that only depend on one variable at a time, like histograms."""
 
     def run(self, cat, **kwargs):
         for (ax, param) in zip(self.axes, self.params):

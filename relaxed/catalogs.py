@@ -45,8 +45,8 @@ def intersection(cat, sub_cat):
 class HaloCatalog(object):
     def __init__(
         self,
+        name,
         cat_path,
-        cat_name,
         params=None,
         hfilter=None,
         subhalos=False,
@@ -59,13 +59,13 @@ class HaloCatalog(object):
         * add_subhalo: add catalog halo properties that depend on their subhalos.
         * labels: useful when plotting (titles, etc.)
         """
-        assert cat_name in props, "Catalog name is not recognized."
+        assert name in props, "Catalog name is not recognized."
         assert subhalos is False, "Not implemented subhalo functionality."
         assert cat_path.name.endswith(".minh") or cat_path.name.endswith(".csv")
 
+        self.name = name
         self.cat_path = cat_path
-        self.cat_name = cat_name
-        self.cat_props = props[self.cat_name]
+        self.cat_props = props[self.name]
         self.verbose = verbose
         self.subhalos = subhalos
         self.label = label
