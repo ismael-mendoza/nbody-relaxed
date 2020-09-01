@@ -1,6 +1,5 @@
-"""
-This file contains classes that represent the different plots that are produced. The purpose is to
-have more reproducible plots and separate the plotting procedure from the images produced.
+"""This file contains classes that represent the different plots that are produced. The purpose
+is to have more reproducible plots and separate the plotting procedure from the images produced.
 """
 from abc import ABC, abstractmethod
 import matplotlib.pyplot as plt
@@ -111,7 +110,8 @@ class Plot(ABC):
 
     def generate(self, plot_params, **kwargs):
         """
-        Produce the plot and save into the axes objects.
+        Produce the plot and save into the axes objects. Uses the cached parameters from load
+        method.
         :return: None
         """
         self._run(plot_params, **kwargs, **self.plot_kwargs)
@@ -164,10 +164,10 @@ class MatrixPlot(Plot):
         self.symmetric = symmetric
         self.ax = self.axes[0]
 
-    def _run(self, label_size=16, show_cell_text=False, **kwargs):
+    def _run(self, plot_params, label_size=16, show_cell_text=False, **kwargs):
         assert len(self.values) == 1
-        name, values = self.values.popitem()
-        matrix = self.matrix_func(values)
+        cat_name, param_values = self.values.popitem()
+        matrix = self.matrix_func(plot_params, param_values)
 
         # mask out lower off-diagonal elements if requested.
         mask = np.tri(matrix.shape[0], k=-1) if self.symmetric else None
@@ -188,7 +188,9 @@ class MatrixPlot(Plot):
                         size=14,
                     )
 
-        latex_params = [param.get_text(only_param=True) for param in self.params]
+        latex_params = [
+            self.hparam_dict[param].get_text(only_param=True) for param in plot_params
+        ]
         self.ax.set_xticks(range(len(latex_params)))
         self.ax.set_yticks(range(len(latex_params)))
 
