@@ -118,6 +118,23 @@ class Plot(ABC):
         pass
 
 
+class UniPlot(Plot):
+    """Creates plot that only depend on one variable at a time, like histograms."""
+
+    def _run(self, plot_params):
+        for cat_name in self.values:
+            for (ax, param) in zip(self.axes, plot_params):
+                hparam = self.hparam_dict[param]
+                param_value = self.values[cat_name][param]
+                self.plot_func(
+                    param_value,
+                    ax,
+                    xlabel=hparam.text,
+                    legend_label=cat_name,
+                    **self.plot_kwargs
+                )
+
+
 class BiPlot(Plot):
     """Class that creates the standard x vs. y plots."""
 
@@ -134,21 +151,11 @@ class BiPlot(Plot):
                     param1_values,
                     param2_values,
                     ax,
+                    legend_label=cat_name,
                     xlabel=param1_text,
                     ylabel=param2_text,
                     **self.plot_kwargs
                 )
-
-
-class UniPlot(Plot):
-    """Creates plot that only depend on one variable at a time, like histograms."""
-
-    def _run(self, plot_params):
-        for cat_name in self.values:
-            for (ax, param) in zip(self.axes, plot_params):
-                hparam = self.hparam_dict[param]
-                param_value = self.values[cat_name][param]
-                self.plot_func(param_value, ax, xlabel=hparam.text, **self.plot_kwargs)
 
 
 class MatrixPlot(Plot):
@@ -197,6 +204,16 @@ class Histogram(UniPlot):
     all the catalogs plotted to be the same.
     """
 
+    def run_histogram(self, cat_name, plot_params, bin_edges=None, **kwargs):
+        for i, (ax, param) in enumerate(zip(self.axes, plot_params)):
+            if bin_edges:
+                bin_edge = bin_edges[i]
+                assert "bins" in kwargs
+                kwargs.update(dict(bins=bin_edge))
+
+            param_value = self.values[cat_name][param]
+            self.plot_func(param_value, ax, xlabel=param.text, **kwargs)
+
     def generate(self, plot_params):
         # first we obtain the bin edges.
         assert "bins" in self.plot_kwargs
@@ -204,24 +221,18 @@ class Histogram(UniPlot):
         bin_edges = []
         for param in plot_params:
             param_values = []
-            for (cat, _) in self.cached_args:
-                param_values.append(param.get_values(cat))
+            for cat_name in self.values:
+                param_value = self.values[cat_name][param]
+                param_values.append(param_value)
 
             # get the bin edges
             bins = np.histogram(np.hstack(param_values), bins=num_bins)[1]
             bin_edges.append(bins)
 
-        for (cat, kwargs) in self.cached_args:
-            self.generate(cat, bin_edges=bin_edges, **self.plot_kwargs)
-
-    def run(self, cat, bin_edges=None, **kwargs):
-        for i, (ax, param) in enumerate(zip(self.axes, self.params)):
-            if bin_edges:
-                bin_edge = bin_edges[i]
-                assert "bins" in kwargs
-                kwargs.update(dict(bins=bin_edge))
-
-            self.plot_func(cat, param, ax, xlabel=param.text, **kwargs)
+        for cat_name in self.values:
+            self.run_histogram(
+                cat_name, plot_params, bin_edges=bin_edges, **self.plot_kwargs
+            )
 
 
 class StackedHistogram(Histogram):
@@ -230,7 +241,7 @@ class StackedHistogram(Histogram):
     of https://arxiv.org/pdf/1404.4634.pdf, where the top histogram are all the individual plots
     and the bottom row shows the ratio of each with respect to the total.
 
-    * Pass in nrow as if this wasn't stacked (just thinking of normal histogram.
+    * Pass in n_row as if this wasn't stacked (just thinking of normal histogram.
     * Used: https://stackoverflow.com/questions/37737538/merge-matplotlib-subplots-with-shared-x-axis
     """
 
