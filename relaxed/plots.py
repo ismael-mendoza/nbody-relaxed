@@ -108,6 +108,7 @@ class Plot(ABC):
             values_i[hparam.name] = hparam.get_values(hcat.cat)
         self.values[hcat.name] = values_i
 
+    @abstractmethod
     def generate(self, plot_params):
         """
         Produce the plot and save into the axes objects. Uses the cached parameters from load
