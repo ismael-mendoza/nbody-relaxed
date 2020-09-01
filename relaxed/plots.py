@@ -44,7 +44,7 @@ class Plot(ABC):
         """Represents a single plot to draw and produce. Each plot will be outputted
         in a single page of a pdf.
 
-        hparams (list) : A list containing all unique halo params necessary for plotting.
+        hparams (list) : A list containing all (unique) halo params necessary for plotting.
         """
 
         self.title = title
@@ -108,19 +108,11 @@ class Plot(ABC):
             values_i[hparam.name] = hparam.get_values(hcat.cat)
         self.values[hcat.name] = values_i
 
-    def generate(self, plot_params, **kwargs):
+    def generate(self, plot_params):
         """
         Produce the plot and save into the axes objects. Uses the cached parameters from load
         method.
         :return: None
-        """
-        self._run(plot_params, **kwargs, **self.plot_kwargs)
-
-    @abstractmethod
-    def _run(self, plot_params, **kwargs):
-        """Actually create the plots.
-        Args:
-            plot_params: Always a collection of strings.
         """
         pass
 
@@ -128,7 +120,7 @@ class Plot(ABC):
 class BiPlot(Plot):
     """Class that creates the standard x vs. y plots."""
 
-    def _run(self, plot_params, **kwargs):
+    def generate(self, plot_params):
         # plot_params = [(param11, param12), (param21,param22)...] (strings)
         for cat_name in self.values:
             for (ax, param_pair) in zip(self.axes, plot_params):
@@ -143,18 +135,19 @@ class BiPlot(Plot):
                     ax,
                     xlabel=param1_text,
                     ylabel=param2_text,
-                    **kwargs
+                    **self.plot_kwargs
                 )
 
 
 class UniPlot(Plot):
     """Creates plot that only depend on one variable at a time, like histograms."""
 
-    def _run(self, plot_params, **kwargs):
+    def _run(self, plot_params):
         for cat_name in self.values:
             for (ax, param) in zip(self.axes, plot_params):
+                hparam = self.hparam_dict[param]
                 param_value = self.values[cat_name][param]
-                self.plot_func(param_value, ax, xlabel=param.text, **kwargs)
+                self.plot_func(param_value, ax, xlabel=hparam.text, **self.plot_kwargs)
 
 
 class MatrixPlot(Plot):
@@ -164,7 +157,7 @@ class MatrixPlot(Plot):
         self.symmetric = symmetric
         self.ax = self.axes[0]
 
-    def _run(self, plot_params, label_size=16, show_cell_text=False, **kwargs):
+    def generate(self, plot_params, label_size=16, show_cell_text=False):
         assert len(self.values) == 1
         cat_name, param_values = self.values.popitem()
         matrix = self.matrix_func(plot_params, param_values)
@@ -203,13 +196,12 @@ class Histogram(UniPlot):
     all the catalogs plotted to be the same.
     """
 
-    def generate_from_cached(self):
+    def generate(self, plot_params):
         # first we obtain the bin edges.
         assert "bins" in self.plot_kwargs
-
         num_bins = self.plot_kwargs["bins"]
         bin_edges = []
-        for param in self.params:
+        for param in plot_params:
             param_values = []
             for (cat, _) in self.cached_args:
                 param_values.append(param.get_values(cat))
@@ -219,7 +211,7 @@ class Histogram(UniPlot):
             bin_edges.append(bins)
 
         for (cat, kwargs) in self.cached_args:
-            self.generate(cat, bin_edges=bin_edges, **kwargs)
+            self.generate(cat, bin_edges=bin_edges, **self.plot_kwargs)
 
     def run(self, cat, bin_edges=None, **kwargs):
         for i, (ax, param) in enumerate(zip(self.axes, self.params)):
@@ -241,9 +233,10 @@ class StackedHistogram(Histogram):
     * Used: https://stackoverflow.com/questions/37737538/merge-matplotlib-subplots-with-shared-x-axis
     """
 
+    # assume the first catalog given is the one we are taking rations with respect to.
     def __init__(self, *args, **kwargs):
         super(StackedHistogram, self).__init__(*args, **kwargs)
-        self.main_catalog_idx = 0  # assume the first catalog given is the one we are taking rations with respect to.
+        self.main_catalog_idx = 0
 
     # def generate_from_cached(self):
     #     # first get bin edges.
