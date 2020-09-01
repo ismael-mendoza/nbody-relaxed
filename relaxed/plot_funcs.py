@@ -1,8 +1,44 @@
 """Plotting functions that can be used along with the Plot class in plots.py
 """
+from abc import ABC, abstractmethod
 
 import numpy as np
-from .plots import general_ax_settings
+
+
+def general_ax_settings(
+    ax,
+    ax_title="",
+    xlabel="",
+    ylabel="",
+    legend_label="",
+    xlabel_size=18,
+    ylabel_size=18,
+    legend_size=18,
+    ax_title_size=22,
+):
+    ax.set_title(ax_title, fontsize=ax_title_size)
+    ax.set_xlabel(xlabel, size=xlabel_size)
+    ax.set_ylabel(ylabel, size=ylabel_size)
+
+    if legend_label:
+        ax.legend(loc="best", prop={"size": legend_size})
+
+
+class PlotFunc(ABC):
+    def __init__(
+        self, xlabel_size=18, ylabel_size=18, legend_size=18, ax_title_size=22
+    ):
+        self.xlabel_size = xlabel_size
+        self.ylabel_size = ylabel_size
+        self.legend_size = legend_size
+        self.ax_title_size = ax_title_size
+
+    def plot(self):
+        pass
+
+    @abstractmethod
+    def __call__(self, values, ax, legend_label=None, **kwargs):
+        pass
 
 
 def histogram(

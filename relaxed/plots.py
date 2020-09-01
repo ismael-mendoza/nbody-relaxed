@@ -8,25 +8,6 @@ import numpy as np
 from relaxed import utils
 
 
-def general_ax_settings(
-    ax,
-    ax_title="",
-    xlabel="",
-    ylabel="",
-    legend_label="",
-    xlabel_size=18,
-    ylabel_size=18,
-    legend_size=18,
-    ax_title_size=22,
-):
-    ax.set_title(ax_title, fontsize=ax_title_size)
-    ax.set_xlabel(xlabel, size=xlabel_size)
-    ax.set_ylabel(ylabel, size=ylabel_size)
-
-    if legend_label:
-        ax.legend(loc="best", prop={"size": legend_size})
-
-
 class Plot(ABC):
     def __init__(
         self,
