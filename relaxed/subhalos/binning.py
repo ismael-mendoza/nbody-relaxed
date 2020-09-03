@@ -14,7 +14,7 @@ hundred times faster than any native Python routine can.
 
 
 def bin_ints(idx, n_bins, out_bins=None, out_bin_edges=None):
-    """ bin_ints collects an array of bin indices, idx, into a set of
+    """bin_ints collects an array of bin indices, idx, into a set of
     n_bins bins. bin_ints returns a list of numpy arrays which each contain the
     indices of the elements in idx which are contained in that bin. If n_bins
     isn't supplied max(idx) + 1 will be used as n_bins.

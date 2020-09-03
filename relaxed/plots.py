@@ -1,5 +1,8 @@
 """This file contains classes that represent the different plots that are produced. The purpose
 is to have more reproducible plots and separate the plotting procedure from the images produced.
+
+The parent class 'Plot' only works on the 'high-level', never interacting with the axes objects
+directly other than setting them up nad passing them along. The rest is up to plot_funcs.py
 """
 from abc import ABC, abstractmethod
 import matplotlib.pyplot as plt
@@ -18,7 +21,6 @@ class Plot(ABC):
         figsize=(8, 8),
         title="",
         title_size=20,
-        tick_size=24,
         grid_locs=None,
         plot_kwargs=None,
     ):
@@ -30,7 +32,6 @@ class Plot(ABC):
 
         self.title = title
         self.title_size = title_size
-        self.tick_size = tick_size
 
         self.plot_func = plot_func
         self.hparams = hparams
@@ -45,29 +46,22 @@ class Plot(ABC):
 
         self._setup_fig_and_axes(grid_locs, figsize)
 
-    @staticmethod
-    def _get_subplots_config(nrows, ncols, grid_locs, figsize):
-        # just plot sequentially if locations were not specified.
-        if not grid_locs:
-            grid_locs = [(i, j) for i in range(nrows) for j in range(ncols)]
+    def _setup_fig_and_axes(self, grid_locs, figsize):
+        plt.ioff()
 
-        fig, _ = plt.subplots(squeeze=False, figsize=figsize)
-        axes = [
-            plt.subplot2grid((nrows, ncols), param_loc, fig=fig)
-            for param_loc in grid_locs
+        # setup grids
+        if not grid_locs:
+            # just plot sequentially if locations were not specified.
+            self.grid_locs = [
+                (i, j) for i in range(self.nrows) for j in range(self.ncols)
+            ]
+        self.fig, _ = plt.subplots(squeeze=False, figsize=figsize)
+        self.axes = [
+            plt.subplot2grid((self.nrows, self.ncols), param_loc, fig=self.fig)
+            for param_loc in self.grid_locs
         ]
 
-        return fig, axes, grid_locs
-
-    def _setup_fig_and_axes(self, grid_locs, figsize):
-        # setup figure and axes
-        plt.ioff()
-        self.fig, self.axes, self.grid_locs = self._get_subplots_config(
-            self.nrows, self.ncols, grid_locs, figsize
-        )
         self.fig.suptitle(self.title, fontsize=self.title_size)
-        for ax in self.axes:
-            ax.tick_params(axis="both", which="major", labelsize=self.tick_size)
         self.fig.tight_layout(rect=[0, 0.03, 1, 0.95])
 
     def save(self, fname=None, pdf=None):
@@ -102,7 +96,7 @@ class Plot(ABC):
 class UniPlot(Plot):
     """Creates plot that only depend on one variable at a time, like histograms."""
 
-    def _run(self, plot_params):
+    def generate(self, plot_params):
         for cat_name in self.values:
             for (ax, param) in zip(self.axes, plot_params):
                 hparam = self.hparam_dict[param]
@@ -223,7 +217,8 @@ class StackedHistogram(Histogram):
     and the bottom row shows the ratio of each with respect to the total.
 
     * Pass in n_row as if this wasn't stacked (just thinking of normal histogram.
-    * Used: https://stackoverflow.com/questions/37737538/merge-matplotlib-subplots-with-shared-x-axis
+    * Used:
+    https://stackoverflow.com/questions/37737538/merge-matplotlib-subplots-with-shared-x-axis
     """
 
     # assume the first catalog given is the one we are taking rations with respect to.

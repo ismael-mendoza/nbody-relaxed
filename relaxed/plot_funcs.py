@@ -1,156 +1,132 @@
 """Plotting functions that can be used along with the Plot class in plots.py
 """
 from abc import ABC, abstractmethod
-
 import numpy as np
-
-
-def general_ax_settings(
-    ax,
-    ax_title="",
-    xlabel="",
-    ylabel="",
-    legend_label="",
-    xlabel_size=18,
-    ylabel_size=18,
-    legend_size=18,
-    ax_title_size=22,
-):
-    ax.set_title(ax_title, fontsize=ax_title_size)
-    ax.set_xlabel(xlabel, size=xlabel_size)
-    ax.set_ylabel(ylabel, size=ylabel_size)
-
-    if legend_label:
-        ax.legend(loc="best", prop={"size": legend_size})
 
 
 class PlotFunc(ABC):
     def __init__(
-        self, xlabel_size=18, ylabel_size=18, legend_size=18, ax_title_size=22
+        self,
+        xlabel_size=18,
+        ylabel_size=18,
+        ax_title_size=22,
+        legend_size=18,
+        tick_size=24,
     ):
+        self.ax_title_size = ax_title_size
         self.xlabel_size = xlabel_size
         self.ylabel_size = ylabel_size
         self.legend_size = legend_size
-        self.ax_title_size = ax_title_size
+        self.tick_size = tick_size
 
-    def plot(self):
-        pass
+    def ax_settings(
+        self,
+        ax,
+        legend_label="",
+        ax_title="",
+        xlabel="",
+        ylabel="",
+    ):
+        ax.set_title(ax_title, fontsize=self.ax_title_size)
+        ax.set_xlabel(xlabel, size=self.xlabel_size)
+        ax.set_ylabel(ylabel, size=self.ylabel_size)
+        ax.tick_params(axis="both", which="major", labelsize=self.tick_size)
+
+        if legend_label:
+            ax.legend(loc="best", prop={"size": self.legend_size})
 
     @abstractmethod
-    def __call__(self, values, ax, legend_label=None, **kwargs):
+    def __call__(self, values, ax, ax_kwargs=None, **plot_kwargs):
+        ax_kwargs = {} if ax_kwargs is None else ax_kwargs
+        legend_label = ax_kwargs.get("", "legend_label")
+
+        self._plot(values, ax, legend_label=legend_label, **plot_kwargs)
+        self.ax_settings(ax, **ax_kwargs)
+
+    @abstractmethod
+    def _plot(self, ax, values, legend_label="", **kwargs):
         pass
 
 
-def histogram(
-    values,
-    ax,
-    bins=30,
-    histtype="step",
-    color="r",
-    legend_label=None,
-    vline=None,
-    log_y=True,
-    hist_kwargs=None,
-    **general_kwargs
-):
-    if hist_kwargs is None:
-        hist_kwargs = {}
+class CreateHistogram(PlotFunc):
+    def __init__(self, bins=30, histtype="step", **parent_kwargs):
+        super().__init__(**parent_kwargs)
+        self.bins = bins
+        self.histtype = histtype
 
-    ax.hist(
+    def _plot(
+        self,
+        ax,
         values,
-        bins=bins,
-        histtype=histtype,
-        color=color,
-        label=legend_label,
+        legend_label="",
+        color="r",
+        vline=None,
+        log_y=True,
         **hist_kwargs
-    )
-
-    # add a vertical line.
-    if vline == "median":
-        ax.axvline(np.median(values), c=color, ls="--")
-
-    # log the scale or not.
-    if log_y:
-        ax.set_yscale("log")
-
-    general_ax_settings(ax, legend_label=legend_label, **general_kwargs)
-
-
-def scatter_binning(
-    x,
-    y,
-    ax,
-    n_xbins=10,
-    color="r",
-    show_bands=False,
-    bin_bds=None,
-    xlabel=None,
-    ylabel=None,
-    legend_label=None,
-    **general_kwargs
-):
-    # ToDo: Deal with empty bins better, right now it just skips that bin.
-
-    if bin_bds is not None:
-        x_bds = np.array(
-            [(bin_bds[i], bin_bds[i + 1]) for i in range(len(bin_bds) - 1)]
+    ):
+        """
+        Args:
+            **hist_kwargs: Additional histogram parameters to plt.hist()
+        """
+        ax.hist(
+            values,
+            bins=self.bins,
+            histtype=self.histtype,
+            color=color,
+            label=legend_label,
+            **hist_kwargs
         )
-    else:
-        xs = np.linspace(np.min(x), np.max(x), n_xbins)
-        x_bds = np.array([(xs[i], xs[i + 1]) for i in range(len(xs) - 1)])
 
-    masks = [((x_bd[0] < x) & (x < x_bd[1])) for x_bd in x_bds]
+        # add a vertical line.
+        if vline == "median":
+            ax.axvline(np.median(values), c=color, ls="--")
 
-    xbins = [x[mask] for mask in masks if len(x[mask]) > 0]  # remove empty ones.
-    ybins = [y[mask] for mask in masks if len(x[mask]) > 0 and len(y[mask]) > 0]
-
-    xmeds = np.array([np.median(xbin) for xbin in xbins])
-    ymeds = np.array([np.median(ybin) for ybin in ybins])
-
-    xdiffs = abs(x_bds.reshape(-1, 2) - xmeds.reshape(-1, 1))
-
-    ax.errorbar(
-        xmeds,
-        ymeds,
-        xerr=xdiffs.T,
-        fmt="o-",
-        color=color,
-        label=legend_label,
-        capsize=10,
-    )
-
-    y1 = np.array([np.quantile(ybin, 0.25) for ybin in ybins])
-    y2 = np.array([np.quantile(ybin, 0.75) for ybin in ybins])
-
-    if show_bands:
-        ax.fill_between(xmeds, y1, y2, alpha=0.2, linewidth=0.001, color=color)
-
-    general_ax_settings(
-        ax, xlabel=xlabel, ylabel=ylabel, legend_label=legend_label, **general_kwargs
-    )
+        if log_y:
+            ax.set_yscale("log")
 
 
-# def binning3d_mass(
-#     values1,
-#     values2,
-#     log_mvir,
-#     ax,
-#     ax_title=None,
-#     mass_decades=np.arange(11, 15, 1),
-#     **scatter_binning_kwargs
-# ):
-#     mass_bins = [(x, y) for x, y in zip(mass_decades, mass_decades[1:])]
-#     colors = ["b", "r", "g"]
-#     for mass_bin, color in zip(mass_bins, colors):
-#         Mvir = parameters.HaloParam("mvir", log=True)
-#         log_mvir = .get_values(cat)
-#         mask = (log_mvir > mass_bin[0]) & (log_mvir < mass_bin[1])
-#         mcat = cat[mask]
-#         label = "$" + str(mass_bin[0]) + "< M_{\\rm vir} <" + str(mass_bin[1]) + "$"
-#
-#         # avoid conflict with legend_label inside kwargs.
-#         scatter_binning_kwargs.update(dict(legend_label=label, color=color))
-#
-#         scatter_binning(
-#             mcat, param1, param2, ax_title=ax_title, ax=ax, **scatter_binning_kwargs
-#         )
+# ToDo: Deal with empty bins better, right now it just skips that bin.
+class ScatterBinning(PlotFunc):
+    def __init__(self, n_xbins=10, show_bands=False, **parent_kwargs):
+        super().__init__(**parent_kwargs)
+        self.n_xbins = n_xbins
+        self.show_bands = show_bands
+
+    def _plot(self, ax, values=(), bin_bds=None, legend_label="", color="r"):
+        # values is a tuple values = (x,y)
+        x, y = values
+
+        if bin_bds is not None:
+            x_bds = np.array(
+                [(bin_bds[i], bin_bds[i + 1]) for i in range(len(bin_bds) - 1)]
+            )
+        else:
+            # divide uniformly.
+            xs = np.linspace(np.min(x), np.max(x), self.n_xbins)
+            x_bds = np.array([(xs[i], xs[i + 1]) for i in range(len(xs) - 1)])
+
+        masks = [((x_bd[0] < x) & (x < x_bd[1])) for x_bd in x_bds]
+
+        xbins = [x[mask] for mask in masks if len(x[mask]) > 0]  # remove empty ones.
+        ybins = [y[mask] for mask in masks if len(x[mask]) > 0 and len(y[mask]) > 0]
+
+        xmeds = np.array([np.median(xbin) for xbin in xbins])
+        ymeds = np.array([np.median(ybin) for ybin in ybins])
+
+        xdiffs = abs(x_bds.reshape(-1, 2) - xmeds.reshape(-1, 1))
+
+        ax.errorbar(
+            xmeds,
+            ymeds,
+            xerr=xdiffs.T,
+            fmt="o-",
+            color=color,
+            label=legend_label,
+            capsize=10,
+        )
+
+        y1 = np.array([np.quantile(ybin, 0.25) for ybin in ybins])
+        y2 = np.array([np.quantile(ybin, 0.75) for ybin in ybins])
+
+        if self.show_bands:
+            ax.fill_between(xmeds, y1, y2, alpha=0.2, linewidth=0.001, color=color)

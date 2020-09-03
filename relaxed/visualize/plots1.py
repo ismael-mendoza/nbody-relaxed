@@ -180,8 +180,7 @@ def plot_correlation_matrix_basic(hcats, pdf=None):
 
 
 def plot_decades_basic(hcats, pdf, colors):
-    """Produce all the basic plots that require decade separation
-    """
+    """Produce all the basic plots that require decade separation"""
 
     general_kwargs = dict(xlabel_size=28, ylabel_size=28)
     binning_kwargs = dict(n_xbins=8, show_bands=False, **general_kwargs)

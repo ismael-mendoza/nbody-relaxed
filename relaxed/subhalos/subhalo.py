@@ -12,7 +12,7 @@ subhaloes.
 
 
 class LookupTable(object):
-    """ LookupTable creates a fast lookup table which can quickly associated
+    """LookupTable creates a fast lookup table which can quickly associated
     subhaloes pids with host halo ids.
     """
 
@@ -25,7 +25,7 @@ class LookupTable(object):
         self.host_index = self.host_index[order]
 
     def lookup(self, sub_pids):
-        """ lookup returns the indices of the host halos of each subhalo.
+        """lookup returns the indices of the host halos of each subhalo.
         Returns -1 if a PID corresponds to a halo not in host_ids.
         """
 
@@ -49,7 +49,7 @@ class LookupTable(object):
 
 
 def bin_by_host(host_ids, sub_pids):
-    """ bin_by_host bins subhaloes according to their hosts. This function
+    """bin_by_host bins subhaloes according to their hosts. This function
     returns a list where each element is an array of indices into `sub_pids`
     the correspond to that that host's subhaloes.
     """
@@ -63,8 +63,7 @@ def bin_by_host(host_ids, sub_pids):
 
 
 def m_sub(host_ids, sub_pids, sub_mvir):
-    """ M_sub returns the sum of the mass of all subhaloes of each host.
-    """
+    """M_sub returns the sum of the mass of all subhaloes of each host."""
     bins = bin_by_host(host_ids, sub_pids)
 
     M_sub = np.zeros(len(bins))
@@ -76,8 +75,7 @@ def m_sub(host_ids, sub_pids, sub_mvir):
 
 
 def n_sub(host_ids, sub_pids):
-    """How many subhaloes does each halo have?
-    """
+    """How many subhaloes does each halo have?"""
     bins = bin_by_host(host_ids, sub_pids)
     N_sub = np.zeros(len(bins))
     for i in range(len(bins)):
