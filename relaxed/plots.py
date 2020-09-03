@@ -3,12 +3,16 @@ is to have more reproducible plots and separate the plotting procedure from the 
 
 The parent class 'Plot' only works on the 'high-level', never interacting with the axes objects
 directly other than setting them up nad passing them along. The rest is up to plot_funcs.py
+
+It also rounds up all parameter values to be plotted from multiple catalogs and their
+corresponding labels.
 """
 from abc import ABC, abstractmethod
 import matplotlib.pyplot as plt
 import numpy as np
 
 from relaxed import utils
+from . import plot_funcs
 
 
 class Plot(ABC):
@@ -156,6 +160,11 @@ class Histogram(UniPlot):
     all the catalogs plotted to be the same.
     """
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        assert type(self.plot_func) is plot_funcs.CreateHistogram
+        self.n_bins = self.plot_func.n_bins
+
     def run_histogram(self, cat_name, plot_params, bin_edges=None, **kwargs):
         for i, (ax, param) in enumerate(zip(self.axes, plot_params)):
             if bin_edges:
@@ -166,10 +175,7 @@ class Histogram(UniPlot):
             param_value = self.values[cat_name][param]
             self.plot_func(param_value, ax, xlabel=param.text, **kwargs)
 
-    def generate(self, plot_params):
-        # first we obtain the bin edges.
-        assert "bins" in self.plot_kwargs
-        num_bins = self.plot_kwargs["bins"]
+    def generate(self, plot_params, **plot_kwargs):
         bin_edges = []
         for param in plot_params:
             param_values = []
@@ -178,13 +184,11 @@ class Histogram(UniPlot):
                 param_values.append(param_value)
 
             # get the bin edges
-            bins = np.histogram(np.hstack(param_values), bins=num_bins)[1]
+            bins = np.histogram(np.hstack(param_values), bins=self.n_bins)[1]
             bin_edges.append(bins)
 
         for cat_name in self.values:
-            self.run_histogram(
-                cat_name, plot_params, bin_edges=bin_edges, **self.plot_kwargs
-            )
+            self.run_histogram(cat_name, plot_params, bin_edges=bin_edges)
 
 
 class StackedHistogram(Histogram):
