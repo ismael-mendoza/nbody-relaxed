@@ -22,7 +22,6 @@ class Plot(ABC):
         title="",
         title_size=20,
         grid_locs=None,
-        plot_kwargs=None,
     ):
         """Represents a single plot to draw and produce. Each plot will be outputted
         in a single page of a pdf.
@@ -41,15 +40,15 @@ class Plot(ABC):
         self.nrows = nrows
         self.ncols = ncols
 
-        self.plot_kwargs = {} if None else plot_kwargs
         self.values = {}
 
         self._setup_fig_and_axes(grid_locs, figsize)
 
     def _setup_fig_and_axes(self, grid_locs, figsize):
+        # mainly setup grids for plotting multiple axes.
+
         plt.ioff()
 
-        # setup grids
         if not grid_locs:
             # just plot sequentially if locations were not specified.
             self.grid_locs = [
@@ -76,7 +75,6 @@ class Plot(ABC):
 
     def load(self, hcat):
         """Load the parameter values that will be used for plotting."""
-        # idx = idx of catalog added.
         assert hcat.name not in self.values, "Cat already loaded."
         values_i = {}
         for hparam in self.hparams:
@@ -84,7 +82,7 @@ class Plot(ABC):
         self.values[hcat.name] = values_i
 
     @abstractmethod
-    def generate(self, plot_params):
+    def generate(self, plot_params, **plot_kwargs):
         """
         Produce the plot and save into the axes objects. Uses the cached parameters from load
         method.
@@ -96,24 +94,19 @@ class Plot(ABC):
 class UniPlot(Plot):
     """Creates plot that only depend on one variable at a time, like histograms."""
 
-    def generate(self, plot_params):
+    def generate(self, plot_params, **plot_kwargs):
         for cat_name in self.values:
             for (ax, param) in zip(self.axes, plot_params):
                 hparam = self.hparam_dict[param]
                 param_value = self.values[cat_name][param]
-                self.plot_func(
-                    param_value,
-                    ax,
-                    xlabel=hparam.text,
-                    legend_label=cat_name,
-                    **self.plot_kwargs
-                )
+                ax_kwargs = {"xlabel": hparam.text, "legend_label": cat_name}
+                self.plot_func(ax, param_value, ax_kwargs=ax_kwargs, **plot_kwargs)
 
 
 class BiPlot(Plot):
     """Class that creates the standard x vs. y plots."""
 
-    def generate(self, plot_params):
+    def generate(self, plot_params, **plot_kwargs):
         # plot_params = [(param11, param12), (param21,param22)...] (strings)
         for cat_name in self.values:
             for (ax, param_pair) in zip(self.axes, plot_params):
@@ -122,14 +115,16 @@ class BiPlot(Plot):
                 param2_values = self.values[cat_name][param2]
                 param1_text = self.hparam_dict[param1].text
                 param2_text = self.hparam_dict[param2].text
+                ax_kwargs = {
+                    "xlabel": param1_text,
+                    "ylabel": param2_text,
+                    "legend_label": cat_name,
+                }
                 self.plot_func(
-                    param1_values,
-                    param2_values,
                     ax,
-                    legend_label=cat_name,
-                    xlabel=param1_text,
-                    ylabel=param2_text,
-                    **self.plot_kwargs
+                    (param1_values, param2_values),
+                    ax_kwargs=ax_kwargs,
+                    **plot_kwargs
                 )
 
 
@@ -140,38 +135,20 @@ class MatrixPlot(Plot):
         self.symmetric = symmetric
         self.ax = self.axes[0]
 
-    def generate(self, plot_params, label_size=16, show_cell_text=False):
+    def generate(self, plot_params, **plot_kwargs):
         assert len(self.values) == 1
         cat_name, param_values = self.values.popitem()
-        matrix = self.matrix_func(plot_params, param_values)
-
-        # mask out lower off-diagonal elements if requested.
-        mask = np.tri(matrix.shape[0], k=-1) if self.symmetric else None
-        matrix = np.ma.array(matrix, mask=mask)
-        im = self.ax.matshow(matrix, cmap="bwr", vmin=-1, vmax=1)
-        plt.colorbar(im, ax=self.ax)
-
-        if show_cell_text:
-            for i in range(matrix.shape[0]):
-                for j in range(matrix.shape[1]):
-                    _ = self.ax.text(
-                        j,
-                        i,
-                        round(matrix[i, j], 2),
-                        ha="center",
-                        va="center",
-                        color="k",
-                        size=14,
-                    )
-
+        plot_values = [(param, param_values[param]) for param in plot_params]
         latex_params = [
             self.hparam_dict[param].get_text(only_param=True) for param in plot_params
         ]
-        self.ax.set_xticks(range(len(latex_params)))
-        self.ax.set_yticks(range(len(latex_params)))
-
-        self.ax.set_xticklabels(latex_params, size=label_size)
-        self.ax.set_yticklabels(latex_params, size=label_size)
+        ax_kwargs = {
+            "xticks": range(len(latex_params)),
+            "yticks": range(len(latex_params)),
+            "xtick_labels": latex_params,
+            "ytick_labels": latex_params,
+        }
+        self.plot_func(self.ax, plot_values, ax_kwargs=ax_kwargs)
 
 
 class Histogram(UniPlot):

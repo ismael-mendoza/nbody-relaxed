@@ -2,6 +2,9 @@
 """
 from abc import ABC, abstractmethod
 import numpy as np
+import matplotlib.pyplot as plt
+
+from scipy.stats import spearmanr
 
 
 class PlotFunc(ABC):
@@ -12,12 +15,14 @@ class PlotFunc(ABC):
         ax_title_size=22,
         legend_size=18,
         tick_size=24,
+        tick_label_size=18,
     ):
         self.ax_title_size = ax_title_size
         self.xlabel_size = xlabel_size
         self.ylabel_size = ylabel_size
         self.legend_size = legend_size
         self.tick_size = tick_size
+        self.tick_label_size = tick_label_size
 
     def ax_settings(
         self,
@@ -26,6 +31,10 @@ class PlotFunc(ABC):
         ax_title="",
         xlabel="",
         ylabel="",
+        xticks=(),
+        yticks=(),
+        xtick_labels=(),
+        ytick_labels=(),
     ):
         ax.set_title(ax_title, fontsize=self.ax_title_size)
         ax.set_xlabel(xlabel, size=self.xlabel_size)
@@ -34,6 +43,14 @@ class PlotFunc(ABC):
 
         if legend_label:
             ax.legend(loc="best", prop={"size": self.legend_size})
+
+        if xticks and xtick_labels:
+            ax.set_xticks(xticks)
+            ax.set_xticklabels(xtick_labels, size=self.tick_label_size)
+
+        if yticks and ytick_labels:
+            ax.set_yticks(yticks)
+            ax.set_yticklabels(ytick_labels, size=self.tick_label_size)
 
     @abstractmethod
     def __call__(self, values, ax, ax_kwargs=None, **plot_kwargs):
@@ -130,3 +147,56 @@ class ScatterBinning(PlotFunc):
 
         if self.show_bands:
             ax.fill_between(xmeds, y1, y2, alpha=0.2, linewidth=0.001, color=color)
+
+
+def spearman_corr(x, y):
+    return spearmanr(x, y)[0]
+
+
+class MatrixValues(PlotFunc):
+    def __init__(
+        self,
+        matrix_func=spearman_corr,
+        symmetric=False,
+        show_cell_text=False,
+        **parent_kwargs
+    ):
+        """
+        Args:
+            matrix_func: It is a function that takes maps (values1, values2) --> value.
+            symmetric:
+            **parent_kwargs:
+        """
+        super().__init__(**parent_kwargs)
+        self.matrix_func = matrix_func
+        self.symmetric = symmetric
+        self.show_cell_text = show_cell_text
+
+    def _plot(self, ax, values, legend_label="", **kwargs):
+        assert not legend_label, "No legend label for this type of plot."
+        # values is a list of tuples (param_name, param_value) in the required order.
+        n_params = len(values)
+        matrix = np.zeros(n_params, n_params)
+
+        for i, (param1, value1) in enumerate(values):
+            for j, (param2, value2) in enumerate(values):
+                matrix[i, j] = self.matrix_func(value1, value2)
+
+        # mask out lower off-diagonal elements if requested.
+        mask = np.tri(matrix.shape[0], k=-1) if self.symmetric else None
+        matrix = np.ma.array(matrix, mask=mask)
+        im = ax.matshow(matrix, cmap="bwr", vmin=-1, vmax=1)
+        plt.colorbar(im, ax=ax)
+
+        if self.show_cell_text:
+            for i in range(matrix.shape[0]):
+                for j in range(matrix.shape[1]):
+                    _ = ax.text(
+                        j,
+                        i,
+                        round(matrix[i, j], 2),
+                        ha="center",
+                        va="center",
+                        color="k",
+                        size=14,
+                    )
