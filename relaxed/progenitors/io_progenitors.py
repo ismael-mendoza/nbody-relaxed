@@ -7,7 +7,7 @@ import numpy as np
 from astropy.io import ascii
 from astropy.table import Table
 
-from . import progenitors
+from . import progenitor_lines
 from .. import utils
 
 url_skeletons = {
@@ -80,7 +80,7 @@ def summarize_progenitors(progenitor_file, out_file):
     """
     assert out_file.as_posix().endswith(".csv")
 
-    prog_generator = progenitors.get_prog_lines_generator(progenitor_file)
+    prog_generator = progenitor_lines.get_prog_lines_generator(progenitor_file)
     rows = []
     names = ["id", "a2", "alpha"]
     for prog in prog_generator:
@@ -94,7 +94,7 @@ def summarize_progenitors(progenitor_file, out_file):
 def save_tables(progenitor_file, output_file, ids):
     # save only progenitors that have root_id in set ids to a hd5f file.
     assert output_file.suffix == ".hdf5"
-    prog_generator = progenitors.get_prog_lines_generator(progenitor_file)
+    prog_generator = progenitor_lines.get_prog_lines_generator(progenitor_file)
 
     new_ids = []
     for i, prog in enumerate(prog_generator):

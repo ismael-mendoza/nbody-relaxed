@@ -5,7 +5,7 @@ check `get_default_base_filters` below for an example.
 """
 import numpy as np
 import warnings
-from . import parameters
+from . import halo_parameters
 
 
 def get_bound_filter(param, low=-np.inf, high=np.inf, modifier=lambda x: x):
@@ -90,13 +90,13 @@ def get_default_filters(particle_mass, subhalos):
     }
 
 
-class HaloFilters:
+class HaloFilter:
     def __init__(self, filters):
         self.filters = filters
 
     def filter_cat(self, cat):
         for param, ft in self.filters.items():
-            hparam = parameters.get_hparam(param, log=False)
+            hparam = halo_parameters.get_hparam(param, log=False)
             cat = cat[ft(hparam.get_values(cat))]
         return cat
 

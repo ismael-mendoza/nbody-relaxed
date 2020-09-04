@@ -459,6 +459,7 @@ class A2(HaloParam):
         raise NotImplementedError("Cannot obtain a2 from minh")
 
 
+# map from parameter name -> class
 hparam_dict = {c().name: c for c in HaloParam.__subclasses__()}
 
 

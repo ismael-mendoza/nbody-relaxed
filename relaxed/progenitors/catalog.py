@@ -1,4 +1,4 @@
-from ..catalogs import intersection
+from ..halo_catalogs import intersection
 import astropy.table
 from astropy.table import Table
 

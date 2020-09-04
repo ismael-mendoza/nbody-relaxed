@@ -7,7 +7,7 @@ import warnings
 import pickle
 
 from relaxed.frames.catalogs import catalog_properties
-from relaxed.progenitors import save_progenitors
+from relaxed.progenitors import io_progenitors
 
 
 def setup_paths(args):
@@ -36,19 +36,17 @@ def write(args, paths):
 
     progenitor_path.mkdir(exist_ok=False)
 
-    save_progenitors.write_main_line_progenitors(
+    io_progenitors.write_main_line_progenitors(
         paths["trees"], progenitor_path.joinpath("mline"), Mcut, cpus=args.cpus
     )
 
 
 def merge(paths):
-    save_progenitors.merge_progenitors(
-        paths["progenitor_dir"], paths["progenitor_file"]
-    )
+    io_progenitors.merge_progenitors(paths["progenitor_dir"], paths["progenitor_file"])
 
 
 def summarize(paths):
-    save_progenitors.summarize_progenitors(
+    io_progenitors.summarize_progenitors(
         paths["progenitor_file"], paths["progenitor_table"]
     )
 
@@ -59,7 +57,7 @@ def save_tables(paths, ids_file):
     assert ids_file is not None
     with open(ids_file, "r") as fp:
         ids = pickle.load(fp)
-        save_progenitors.save_tables()
+        io_progenitors.save_tables()
 
 
 def main(args):

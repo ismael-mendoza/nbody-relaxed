@@ -4,7 +4,7 @@ import numpy as np
 from . import binning
 
 """
-subhaloes.py provides several utility functions for analysing a host halo's
+subhalo.py provides several utility functions for analysing a host halo's
 subhaloes.
 
 @author: Phil Mansfield

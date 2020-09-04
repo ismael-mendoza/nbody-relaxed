@@ -6,8 +6,8 @@ from astropy.io import ascii
 
 from pminh import minh
 
-from . import hfilters
-from . import parameters
+from . import halo_filters
+from . import halo_parameters
 
 # particle mass (Msun/h), total particles, box size (Mpc/h).
 _props = {
@@ -86,10 +86,10 @@ class HaloCatalog(object):
         return params1 + params2
 
     def get_default_hfilter(self):
-        default_filters = hfilters.get_default_filters(
+        default_filters = halo_filters.get_default_filters(
             self.cat_props["particle_mass"], self.subhalos
         )
-        hfilter = hfilters.HaloFilters(default_filters)
+        hfilter = halo_filters.HaloFilter(default_filters)
         return hfilter
 
     def load_cat_csv(self):
@@ -113,7 +113,7 @@ class HaloCatalog(object):
                 # obtain all params from minh and their values.
                 with np.errstate(divide="ignore", invalid="ignore"):
                     for param in self.params:
-                        hparam = parameters.get_hparam(param, log=False)
+                        hparam = halo_parameters.get_hparam(param, log=False)
                         values = hparam.get_values_minh_block(mcat, b)
                         cat.add_column(values, name=param)
 
