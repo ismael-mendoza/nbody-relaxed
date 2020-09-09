@@ -77,6 +77,7 @@ class CreateHistogram(PlotFunc):
         values,
         legend_label="",
         color="r",
+        bins=None,
         vline=None,
         log_y=True,
         **hist_kwargs
@@ -87,7 +88,7 @@ class CreateHistogram(PlotFunc):
         """
         ax.hist(
             values,
-            bins=self.bins,
+            bins=bins if bins else self.bins,
             histtype=self.histtype,
             color=color,
             label=legend_label,

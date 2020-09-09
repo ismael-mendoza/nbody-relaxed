@@ -155,8 +155,8 @@ class MatrixPlot(Plot):
         self.plot_func(self.ax, plot_values, ax_kwargs=ax_kwargs)
 
 
-class Histogram(UniPlot):
-    """Creates histograms which is a subclass of UniPlot, but uses caching to set the bin sizes of
+class Histogram(Plot):
+    """Creates histogram and uses caching to set the bin sizes of
     all the catalogs plotted to be the same.
     """
 
@@ -164,16 +164,19 @@ class Histogram(UniPlot):
         super().__init__(*args, **kwargs)
         assert type(self.plot_func) is plot_funcs.CreateHistogram
         self.n_bins = self.plot_func.n_bins
+        self.create_histogram = self.plot_func
 
-    def run_histogram(self, cat_name, plot_params, bin_edges=None, **kwargs):
+    def run_histogram(self, cat_name, plot_params, bin_edges=None, **plot_kwargs):
         for i, (ax, param) in enumerate(zip(self.axes, plot_params)):
             if bin_edges:
                 bin_edge = bin_edges[i]
-                assert "bins" in kwargs
-                kwargs.update(dict(bins=bin_edge))
+                plot_kwargs.update(dict(bins=bin_edge))
 
             param_value = self.values[cat_name][param]
-            self.plot_func(param_value, ax, xlabel=param.text, **kwargs)
+            ax_kwargs = {"legend_label": cat_name}
+            self.create_histogram(
+                param_value, ax, xlabel=param.text, ax_kwargs=ax_kwargs, **plot_kwargs
+            )
 
     def generate(self, plot_params, **plot_kwargs):
         bin_edges = []
@@ -188,7 +191,9 @@ class Histogram(UniPlot):
             bin_edges.append(bins)
 
         for cat_name in self.values:
-            self.run_histogram(cat_name, plot_params, bin_edges=bin_edges)
+            self.run_histogram(
+                cat_name, plot_params, bin_edges=bin_edges, **plot_kwargs
+            )
 
 
 class StackedHistogram(Histogram):
