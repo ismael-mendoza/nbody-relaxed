@@ -20,6 +20,7 @@ class Plot(ABC):
         self,
         plot_func,
         hparams,
+        colors=("r", "b", "g"),
         nrows=1,
         ncols=1,
         figsize=(8, 8),
@@ -31,10 +32,12 @@ class Plot(ABC):
         in a single page of a pdf.
 
         hparams (list) : A list containing all (unique) halo params necessary for plotting.
+        colors (list) : A list of colors to be used when plotting multiple catalogs.
         """
 
         self.title = title
         self.title_size = title_size
+        self.colors = colors
 
         self.plot_func = plot_func
         self.hparams = hparams
@@ -163,19 +166,26 @@ class Histogram(Plot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         assert type(self.plot_func) is plot_funcs.CreateHistogram
-        self.n_bins = self.plot_func.n_bins
         self.create_histogram = self.plot_func
+        self.n_bins = self.create_histogram.n_bins
 
-    def run_histogram(self, cat_name, plot_params, bin_edges=None, **plot_kwargs):
+    def run_histogram(
+        self, cat_name, plot_params, color, bin_edges=None, **plot_kwargs
+    ):
         for i, (ax, param) in enumerate(zip(self.axes, plot_params)):
             if bin_edges:
                 bin_edge = bin_edges[i]
                 plot_kwargs.update(dict(bins=bin_edge))
 
             param_value = self.values[cat_name][param]
-            ax_kwargs = {"legend_label": cat_name}
+            ax_kwargs = {"use_legend": True, "xlabel": param.text}
             self.create_histogram(
-                param_value, ax, xlabel=param.text, ax_kwargs=ax_kwargs, **plot_kwargs
+                param_value,
+                ax,
+                ax_kwargs=ax_kwargs,
+                legend_label=cat_name,
+                color=color,
+                **plot_kwargs
             )
 
     def generate(self, plot_params, **plot_kwargs):
@@ -190,9 +200,9 @@ class Histogram(Plot):
             bins = np.histogram(np.hstack(param_values), bins=self.n_bins)[1]
             bin_edges.append(bins)
 
-        for cat_name in self.values:
+        for cat_name, color in zip(self.values, self.colors):
             self.run_histogram(
-                cat_name, plot_params, bin_edges=bin_edges, **plot_kwargs
+                cat_name, plot_params, color, bin_edges=bin_edges, **plot_kwargs
             )
 
 

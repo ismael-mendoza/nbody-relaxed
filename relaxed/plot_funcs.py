@@ -27,7 +27,7 @@ class PlotFunc(ABC):
     def ax_settings(
         self,
         ax,
-        legend_label="",
+        use_legend=False,
         ax_title="",
         xlabel="",
         ylabel="",
@@ -41,7 +41,7 @@ class PlotFunc(ABC):
         ax.set_ylabel(ylabel, size=self.ylabel_size)
         ax.tick_params(axis="both", which="major", labelsize=self.tick_size)
 
-        if legend_label:
+        if use_legend:
             ax.legend(loc="best", prop={"size": self.legend_size})
 
         if xticks and xtick_labels:
@@ -66,29 +66,23 @@ class PlotFunc(ABC):
 
 
 class CreateHistogram(PlotFunc):
-    def __init__(self, bins=30, histtype="step", **parent_kwargs):
-        super().__init__(**parent_kwargs)
-        self.bins = bins
-        self.histtype = histtype
-
-    def _plot(
-        self,
-        ax,
-        values,
-        legend_label="",
-        color="r",
-        bins=None,
-        vline=None,
-        log_y=True,
-        **hist_kwargs
+    def __init__(
+        self, n_bins=30, histtype="step", vline=None, log_y=True, **parent_kwargs
     ):
+        super().__init__(**parent_kwargs)
+        self.n_bins = n_bins
+        self.histtype = histtype
+        self.vline = vline
+        self.log_y = log_y
+
+    def _plot(self, ax, values, legend_label="", color="r", bins=None, **hist_kwargs):
         """
         Args:
-            **hist_kwargs: Additional histogram parameters to plt.hist()
+            **hist_kwargs: Additional (general) histogram parameters to plt.hist()
         """
         ax.hist(
             values,
-            bins=bins if bins else self.bins,
+            bins=bins if bins else self.n_bins,
             histtype=self.histtype,
             color=color,
             label=legend_label,
@@ -96,10 +90,10 @@ class CreateHistogram(PlotFunc):
         )
 
         # add a vertical line.
-        if vline == "median":
+        if self.vline == "median":
             ax.axvline(np.median(values), c=color, ls="--")
 
-        if log_y:
+        if self.log_y:
             ax.set_yscale("log")
 
 
