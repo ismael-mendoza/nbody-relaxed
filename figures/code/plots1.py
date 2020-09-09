@@ -2,6 +2,9 @@ import numpy as np
 from relaxed import halo_parameters, plots, plot_funcs
 from relaxed.halo_parameters import get_hparam
 
+base_colors = ("r", "b", "g")
+
+
 #
 # # ToDo: (Future) some of the redundancy in the functions below can be improved.
 # def generate_and_save(pdf, hcats, hplots, uplots, colors=None, cached=False):
@@ -37,6 +40,8 @@ def plot_mvir_histogram(hcats, pdf, colors):
         pdf: PDF object that can be used to save figures to.
         colors (list): List of colors to assign to each hcat.
     """
+    names = [hcat.name for hcat in hcats]
+    colors = {c: name for c, name in zip(base_colors, names)}
 
     # (1) Start with plot_func creation, just using default values for everything.
     create_histogram = plot_funcs.CreateHistogram()

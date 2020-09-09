@@ -32,7 +32,7 @@ class Plot(ABC):
         in a single page of a pdf.
 
         hparams (list) : A list containing all (unique) halo params necessary for plotting.
-        colors (list) : A list of colors to be used when plotting multiple catalogs.
+        colors (dict) : A dict of cat_name : colors to be used when plotting multiple catalogs.
         """
 
         self.title = title
@@ -104,6 +104,7 @@ class UniPlot(Plot):
     def generate(self, plot_params, **plot_kwargs):
         for cat_name in self.values:
             for (ax, param) in zip(self.axes, plot_params):
+                color = self.colors[cat_name]
                 hparam = self.hparam_dict[param]
                 param_value = self.values[cat_name][param]
                 ax_kwargs = {"xlabel": hparam.text, "legend_label": cat_name}
@@ -115,7 +116,7 @@ class BiPlot(Plot):
 
     def generate(self, plot_params, **plot_kwargs):
         # plot_params = [(param11, param12), (param21,param22)...] (strings)
-        for cat_name in self.values:
+        for cat_name, color in zip(self.values, self.colors):
             for (ax, param_pair) in zip(self.axes, plot_params):
                 param1, param2 = param_pair
                 param1_values = self.values[cat_name][param1]
@@ -125,11 +126,13 @@ class BiPlot(Plot):
                 ax_kwargs = {
                     "xlabel": param1_text,
                     "ylabel": param2_text,
-                    "legend_label": cat_name,
+                    "use_legend": True,
                 }
                 self.plot_func(
                     ax,
                     (param1_values, param2_values),
+                    legend_label=cat_name,
+                    color=color,
                     ax_kwargs=ax_kwargs,
                     **plot_kwargs
                 )
@@ -173,9 +176,9 @@ class Histogram(Plot):
         self, cat_name, plot_params, color, bin_edges=None, **plot_kwargs
     ):
         for i, (ax, param) in enumerate(zip(self.axes, plot_params)):
+            bins = self.n_bins
             if bin_edges:
-                bin_edge = bin_edges[i]
-                plot_kwargs.update(dict(bins=bin_edge))
+                bins = bin_edges[i]
 
             param_value = self.values[cat_name][param]
             ax_kwargs = {"use_legend": True, "xlabel": param.text}
@@ -183,6 +186,7 @@ class Histogram(Plot):
                 param_value,
                 ax,
                 ax_kwargs=ax_kwargs,
+                bins=bins,
                 legend_label=cat_name,
                 color=color,
                 **plot_kwargs

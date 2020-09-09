@@ -55,13 +55,12 @@ class PlotFunc(ABC):
     @abstractmethod
     def __call__(self, values, ax, ax_kwargs=None, **plot_kwargs):
         ax_kwargs = {} if ax_kwargs is None else ax_kwargs
-        legend_label = ax_kwargs.get("", "legend_label")
 
-        self._plot(values, ax, legend_label=legend_label, **plot_kwargs)
+        self._plot(values, ax, **plot_kwargs)
         self.ax_settings(ax, **ax_kwargs)
 
     @abstractmethod
-    def _plot(self, ax, values, legend_label="", **kwargs):
+    def _plot(self, ax, values, **kwargs):
         pass
 
 
@@ -167,7 +166,7 @@ class MatrixValues(PlotFunc):
         self.symmetric = symmetric
         self.show_cell_text = show_cell_text
 
-    def _plot(self, ax, values, legend_label="", **kwargs):
+    def _plot(self, ax, values, legend_label=""):
         assert not legend_label, "No legend label for this type of plot."
         # values is a list of tuples (param_name, param_value) in the required order.
         n_params = len(values)
