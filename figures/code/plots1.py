@@ -41,7 +41,7 @@ def plot_mvir_histogram(hcats, pdf, colors):
         colors (list): List of colors to assign to each hcat.
     """
     names = [hcat.name for hcat in hcats]
-    colors = {c: name for c, name in zip(base_colors, names)}
+    colors = {name: c for c, name in zip(base_colors, names)}
 
     # (1) Start with plot_func creation, just using default values for everything.
     create_histogram = plot_funcs.CreateHistogram()
@@ -56,8 +56,10 @@ def plot_mvir_histogram(hcats, pdf, colors):
     for hcat in hcats:
         histogram_plot.load(hcat)
 
+    # TODO: make plot params a list where you can select which catalog
+    #  to plot based on name.
     # (4) Create a list of names of which order you want to plot your hparams
-    plot_params = ["mvir"]
+    plot_params = ({"mvir": {*names}}, {"mvir": {names[0], names[1]}})
 
     # (4) Generate figure
     histogram_plot.generate(plot_params, log_y=True)

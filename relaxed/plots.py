@@ -93,7 +93,10 @@ class Plot(ABC):
         """
         Produce the plot and save into the axes objects. Uses the cached parameters from load
         method.
-        :return: None
+
+        Args:
+            plot_params (list): A list of single-key dictionaries with order corresponding to axes,
+                                each key is param or tuple of params, values are sets of cat_names.
         """
         pass
 
@@ -102,22 +105,29 @@ class UniPlot(Plot):
     """Creates plot that only depend on one variable at a time, like histograms."""
 
     def generate(self, plot_params, **plot_kwargs):
-        for cat_name in self.values:
-            for (ax, param) in zip(self.axes, plot_params):
+        for (ax, param) in zip(self.axes, plot_params):
+            for cat_name in plot_params[param]:
                 color = self.colors[cat_name]
                 hparam = self.hparam_dict[param]
                 param_value = self.values[cat_name][param]
-                ax_kwargs = {"xlabel": hparam.text, "legend_label": cat_name}
-                self.plot_func(ax, param_value, ax_kwargs=ax_kwargs, **plot_kwargs)
+                ax_kwargs = {"xlabel": hparam.text, "use_legend": True}
+                self.plot_func(
+                    ax,
+                    param_value,
+                    legend_label=cat_name,
+                    color=color,
+                    ax_kwargs=ax_kwargs,
+                    **plot_kwargs
+                )
 
 
 class BiPlot(Plot):
     """Class that creates the standard x vs. y plots."""
 
     def generate(self, plot_params, **plot_kwargs):
-        # plot_params = [(param11, param12), (param21,param22)...] (strings)
-        for cat_name, color in zip(self.values, self.colors):
-            for (ax, param_pair) in zip(self.axes, plot_params):
+        # each param in plot_params is tuple of (param_x, param_y)
+        for (ax, param_pair) in zip(self.axes, plot_params):
+            for cat_name in plot_params[param_pair]:
                 param1, param2 = param_pair
                 param1_values = self.values[cat_name][param1]
                 param2_values = self.values[cat_name][param2]
@@ -132,7 +142,7 @@ class BiPlot(Plot):
                     ax,
                     (param1_values, param2_values),
                     legend_label=cat_name,
-                    color=color,
+                    color=self.colors[cat_name],
                     ax_kwargs=ax_kwargs,
                     **plot_kwargs
                 )
@@ -172,42 +182,31 @@ class Histogram(Plot):
         self.create_histogram = self.plot_func
         self.n_bins = self.create_histogram.n_bins
 
-    def run_histogram(
-        self, cat_name, plot_params, color, bin_edges=None, **plot_kwargs
-    ):
-        for i, (ax, param) in enumerate(zip(self.axes, plot_params)):
-            bins = self.n_bins
-            if bin_edges:
-                bins = bin_edges[i]
-
-            param_value = self.values[cat_name][param]
-            ax_kwargs = {"use_legend": True, "xlabel": param.text}
-            self.create_histogram(
-                param_value,
-                ax,
-                ax_kwargs=ax_kwargs,
-                bins=bins,
-                legend_label=cat_name,
-                color=color,
-                **plot_kwargs
-            )
+    def run_histogram(self, ax, cat_name, param, color, bins, **plot_kwargs):
+        param_value = self.values[cat_name][param]
+        hparam = self.hparam_dict[param]
+        ax_kwargs = {"use_legend": True, "xlabel": hparam.text}
+        self.create_histogram(
+            param_value,
+            ax,
+            ax_kwargs=ax_kwargs,
+            bins=bins,
+            legend_label=cat_name,
+            color=color,
+            **plot_kwargs
+        )
 
     def generate(self, plot_params, **plot_kwargs):
-        bin_edges = []
-        for param in plot_params:
+        for ax, param in zip(self.axes, plot_params):
             param_values = []
-            for cat_name in self.values:
+            for cat_name in plot_params[param]:
                 param_value = self.values[cat_name][param]
                 param_values.append(param_value)
 
             # get the bin edges
             bins = np.histogram(np.hstack(param_values), bins=self.n_bins)[1]
-            bin_edges.append(bins)
-
-        for cat_name, color in zip(self.values, self.colors):
-            self.run_histogram(
-                cat_name, plot_params, color, bin_edges=bin_edges, **plot_kwargs
-            )
+            for cat_name, color in zip(self.values, self.colors):
+                self.run_histogram(ax, cat_name, param, color, bins, **plot_kwargs)
 
 
 class StackedHistogram(Histogram):
