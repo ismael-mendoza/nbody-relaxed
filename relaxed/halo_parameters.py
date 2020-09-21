@@ -284,8 +284,8 @@ class Cvir(HaloParam):
     @property
     def latex(self):
         return {
-            "units": "c_{\\rm vir}",
-            "form": "\\delta_{\\rm MM}",
+            "units": "",
+            "form": "c_{\\rm vir}",
         }
 
     @property
@@ -298,13 +298,13 @@ class Eta(HaloParam):
 
     @property
     def name(self):
-        return "cvir"
+        return "eta"
 
     @property
     def latex(self):
         return {
-            "units": "c_{\\rm vir}",
-            "form": "\\delta_{\\rm MM}",
+            "units": "",
+            "form": "\\eta",
         }
 
     @property
@@ -322,8 +322,8 @@ class Q(HaloParam):
     @property
     def latex(self):
         return {
-            "units": "c_{\\rm vir}",
-            "form": "\\delta_{\\rm MM}",
+            "units": "",
+            "form": "q",
         }
 
     @property

@@ -52,11 +52,10 @@ class PlotFunc(ABC):
             ax.set_yticks(yticks)
             ax.set_yticklabels(ytick_labels, size=self.tick_label_size)
 
-    @abstractmethod
-    def __call__(self, values, ax, ax_kwargs=None, **plot_kwargs):
+    def __call__(self, ax, values, ax_kwargs=None, **plot_kwargs):
         ax_kwargs = {} if ax_kwargs is None else ax_kwargs
 
-        self._plot(values, ax, **plot_kwargs)
+        self._plot(ax, values, **plot_kwargs)
         self.ax_settings(ax, **ax_kwargs)
 
     @abstractmethod
@@ -81,7 +80,7 @@ class CreateHistogram(PlotFunc):
         """
         ax.hist(
             values,
-            bins=bins if bins else self.n_bins,
+            bins=bins if bins is not None else self.n_bins,
             histtype=self.histtype,
             color=color,
             label=legend_label,

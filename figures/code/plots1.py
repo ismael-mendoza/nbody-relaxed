@@ -14,7 +14,7 @@ def plot_mvir_histogram(hcats, pdf):
     names = [hcat.name for hcat in hcats]
 
     # (1) Start with plot_func creation, just using default values for everything.
-    create_histogram = plot_funcs.CreateHistogram()
+    create_histogram = plot_funcs.CreateHistogram(xlabel_size=24)
 
     # (2) Create list of all unique halo_params that are necessary for plotting.
     hparams = [get_hparam("mvir", log=True)]
@@ -27,12 +27,10 @@ def plot_mvir_histogram(hcats, pdf):
         histogram_plot.load(hcat)
 
     # (4) Create a list of names of which order you want to plot your hparams
-    plot_params = [
-        {"mvir": {*names}},
-    ]
+    plot_params = {"mvir": {*names}}
 
     # (4) Generate figure
-    histogram_plot.generate(plot_params, log_y=True)
+    histogram_plot.generate(plot_params)
     histogram_plot.save(pdf=pdf)
 
 

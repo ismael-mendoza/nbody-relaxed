@@ -102,7 +102,7 @@ class Plot(ABC):
         method.
 
         Args:
-            plot_params (list): A list of single-key dictionaries with order corresponding to axes,
+            plot_params (dict): A dict of single-key dictionaries with order corresponding to axes,
                                 each key is param or tuple of params, values are sets of cat_names.
         """
         pass
@@ -194,8 +194,8 @@ class Histogram(Plot):
         hparam = self.hparam_dict[param]
         ax_kwargs = {"use_legend": True, "xlabel": hparam.text}
         self.create_histogram(
-            param_value,
             ax,
+            param_value,
             ax_kwargs=ax_kwargs,
             bins=bins,
             legend_label=cat_name,
