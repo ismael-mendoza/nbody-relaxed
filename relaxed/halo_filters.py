@@ -5,6 +5,7 @@ check `get_default_base_filters` below for an example.
 """
 import numpy as np
 import warnings
+from copy import deepcopy
 from . import halo_parameters
 
 
@@ -102,8 +103,13 @@ class HaloFilter:
             cat = cat[ft(hparam.get_values(cat))]
         return cat
 
-    def __call__(self, hcat):
-        new_cat = self.filter_cat(hcat.cat)
-        hcat.cat = new_cat
-        hcat.name = self.name
-        return hcat
+    def __call__(self, hcat, copy=True):
+        if not copy:
+            raise NotImplementedError
+
+        # creates a new copy of hcat
+        new_hcat = deepcopy(hcat)
+        new_cat = self.filter_cat(new_hcat.cat)
+        new_hcat.cat = new_cat
+        new_hcat.name = self.name
+        return new_hcat
