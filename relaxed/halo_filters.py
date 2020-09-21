@@ -91,17 +91,19 @@ def get_default_filters(particle_mass, subhalos):
 
 
 class HaloFilter:
-    def __init__(self, filters):
+    def __init__(self, filters, name="filtered_cat"):
         self.filters = filters
+        self.name = name
 
     def filter_cat(self, cat):
+        # Always do filtering in real space NOT log space.
         for param, ft in self.filters.items():
             hparam = halo_parameters.get_hparam(param, log=False)
             cat = cat[ft(hparam.get_values(cat))]
         return cat
 
-    def filter_hcat(self, hcat, new_name="filtered cat"):
+    def __call__(self, hcat):
         new_cat = self.filter_cat(hcat.cat)
         hcat.cat = new_cat
-        hcat.name = new_name
+        hcat.name = self.name
         return hcat

@@ -32,7 +32,7 @@ class Plot(ABC):
         in a single page of a pdf.
 
         hparams (list) : A list containing all (unique) halo params necessary for plotting.
-        colors (dict) : A dict of cat_name : colors to be used when plotting multiple catalogs.
+        colors (list) : A list of colors to be used when plotting catalogs. len >= different cats.
         """
 
         self.title = title
@@ -50,6 +50,10 @@ class Plot(ABC):
         self.values = {}
 
         self._setup_fig_and_axes(grid_locs, figsize)
+
+        # state variables that change when catalog is added.
+        self.color_map = {}
+        self.n_loaded = 0
 
     def _setup_fig_and_axes(self, grid_locs, figsize):
         # mainly setup grids for plotting multiple axes.
@@ -82,11 +86,14 @@ class Plot(ABC):
 
     def load(self, hcat):
         """Load the parameter values that will be used for plotting."""
-        assert hcat.name not in self.values, "Cat already loaded."
+        assert hcat.name not in self.values, "Already loaded."
+        assert hcat.name not in self.color_map, "Already loaded"
+        self.color_map[hcat.name] = self.colors[self.n_loaded]
         values_i = {}
         for hparam in self.hparams:
             values_i[hparam.name] = hparam.get_values(hcat.cat)
         self.values[hcat.name] = values_i
+        self.n_loaded += 1
 
     @abstractmethod
     def generate(self, plot_params, **plot_kwargs):
@@ -107,7 +114,7 @@ class UniPlot(Plot):
     def generate(self, plot_params, **plot_kwargs):
         for (ax, param) in zip(self.axes, plot_params):
             for cat_name in plot_params[param]:
-                color = self.colors[cat_name]
+                color = self.color_map[cat_name]
                 hparam = self.hparam_dict[param]
                 param_value = self.values[cat_name][param]
                 ax_kwargs = {"xlabel": hparam.text, "use_legend": True}
@@ -142,7 +149,7 @@ class BiPlot(Plot):
                     ax,
                     (param1_values, param2_values),
                     legend_label=cat_name,
-                    color=self.colors[cat_name],
+                    color=self.color_map[cat_name],
                     ax_kwargs=ax_kwargs,
                     **plot_kwargs
                 )
@@ -202,10 +209,11 @@ class Histogram(Plot):
             for cat_name in plot_params[param]:
                 param_value = self.values[cat_name][param]
                 param_values.append(param_value)
-
             # get the bin edges
             bins = np.histogram(np.hstack(param_values), bins=self.n_bins)[1]
-            for cat_name, color in zip(self.values, self.colors):
+
+            for cat_name in plot_params[param]:
+                color = self.color_map[cat_name]
                 self.run_histogram(ax, cat_name, param, color, bins, **plot_kwargs)
 
 

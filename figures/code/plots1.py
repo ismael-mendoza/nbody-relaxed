@@ -1,47 +1,17 @@
 import numpy as np
-from relaxed import halo_parameters, plots, plot_funcs
+from relaxed import plots, plot_funcs
 from relaxed.halo_parameters import get_hparam
 
-base_colors = ("r", "b", "g")
 
-
-#
-# # ToDo: (Future) some of the redundancy in the functions below can be improved.
-# def generate_and_save(pdf, hcats, hplots, uplots, colors=None, cached=False):
-#     if colors is None:
-#         colors = [None for _ in range(len(hcats))]
-#
-#     for hcat in hcats:
-#         assert hcat.get_cat() is not None, "Catalog should be loaded in hcat."
-#
-#     for hcat, color, hplot in zip(hcats, colors, hplots):
-#
-#         for plot in hplot:
-#             if not cached:
-#                 plot.generate(hcat.get_cat(), legend_label=hcat.label, color=color)
-#             else:
-#                 plot.load_arguments(
-#                     hcat.get_cat(), legend_label=hcat.label, color=color
-#                 )
-#
-#     for plot in uplots:
-#         if cached:
-#             plot.generate_from_cached()
-#         if pdf:
-#             plot.save(pdf=pdf)
-
-
-def plot_mvir_histogram(hcats, pdf, colors):
+def plot_mvir_histogram(hcats, pdf):
     """Basic plot showcasing features with a single histogram of Mvir, multiple catalogs may be
     used at once.
 
     Args:
         hcats (list): Already loaded, list of hcat objects.
         pdf: PDF object that can be used to save figures to.
-        colors (list): List of colors to assign to each hcat.
     """
     names = [hcat.name for hcat in hcats]
-    colors = {name: c for c, name in zip(base_colors, names)}
 
     # (1) Start with plot_func creation, just using default values for everything.
     create_histogram = plot_funcs.CreateHistogram()
@@ -56,18 +26,14 @@ def plot_mvir_histogram(hcats, pdf, colors):
     for hcat in hcats:
         histogram_plot.load(hcat)
 
-    # TODO: make plot params a list where you can select which catalog
-    #  to plot based on name.
     # (4) Create a list of names of which order you want to plot your hparams
-    plot_params = ({"mvir": {*names}}, {"mvir": {names[0], names[1]}})
+    plot_params = [
+        {"mvir": {*names}},
+    ]
 
     # (4) Generate figure
     histogram_plot.generate(plot_params, log_y=True)
-
-    general_kwargs = dict(xlabel_size=28, ylabel_size=28)
-    hist_kwargs = dict(
-        bins=30, histtype="step", extra_hist_kwargs=dict(), log_y=True, **general_kwargs
-    )
+    histogram_plot.save(pdf=pdf)
 
 
 def plot_with_mass1(hcats, pdf, colors):
