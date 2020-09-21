@@ -34,51 +34,17 @@ def plot_mvir_histogram(hcats, pdf):
     histogram_plot.save(pdf=pdf)
 
 
-def plot_with_mass1(hcats, pdf, colors):
+def plot_relaxed_and_mass(hcats, pdf):
+    """Obtain some of the basic plots where multiple catalogs might be overlaid. Plot mass vs
+    identified relaxedness parameters.
     """
-    Catalogs should already be loaded properly.Obtain some of the basic plots where multiple
-    catalogs results might be overlaid. This includes:
-
-    * Histograms of Mvir
-    * Mean-centered histograms of relevant quantities.
-    * Plots demonstrating the correlations between different relaxedness parameters and mvir.
-
-    :param hcats: Already load, list of hcat objects.
-    :param colors:
-    :param pdf: already prepared pdf object to save figures into.
-    :return: None
-    """
-
-    # Plot 1: histogram of Mvir
-
-    # (2) Now for the plot.
-
-    # this are the default values that we will be using throughout the plots.
-
+    # general plot kwargs
     bin_bds = np.arange(11, 14.5, 0.5)
-    binning_kwargs = dict(bin_bds=bin_bds, show_bands=True, **general_kwargs)
+    binning_kwargs = dict(bin_bds=bin_bds, show_bands=True)
 
-    # (1) Need to create all the plots and specify their parameters in kwargss.
-
-    # Plot 1: histogram of Mvir
-    params = [HaloParam("mvir", log=True)]
-    plot1 = plots.Histogram(
-        plot_funcs.histogram, params, nrows=1, ncols=1, plot_kwargs=hist_kwargs
-    )
-
-    # Plot 2: Relaxedness parameters and mvir
-    relaxed_params = [
-        HaloParam("eta", log=True),
-        HaloParam("x0", log=True),
-        HaloParam("v0", log=True),
-        HaloParam("xoff", log=True),
-        HaloParam("voff", log=True),
-        HaloParam("q", log=True),
-        HaloParam("cvir", log=True),
-        HaloParam("f_sub", log=False),
-        HaloParam("a2", log=True),
-    ]
-    params = [(HaloParam("mvir", log=True), param) for param in relaxed_params]
+    # prepare parameters
+    params = ["eta", "x0", "v0", "xoff", "voff", "q", "cvir", "a2", "f_sub"]
+    hparams = [get_hparam(param, log=True) for param in params]
 
     plot2 = plots.BiPlot(
         plot_funcs.scatter_binning,
@@ -89,15 +55,12 @@ def plot_with_mass1(hcats, pdf, colors):
         plot_kwargs=binning_kwargs,
     )
 
-    # (2) Update the unique plots
-    uplots = [plot1, plot2]
-
-    # (3) Now specify which hcat to plot in which of the plots via `hplots`.
-    # we will use the same plots for both cats, which means we overlay them.
-    hplots = [[uplot for uplot in uplots] for _ in hcats]
-
-    # (4) Now, we generate and save all the plots.
-    generate_and_save(pdf, hcats, hplots, uplots, colors=colors, cached=True)
+    # # (2) Update the unique plots
+    # uplots = [plot1, plot2]
+    #
+    # # (3) Now specify which hcat to plot in which of the plots via `hplots`.
+    # # we will use the same plots for both cats, which means we overlay them.
+    # hplots = [[uplot for uplot in uplots] for _ in hcats]
 
 
 #
