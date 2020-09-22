@@ -9,6 +9,8 @@ def plot_mvir_histogram(hcats, pdf):
     """Basic plot showcasing features with a single histogram of Mvir, multiple catalogs may be
     used at once.
 
+    NOTE: To be used for non-decade catalogs.
+
     Args:
         hcats (list): Already loaded, list of hcat objects.
         pdf: PDF object that can be used to save figures to.
@@ -42,19 +44,24 @@ def plot_scatter_relaxed_and_mass(hcats, pdf):
     """Obtain some of the basic plots where multiple catalogs might be overlaid. Plot mass vs
     identified relaxedness parameters.
 
+    NOTE: To be used for non-decade catalogs.
+
     This one uses the ScatterBinning class.
     """
     names = [hcat.name for hcat in hcats]
     bin_bds = np.arange(11, 14.5, 0.5)
 
     # prepare halo_params
-    params = ["eta", "x0", "v0", "xoff", "voff", "q", "cvir", "a2"]
+    params = ["eta", "x0", "v0", "xoff", "voff", "q", "cvir", "a2", "f_sub"]
     hparams = [get_hparam(param, log=True) for param in params]
+    params.append("f_sub")
     hparams.append(get_hparam("f_sub", log=False))
     hparams.append(get_hparam("mvir", log=True))
 
     # prepare the plot_func
-    scatter_binning = plot_funcs.ScatterBinning(bin_bds=bin_bds, show_bands=True)
+    scatter_binning = plot_funcs.ScatterBinning(
+        bin_bds=bin_bds, show_bands=True, xlabel_size=24, ylabel_size=24
+    )
 
     # setup plotting
     plot = plots.BiPlot(scatter_binning, hparams, nrows=3, ncols=3, figsize=(18, 22))
@@ -69,6 +76,45 @@ def plot_scatter_relaxed_and_mass(hcats, pdf):
     # generate and save.
     plot.generate(plot_params)
     plot.save(pdf=pdf)
+
+
+def plot_correlation_matrix_basic(hcats, pdf=None):
+    """
+    Create a visualization fo the matrix of correlation separate for each of the catalogs in hcats.
+    """
+
+    names = [hcat.name for hcat in hcats]
+    assert names == ["M11", "M12", "M13"]
+
+    hparams = [
+        get_hparam("mvir", log=True),
+        get_hparam("cvir", log=True),
+        get_hparam("eta", log=True),
+        get_hparam("x0", log=True),
+        get_hparam("v0", log=True),
+        get_hparam("spin", log=True),
+        get_hparam("q", log=True),
+        get_hparam("f_sub", log=False),
+        get_hparam("a2", log=True),
+        get_hparam("phi_l", log=True),
+    ]
+
+    scatter_binning = plot_funcs.MatrixValues(xlabel_size=24, ylabel_size=24)
+
+    for hcat, hplot in zip(hcats, hplots):
+        kwargs = dict(label_size=10, show_cell_text=True)
+        plot = plots.MatrixPlot(
+            stats.get_corrs,
+            params,
+            symmetric=False,
+            plot_kwargs=kwargs,
+            title=hcat.label,
+            title_size=24,
+        )
+        uplots.append(plot)
+        hplot.append(plot)
+
+    generate_and_save(pdf, hcats, hplots, uplots)
 
 
 #
@@ -113,45 +159,7 @@ def plot_scatter_relaxed_and_mass(hcats, pdf):
 #     generate_and_save(pdf, hcats, hplots, uplots, colors=colors, cached=False)
 #
 #
-# def plot_correlation_matrix_basic(hcats, pdf=None):
-#     """
-#     Create a visualization fo the matrix of correlation separate for each of the catalogs in hcats.
-#     :param hcats:
-#     :param pdf:
-#     :return:
-#     """
-#
-#     hplots = [[] for _ in hcats]
-#     uplots = []
-#
-#     # Plot 4: Matrix correlations
-#     params = [
-#         HaloParam("mvir", log=True),
-#         HaloParam("cvir", log=True),
-#         HaloParam("eta", log=True),
-#         HaloParam("x0", log=True),
-#         HaloParam("v0", log=True),
-#         HaloParam("spin", log=True),
-#         HaloParam("q", log=True),
-#         HaloParam("f_sub", log=False),
-#         HaloParam("a2", log=True),
-#         HaloParam("phi_l", log=True),
-#     ]
-#     for hcat, hplot in zip(hcats, hplots):
-#         kwargs = dict(label_size=10, show_cell_text=True)
-#         plot = plots.MatrixPlot(
-#             stats.get_corrs,
-#             params,
-#             symmetric=False,
-#             plot_kwargs=kwargs,
-#             title=hcat.label,
-#             title_size=24,
-#         )
-#         uplots.append(plot)
-#         hplot.append(plot)
-#
-#     generate_and_save(pdf, hcats, hplots, uplots)
-#
+
 #
 # def plot_decades_basic(hcats, pdf, colors):
 #     """Produce all the basic plots that require decade separation"""

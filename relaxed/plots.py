@@ -73,11 +73,11 @@ class Plot(ABC):
         ]
 
         self.fig.suptitle(self.title, fontsize=self.title_size)
-        self.fig.tight_layout(rect=[0, 0.03, 1, 0.95])
 
     def save(self, fname=None, pdf=None):
         assert fname or pdf, "one should be specified"
         plt.rc("text", usetex=True)
+        self.fig.tight_layout(rect=[0, 0.03, 1, 0.95])
 
         if fname:
             self.fig.savefig(utils.figure_path.joinpath(fname))

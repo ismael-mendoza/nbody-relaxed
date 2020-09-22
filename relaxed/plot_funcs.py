@@ -161,7 +161,7 @@ class MatrixValues(PlotFunc):
         self,
         matrix_func=spearman_corr,
         symmetric=False,
-        show_cell_text=False,
+        show_cell_text=True,
         **parent_kwargs
     ):
         """
