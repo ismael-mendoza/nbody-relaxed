@@ -1,4 +1,6 @@
 import numpy as np
+from collections import OrderedDict
+
 from relaxed import plots, plot_funcs
 from relaxed.halo_parameters import get_hparam
 
@@ -27,7 +29,7 @@ def plot_mvir_histogram(hcats, pdf):
         histogram_plot.load(hcat)
 
     # (5) Create a list of names of which order you want to plot your hparams
-    plot_params = {"mvir": {*names}}
+    plot_params = OrderedDict({"mvir": {*names}})
 
     # (6) Generate figure
     histogram_plot.generate(plot_params)
@@ -36,37 +38,37 @@ def plot_mvir_histogram(hcats, pdf):
     histogram_plot.save(pdf=pdf)
 
 
-def plot_relaxed_and_mass(hcats, pdf):
+def plot_scatter_relaxed_and_mass(hcats, pdf):
     """Obtain some of the basic plots where multiple catalogs might be overlaid. Plot mass vs
     identified relaxedness parameters.
 
     This one uses the ScatterBinning class.
     """
+    names = [hcat.name for hcat in hcats]
     bin_bds = np.arange(11, 14.5, 0.5)
-    binning_kwargs = dict(bin_bds=bin_bds, show_bands=True)
 
-    # prepare parameters
+    # prepare halo_params
     params = ["eta", "x0", "v0", "xoff", "voff", "q", "cvir", "a2"]
     hparams = [get_hparam(param, log=True) for param in params]
     hparams.append(get_hparam("f_sub", log=False))
+    hparams.append(get_hparam("mvir", log=True))
 
-    # prepare plot_func
+    # prepare the plot_func
+    scatter_binning = plot_funcs.ScatterBinning(bin_bds=bin_bds, show_bands=True)
 
-    plot2 = plots.BiPlot(
-        plot_funcs.scatter_binning,
-        params,
-        nrows=5,
-        ncols=2,
-        figsize=(18, 22),
-        plot_kwargs=binning_kwargs,
-    )
+    # setup plotting
+    plot = plots.BiPlot(scatter_binning, hparams, nrows=3, ncols=3, figsize=(18, 22))
 
-    # # (2) Update the unique plots
-    # uplots = [plot1, plot2]
-    #
-    # # (3) Now specify which hcat to plot in which of the plots via `hplots`.
-    # # we will use the same plots for both cats, which means we overlay them.
-    # hplots = [[uplot for uplot in uplots] for _ in hcats]
+    # load catalogs
+    for hcat in hcats:
+        plot.load(hcat)
+
+    # now specify which parameters we want to plot where.
+    plot_params = OrderedDict({("mvir", param): {*names} for param in params})
+
+    # generate and save.
+    plot.generate(plot_params)
+    plot.save(pdf=pdf)
 
 
 #

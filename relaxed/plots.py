@@ -8,6 +8,7 @@ It also rounds up all parameter values to be plotted from multiple catalogs and 
 corresponding labels.
 """
 from abc import ABC, abstractmethod
+from collections import OrderedDict
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -102,8 +103,9 @@ class Plot(ABC):
         method.
 
         Args:
-            plot_params (dict): A dict of single-key dictionaries with order corresponding to axes,
-                                each key is param or tuple of params, values are sets of cat_names.
+            plot_params (OrderedDict): An ordered dict of single-key dictionaries with order
+                                       corresponding to axes each key is param or tuple of
+                                       params, values are sets of cat_names.
         """
         pass
 

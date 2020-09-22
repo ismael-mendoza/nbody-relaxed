@@ -105,18 +105,20 @@ class CreateHistogram(PlotFunc):
 
 # ToDo: Deal with empty bins better, right now it just skips that bin.
 class ScatterBinning(PlotFunc):
-    def __init__(self, n_xbins=10, show_bands=False, **parent_kwargs):
+    def __init__(self, n_xbins=10, show_bands=False, bin_bds=None, **parent_kwargs):
         super().__init__(**parent_kwargs)
         self.n_xbins = n_xbins
         self.show_bands = show_bands
+        self.bin_bds = bin_bds
 
-    def _plot(self, ax, values=(), bin_bds=None, legend_label="", color="r"):
+    def _plot(self, ax, values=(), legend_label="", color="r"):
         # values is a tuple values = (x,y)
         x, y = values
 
-        if bin_bds is not None:
+        if self.bin_bds is not None:
+            size = len(self.bin_bds) - 1
             x_bds = np.array(
-                [(bin_bds[i], bin_bds[i + 1]) for i in range(len(bin_bds) - 1)]
+                [(self.bin_bds[i], self.bin_bds[i + 1]) for i in range(size)]
             )
         else:
             # divide uniformly.
