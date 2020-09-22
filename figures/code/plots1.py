@@ -39,14 +39,18 @@ def plot_mvir_histogram(hcats, pdf):
 def plot_relaxed_and_mass(hcats, pdf):
     """Obtain some of the basic plots where multiple catalogs might be overlaid. Plot mass vs
     identified relaxedness parameters.
+
+    This one uses the ScatterBinning class.
     """
-    # general plot kwargs
     bin_bds = np.arange(11, 14.5, 0.5)
     binning_kwargs = dict(bin_bds=bin_bds, show_bands=True)
 
     # prepare parameters
-    params = ["eta", "x0", "v0", "xoff", "voff", "q", "cvir", "a2", "f_sub"]
+    params = ["eta", "x0", "v0", "xoff", "voff", "q", "cvir", "a2"]
     hparams = [get_hparam(param, log=True) for param in params]
+    hparams.append(get_hparam("f_sub", log=False))
+
+    # prepare plot_func
 
     plot2 = plots.BiPlot(
         plot_funcs.scatter_binning,

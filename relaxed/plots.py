@@ -150,7 +150,6 @@ class BiPlot(Plot):
                     legend_label=cat_name,
                     color=self.color_map[cat_name],
                     ax_kwargs=ax_kwargs,
-                    **plot_kwargs
                 )
 
 
@@ -161,7 +160,7 @@ class MatrixPlot(Plot):
         self.symmetric = symmetric
         self.ax = self.axes[0]
 
-    def generate(self, plot_params, **plot_kwargs):
+    def generate(self, plot_params):
         assert len(self.values) == 1
         cat_name, param_values = self.values.popitem()
         plot_values = [(param, param_values[param]) for param in plot_params]
