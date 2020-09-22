@@ -96,7 +96,7 @@ class Plot(ABC):
         self.n_loaded += 1
 
     @abstractmethod
-    def generate(self, plot_params, **plot_kwargs):
+    def generate(self, plot_params):
         """
         Produce the plot and save into the axes objects. Uses the cached parameters from load
         method.
@@ -111,7 +111,7 @@ class Plot(ABC):
 class UniPlot(Plot):
     """Creates plot that only depend on one variable at a time, like histograms."""
 
-    def generate(self, plot_params, **plot_kwargs):
+    def generate(self, plot_params):
         for (ax, param) in zip(self.axes, plot_params):
             for cat_name in plot_params[param]:
                 color = self.color_map[cat_name]
@@ -124,14 +124,13 @@ class UniPlot(Plot):
                     legend_label=cat_name,
                     color=color,
                     ax_kwargs=ax_kwargs,
-                    **plot_kwargs
                 )
 
 
 class BiPlot(Plot):
     """Class that creates the standard x vs. y plots."""
 
-    def generate(self, plot_params, **plot_kwargs):
+    def generate(self, plot_params):
         # each param in plot_params is tuple of (param_x, param_y)
         for (ax, param_pair) in zip(self.axes, plot_params):
             for cat_name in plot_params[param_pair]:
@@ -156,9 +155,9 @@ class BiPlot(Plot):
 
 
 class MatrixPlot(Plot):
-    def __init__(self, matrix_func, hparams, symmetric=False, **kwargs):
-        super().__init__(matrix_func, hparams, ncols=1, nrows=1, **kwargs)
-        self.matrix_func = matrix_func
+    def __init__(self, plot_func, hparams, symmetric=False, **kwargs):
+        super().__init__(plot_func, hparams, ncols=1, nrows=1, **kwargs)
+        self.plot_func = plot_func
         self.symmetric = symmetric
         self.ax = self.axes[0]
 
@@ -189,7 +188,7 @@ class Histogram(Plot):
         self.create_histogram = self.plot_func
         self.n_bins = self.create_histogram.n_bins
 
-    def run_histogram(self, ax, cat_name, param, color, bins, **plot_kwargs):
+    def run_histogram(self, ax, cat_name, param, color, bins):
         param_value = self.values[cat_name][param]
         hparam = self.hparam_dict[param]
         ax_kwargs = {"use_legend": True, "xlabel": hparam.text}
@@ -200,10 +199,9 @@ class Histogram(Plot):
             bins=bins,
             legend_label=cat_name,
             color=color,
-            **plot_kwargs
         )
 
-    def generate(self, plot_params, **plot_kwargs):
+    def generate(self, plot_params):
         for ax, param in zip(self.axes, plot_params):
             param_values = []
             for cat_name in plot_params[param]:
@@ -214,7 +212,7 @@ class Histogram(Plot):
 
             for cat_name in plot_params[param]:
                 color = self.color_map[cat_name]
-                self.run_histogram(ax, cat_name, param, color, bins, **plot_kwargs)
+                self.run_histogram(ax, cat_name, param, color, bins)
 
 
 class StackedHistogram(Histogram):

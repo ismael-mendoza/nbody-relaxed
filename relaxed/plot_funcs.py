@@ -65,26 +65,34 @@ class PlotFunc(ABC):
 
 class CreateHistogram(PlotFunc):
     def __init__(
-        self, n_bins=30, histtype="step", vline=None, log_y=True, **parent_kwargs
+        self,
+        n_bins=30,
+        histtype="step",
+        vline=None,
+        log_y=True,
+        hist_kwargs=None,
+        **parent_kwargs
     ):
+        """
+        Args:
+            **hist_kwargs: Additional (general) histogram parameters to plt.hist()
+        """
         super().__init__(**parent_kwargs)
         self.n_bins = n_bins
         self.histtype = histtype
         self.vline = vline
         self.log_y = log_y
+        self.hist_kwargs = {} if hist_kwargs is None else hist_kwargs
 
-    def _plot(self, ax, values, legend_label="", color="r", bins=None, **hist_kwargs):
-        """
-        Args:
-            **hist_kwargs: Additional (general) histogram parameters to plt.hist()
-        """
+    def _plot(self, ax, values, legend_label="", color="r", bins=None):
+
         ax.hist(
             values,
             bins=bins if bins is not None else self.n_bins,
             histtype=self.histtype,
             color=color,
             label=legend_label,
-            **hist_kwargs
+            **self.hist_kwargs
         )
 
         # add a vertical line.
