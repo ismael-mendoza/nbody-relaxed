@@ -161,8 +161,8 @@ def plot_pair_relaxed_correlation(hcats, pdf):
     # plot in a triangular pattern
     # we can specify a custom param_locs
     grid_locs = []
-    for i in range(4):
-        for j in range(4 - i):
+    for i in range(6):
+        for j in range(6 - i):
             grid_locs.append((j, i))
 
     scatter_binning = plot_funcs.ScatterBinning(
@@ -170,7 +170,7 @@ def plot_pair_relaxed_correlation(hcats, pdf):
     )
 
     plot = plots.BiPlot(
-        scatter_binning, hparams, nrows=4, ncols=4, figsize=figsize, grid_locs=grid_locs
+        scatter_binning, hparams, nrows=6, ncols=6, figsize=figsize, grid_locs=grid_locs
     )
 
     for hcat in hcats:
