@@ -52,11 +52,10 @@ def plot_scatter_relaxed_and_mass(hcats, pdf):
     bin_bds = np.arange(11, 14.5, 0.5)
 
     # prepare halo_params
-    params = ["eta", "x0", "v0", "xoff", "voff", "q", "cvir", "a2", "f_sub"]
-    hparams = [get_hparam(param, log=True) for param in params]
-    params.append("f_sub")
+    params = ["eta", "x0", "v0", "xoff", "voff", "q", "cvir", "a2"]
+    _params = ["mvir", *params]
+    hparams = [get_hparam(param, log=True) for param in _params]
     hparams.append(get_hparam("f_sub", log=False))
-    hparams.append(get_hparam("mvir", log=True))
 
     # prepare the plot_func
     scatter_binning = plot_funcs.ScatterBinning(
@@ -81,84 +80,83 @@ def plot_scatter_relaxed_and_mass(hcats, pdf):
 def plot_correlation_matrix_basic(hcats, pdf=None):
     """
     Create a visualization fo the matrix of correlation separate for each of the catalogs in hcats.
+
+    Should only be used on catalogs that are binned in narrow mass ranges.
     """
 
     names = [hcat.name for hcat in hcats]
     assert names == ["M11", "M12", "M13"]
 
-    hparams = [
-        get_hparam("mvir", log=True),
-        get_hparam("cvir", log=True),
-        get_hparam("eta", log=True),
-        get_hparam("x0", log=True),
-        get_hparam("v0", log=True),
-        get_hparam("spin", log=True),
-        get_hparam("q", log=True),
-        get_hparam("f_sub", log=False),
-        get_hparam("a2", log=True),
-        get_hparam("phi_l", log=True),
+    # round up params.
+    params = [
+        "mvir",
+        "eta",
+        "x0",
+        "v0",
+        "xoff",
+        "voff",
+        "q",
+        "cvir",
+        "a2",
+        "phi_l",
     ]
+    hparams = [get_hparam(param, log=True) for param in params]
+    hparams.append(get_hparam("f_sub", log=False))
 
     scatter_binning = plot_funcs.MatrixValues(xlabel_size=24, ylabel_size=24)
+    plot = plots.MatrixPlot(
+        scatter_binning, hparams, nrows=1, ncols=3, figsize=(30, 10)
+    )
 
-    for hcat, hplot in zip(hcats, hplots):
-        kwargs = dict(label_size=10, show_cell_text=True)
-        plot = plots.MatrixPlot(
-            stats.get_corrs,
-            params,
-            symmetric=False,
-            plot_kwargs=kwargs,
-            title=hcat.label,
-            title_size=24,
-        )
-        uplots.append(plot)
-        hplot.append(plot)
+    # load catalogs
+    for hcat in hcats:
+        plot.load(hcat)
 
-    generate_and_save(pdf, hcats, hplots, uplots)
+    plot_params = OrderedDict({param: {*names} for param in params})
+    plot.generate(plot_params)
+    plot.save(pdf=pdf)
 
 
-#
-# def plot_mean_centered_hists(hcats, pdf, colors):
-#     general_kwargs = dict(xlabel_size=28, ylabel_size=28)
-#
-#     hist_kwargs2 = dict(
-#         bins=30,
-#         histtype="step",
-#         extra_hist_kwargs=dict(),
-#         log_y=True,
-#         vline="median",
-#         **general_kwargs
-#     )
-#
-#     # Plot 2: mean-centered histogram of relevant quantities
-#     # title = "Mean centered histograms"
-#     modifiers = [lambda x: (x - np.mean(x)) / np.std(x)]
-#     params = [
-#         HaloParam("cvir", log=True, modifiers=modifiers),
-#         HaloParam("eta", log=True, modifiers=modifiers),
-#         HaloParam("x0", log=True, modifiers=modifiers),
-#         HaloParam("v0", log=True, modifiers=modifiers),
-#         HaloParam("spin", log=True, modifiers=modifiers),
-#         HaloParam("q", log=True, modifiers=modifiers),
-#         HaloParam("phi_l", log=True, modifiers=modifiers),
-#         HaloParam("f_sub", log=False),
-#     ]
-#     plot2 = plots.Histogram(
-#         plot_funcs.histogram,
-#         params,
-#         ncols=2,
-#         nrows=4,
-#         figsize=(12, 20),
-#         title=None,
-#         title_size=24,
-#         plot_kwargs=hist_kwargs2,
-#     )
-#
-#     uplots = [plot2]
-#     hplots = [[uplot for uplot in uplots] for _ in hcats]
-#     generate_and_save(pdf, hcats, hplots, uplots, colors=colors, cached=False)
-#
-#
+def plot_mean_centered_hists(hcats, pdf, colors):
+    general_kwargs = dict(xlabel_size=28, ylabel_size=28)
+
+    hist_kwargs2 = dict(
+        bins=30,
+        histtype="step",
+        extra_hist_kwargs=dict(),
+        log_y=True,
+        vline="median",
+        **general_kwargs
+    )
+
+    # Plot 2: mean-centered histogram of relevant quantities
+    # title = "Mean centered histograms"
+    modifiers = [lambda x: (x - np.mean(x)) / np.std(x)]
+    params = [
+        HaloParam("cvir", log=True, modifiers=modifiers),
+        HaloParam("eta", log=True, modifiers=modifiers),
+        HaloParam("x0", log=True, modifiers=modifiers),
+        HaloParam("v0", log=True, modifiers=modifiers),
+        HaloParam("spin", log=True, modifiers=modifiers),
+        HaloParam("q", log=True, modifiers=modifiers),
+        HaloParam("phi_l", log=True, modifiers=modifiers),
+        HaloParam("f_sub", log=False),
+    ]
+    plot2 = plots.Histogram(
+        plot_funcs.histogram,
+        params,
+        ncols=2,
+        nrows=4,
+        figsize=(12, 20),
+        title=None,
+        title_size=24,
+        plot_kwargs=hist_kwargs2,
+    )
+
+    uplots = [plot2]
+    hplots = [[uplot for uplot in uplots] for _ in hcats]
+    generate_and_save(pdf, hcats, hplots, uplots, colors=colors, cached=False)
+
 
 #
 # def plot_decades_basic(hcats, pdf, colors):

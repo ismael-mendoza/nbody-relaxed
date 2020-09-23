@@ -55,6 +55,7 @@ class Plot(ABC):
         # state variables that change when catalog is added.
         self.color_map = {}
         self.n_loaded = 0
+        self.hcat_names = []  # preserve order in which catalogs are added.
 
     def _setup_fig_and_axes(self, grid_locs, figsize):
         # mainly setup grids for plotting multiple axes.
@@ -95,6 +96,7 @@ class Plot(ABC):
             values_i[hparam.name] = hparam.get_values(hcat.cat)
         self.values[hcat.name] = values_i
         self.n_loaded += 1
+        self.hcat_names.append(hcat.name)
 
     @abstractmethod
     def generate(self, plot_params):
@@ -156,26 +158,38 @@ class BiPlot(Plot):
 
 
 class MatrixPlot(Plot):
-    def __init__(self, plot_func, hparams, symmetric=False, **kwargs):
-        super().__init__(plot_func, hparams, ncols=1, nrows=1, **kwargs)
-        self.plot_func = plot_func
-        self.symmetric = symmetric
-        self.ax = self.axes[0]
+    # Each axes represents a different matrix to be plotted with a different catalog
+    # but same hparams.
 
     def generate(self, plot_params):
-        assert len(self.values) == 1
-        cat_name, param_values = self.values.popitem()
-        plot_values = [(param, param_values[param]) for param in plot_params]
-        latex_params = [
-            self.hparam_dict[param].get_text(only_param=True) for param in plot_params
-        ]
-        ax_kwargs = {
-            "xticks": range(len(latex_params)),
-            "yticks": range(len(latex_params)),
-            "xtick_labels": latex_params,
-            "ytick_labels": latex_params,
-        }
-        self.plot_func(self.ax, plot_values, ax_kwargs=ax_kwargs)
+        assert len(self.values) == len(
+            self.axes
+        ), "as many catalogs as axes, since only 1 catalog per axes."
+
+        # collect all params for given cat.
+        for (ax, cat_name) in zip(self.axes, self.hcat_names):
+
+            # remember plot_params is an ordered_dict so order is consistent
+            # in the following two statements.
+            latex_params = [
+                self.hparam_dict[param].get_text(only_param=True)
+                for param in plot_params
+                if cat_name in plot_params[param]
+            ]
+            values = [
+                self.values[cat_name][param]
+                for param in plot_params
+                if cat_name in plot_params[param]
+            ]
+            ax_kwargs = {
+                "ax_title": cat_name,
+                "xticks": range(len(latex_params)),
+                "yticks": range(len(latex_params)),
+                "xtick_labels": latex_params,
+                "ytick_labels": latex_params,
+                "use_legend": False,
+            }
+            self.plot_func(ax, values, ax_kwargs=ax_kwargs)
 
 
 class Histogram(Plot):

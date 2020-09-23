@@ -162,6 +162,7 @@ class MatrixValues(PlotFunc):
         matrix_func=spearman_corr,
         symmetric=False,
         show_cell_text=True,
+        cell_text_size=18,
         **parent_kwargs
     ):
         """
@@ -174,15 +175,16 @@ class MatrixValues(PlotFunc):
         self.matrix_func = matrix_func
         self.symmetric = symmetric
         self.show_cell_text = show_cell_text
+        self.cell_text_size = cell_text_size
 
     def _plot(self, ax, values, legend_label=""):
+        # values is a list of param_values in the corresponding order.
         assert not legend_label, "No legend label for this type of plot."
-        # values is a list of tuples (param_name, param_value) in the required order.
         n_params = len(values)
-        matrix = np.zeros(n_params, n_params)
+        matrix = np.zeros((n_params, n_params))
 
-        for i, (param1, value1) in enumerate(values):
-            for j, (param2, value2) in enumerate(values):
+        for i, value1 in enumerate(values):
+            for j, value2 in enumerate(values):
                 matrix[i, j] = self.matrix_func(value1, value2)
 
         # mask out lower off-diagonal elements if requested.
@@ -201,5 +203,5 @@ class MatrixValues(PlotFunc):
                         ha="center",
                         va="center",
                         color="k",
-                        size=14,
+                        size=self.cell_text_size,
                     )
