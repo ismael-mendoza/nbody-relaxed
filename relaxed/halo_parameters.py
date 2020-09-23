@@ -12,7 +12,8 @@ class HaloParam(ABC):
         :param log: Whether to log the values when returning them and change the label to
                     indicate that there is a log.
         :param modifiers: Extra modifiers to the values passed in as a list of lambda
-                         functions. This will be applied  after logging.
+                         functions. This will be applied after np.log() if log=True. Should be
+                         linear function in number of data points.
         """
         self.log = log
         self.modifiers = modifiers

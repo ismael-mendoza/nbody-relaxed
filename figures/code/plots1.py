@@ -117,48 +117,30 @@ def plot_correlation_matrix_basic(hcats, pdf=None):
     plot.save(pdf=pdf)
 
 
-def plot_mean_centered_hists(hcats, pdf, colors):
-    general_kwargs = dict(xlabel_size=28, ylabel_size=28)
-
-    hist_kwargs2 = dict(
-        bins=30,
-        histtype="step",
-        extra_hist_kwargs=dict(),
-        log_y=True,
-        vline="median",
-        **general_kwargs
+def plot_mean_centered_hists(hcats, pdf):
+    names = [hcat.name for hcat in hcats]
+    mean_center = [lambda x: (x - np.mean(x)) / np.std(x)]
+    params = ["cvir", "eta", "x0", "v0", "spin", "q", "phi_l"]
+    hparams = [get_hparam(param, log=True, modifiers=mean_center) for param in params]
+    create_histogram = plot_funcs.CreateHistogram(
+        xlabel_size=24, vline="median", log_y=True
     )
-
-    # Plot 2: mean-centered histogram of relevant quantities
-    # title = "Mean centered histograms"
-    modifiers = [lambda x: (x - np.mean(x)) / np.std(x)]
-    params = [
-        HaloParam("cvir", log=True, modifiers=modifiers),
-        HaloParam("eta", log=True, modifiers=modifiers),
-        HaloParam("x0", log=True, modifiers=modifiers),
-        HaloParam("v0", log=True, modifiers=modifiers),
-        HaloParam("spin", log=True, modifiers=modifiers),
-        HaloParam("q", log=True, modifiers=modifiers),
-        HaloParam("phi_l", log=True, modifiers=modifiers),
-        HaloParam("f_sub", log=False),
-    ]
-    plot2 = plots.Histogram(
-        plot_funcs.histogram,
-        params,
+    plot_params = OrderedDict({param: {*names} for param in params})
+    plot = plots.Histogram(
+        create_histogram,
+        hparams,
         ncols=2,
         nrows=4,
         figsize=(12, 20),
-        title=None,
-        title_size=24,
-        plot_kwargs=hist_kwargs2,
     )
 
-    uplots = [plot2]
-    hplots = [[uplot for uplot in uplots] for _ in hcats]
-    generate_and_save(pdf, hcats, hplots, uplots, colors=colors, cached=False)
+    for hcat in hcats:
+        plot.load(hcat)
+
+    plot.generate(plot_params)
+    plot.save(pdf=pdf)
 
 
-#
 # def plot_decades_basic(hcats, pdf, colors):
 #     """Produce all the basic plots that require decade separation"""
 #

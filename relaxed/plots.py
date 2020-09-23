@@ -237,7 +237,7 @@ class StackedHistogram(Histogram):
     and the bottom row shows the ratio of each with respect to the total.
 
     * Pass in n_row as if this wasn't stacked (just thinking of normal histogram.
-    * Used:
+    * Credit:
     https://stackoverflow.com/questions/37737538/merge-matplotlib-subplots-with-shared-x-axis
     """
 
