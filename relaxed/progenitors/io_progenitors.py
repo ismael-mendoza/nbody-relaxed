@@ -7,7 +7,7 @@ import numpy as np
 from astropy.io import ascii
 from astropy.table import Table
 
-from . import progenitors
+from . import progenitor_lines
 from .. import utils
 
 url_skeletons = {
@@ -46,8 +46,7 @@ def download_trees(ncubes, dir_name, url_skeleton):
 
 
 def write_main_line_progenitors(tree_dir, out_file_prefix, Mcut, cpus=5):
-    """Use the consistent trees package to extract main progenitor lines from downloaded trees.
-    """
+    """Use the consistent trees package to extract main progenitor lines from downloaded trees."""
     subprocess.run(f"cd {utils.read_tree_path.as_posix()}; make", shell=True)
     cmds = []
     for p in tree_dir.iterdir():
@@ -65,8 +64,7 @@ def write_main_line_progenitors(tree_dir, out_file_prefix, Mcut, cpus=5):
 
 
 def merge_progenitors(progenitor_dir, progenitor_file):
-    """Merge all progenitor files into one, put it in tree_dir with name "progenitors.txt"
-    """
+    """Merge all progenitor files into one, put it in tree_dir with name "progenitors.txt" """
     with open(progenitor_file, "w") as pf:
         for p in progenitor_dir.iterdir():
             assert p.name.startswith("mline")
@@ -82,7 +80,7 @@ def summarize_progenitors(progenitor_file, out_file):
     """
     assert out_file.as_posix().endswith(".csv")
 
-    prog_generator = progenitors.get_prog_lines_generator(progenitor_file)
+    prog_generator = progenitor_lines.get_prog_lines_generator(progenitor_file)
     rows = []
     names = ["id", "a2", "alpha"]
     for prog in prog_generator:
@@ -96,7 +94,7 @@ def summarize_progenitors(progenitor_file, out_file):
 def save_tables(progenitor_file, output_file, ids):
     # save only progenitors that have root_id in set ids to a hd5f file.
     assert output_file.suffix == ".hdf5"
-    prog_generator = progenitors.get_prog_lines_generator(progenitor_file)
+    prog_generator = progenitor_lines.get_prog_lines_generator(progenitor_file)
 
     new_ids = []
     for i, prog in enumerate(prog_generator):

@@ -1,5 +1,5 @@
 import numpy as np
-from . import subhalo
+from . import quantities
 import astropy
 from astropy.table import Table
 
@@ -18,7 +18,7 @@ def extract_subhalo(host_cat, minh_cat):
         # need to contain only ids of host_ids for it to work.
         sub_pids = upid[upid != -1]
         sub_mvir = mvir[upid != -1]
-        M_sub_sum += subhalo.m_sub(host_ids, sub_pids, sub_mvir)
+        M_sub_sum += quantities.m_sub(host_ids, sub_pids, sub_mvir)
 
     f_sub = M_sub_sum / host_mvir  # subhalo mass fraction.
     subhalo_cat = Table(data=[host_ids, f_sub], names=["id", "f_sub"])

@@ -12,7 +12,8 @@ class HaloParam(ABC):
         :param log: Whether to log the values when returning them and change the label to
                     indicate that there is a log.
         :param modifiers: Extra modifiers to the values passed in as a list of lambda
-                         functions. This will be applied  after logging.
+                         functions. This will be applied after np.log() if log=True. Should be
+                         linear function in number of data points.
         """
         self.log = log
         self.modifiers = modifiers
@@ -284,8 +285,8 @@ class Cvir(HaloParam):
     @property
     def latex(self):
         return {
-            "units": "c_{\\rm vir}",
-            "form": "\\delta_{\\rm MM}",
+            "units": "",
+            "form": "c_{\\rm vir}",
         }
 
     @property
@@ -298,13 +299,13 @@ class Eta(HaloParam):
 
     @property
     def name(self):
-        return "cvir"
+        return "eta"
 
     @property
     def latex(self):
         return {
-            "units": "c_{\\rm vir}",
-            "form": "\\delta_{\\rm MM}",
+            "units": "",
+            "form": "\\eta",
         }
 
     @property
@@ -322,8 +323,8 @@ class Q(HaloParam):
     @property
     def latex(self):
         return {
-            "units": "c_{\\rm vir}",
-            "form": "\\delta_{\\rm MM}",
+            "units": "",
+            "form": "q",
         }
 
     @property
@@ -459,6 +460,7 @@ class A2(HaloParam):
         raise NotImplementedError("Cannot obtain a2 from minh")
 
 
+# map from parameter name -> class
 hparam_dict = {c().name: c for c in HaloParam.__subclasses__()}
 
 

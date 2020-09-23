@@ -5,7 +5,8 @@ check `get_default_base_filters` below for an example.
 """
 import numpy as np
 import warnings
-from . import parameters
+from copy import deepcopy
+from . import halo_parameters
 
 
 def get_bound_filter(param, low=-np.inf, high=np.inf, modifier=lambda x: x):
@@ -90,17 +91,25 @@ def get_default_filters(particle_mass, subhalos):
     }
 
 
-class HaloFilters:
-    def __init__(self, filters):
+class HaloFilter:
+    def __init__(self, filters, name="filtered_cat"):
         self.filters = filters
+        self.name = name
 
     def filter_cat(self, cat):
+        # Always do filtering in real space NOT log space.
         for param, ft in self.filters.items():
-            hparam = parameters.get_hparam(param, log=False)
+            hparam = halo_parameters.get_hparam(param, log=False)
             cat = cat[ft(hparam.get_values(cat))]
         return cat
 
-    def filter_hcat(self, hcat):
-        new_cat = self.filter_cat(hcat.cat)
-        hcat.cat = new_cat
-        return hcat
+    def __call__(self, hcat, copy=True):
+        if not copy:
+            raise NotImplementedError
+
+        # creates a new copy of hcat
+        new_hcat = deepcopy(hcat)
+        new_cat = self.filter_cat(new_hcat.cat)
+        new_hcat.cat = new_cat
+        new_hcat.name = self.name
+        return new_hcat

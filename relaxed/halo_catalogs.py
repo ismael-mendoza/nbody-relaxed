@@ -6,8 +6,8 @@ from astropy.io import ascii
 
 from pminh import minh
 
-from . import hfilters
-from . import parameters
+from . import halo_filters
+from . import halo_parameters
 
 # particle mass (Msun/h), total particles, box size (Mpc/h).
 _props = {
@@ -45,8 +45,8 @@ def intersection(cat, sub_cat):
 class HaloCatalog(object):
     def __init__(
         self,
+        name,
         cat_path,
-        cat_name,
         params=None,
         hfilter=None,
         subhalos=False,
@@ -59,13 +59,13 @@ class HaloCatalog(object):
         * add_subhalo: add catalog halo properties that depend on their subhalos.
         * labels: useful when plotting (titles, etc.)
         """
-        assert cat_name in props, "Catalog name is not recognized."
+        assert name in props, "Catalog name is not recognized."
         assert subhalos is False, "Not implemented subhalo functionality."
         assert cat_path.name.endswith(".minh") or cat_path.name.endswith(".csv")
 
+        self.name = name
         self.cat_path = cat_path
-        self.cat_name = cat_name
-        self.cat_props = props[self.cat_name]
+        self.cat_props = props[self.name]
         self.verbose = verbose
         self.subhalos = subhalos
         self.label = label
@@ -81,15 +81,15 @@ class HaloCatalog(object):
 
     @staticmethod
     def get_default_params():
-        params1 = ["id", "upid", "mvir", "rvir", "rs", "xoff", "voff"]
-        params2 = ["x0", "v0", "cvir", "spin", "q", "vrms"]
-        return params1 + params2
+        params = ["id", "upid", "mvir", "rvir", "rs", "xoff", "voff"]
+        params += ["x0", "v0", "cvir", "spin", "q", "vrms", "t/|u|", "eta", "phi_l"]
+        return params
 
     def get_default_hfilter(self):
-        default_filters = hfilters.get_default_filters(
+        default_filters = halo_filters.get_default_filters(
             self.cat_props["particle_mass"], self.subhalos
         )
-        hfilter = hfilters.HaloFilters(default_filters)
+        hfilter = halo_filters.HaloFilter(default_filters)
         return hfilter
 
     def load_cat_csv(self):
@@ -113,7 +113,7 @@ class HaloCatalog(object):
                 # obtain all params from minh and their values.
                 with np.errstate(divide="ignore", invalid="ignore"):
                     for param in self.params:
-                        hparam = parameters.get_hparam(param, log=False)
+                        hparam = halo_parameters.get_hparam(param, log=False)
                         values = hparam.get_values_minh_block(mcat, b)
                         cat.add_column(values, name=param)
 
