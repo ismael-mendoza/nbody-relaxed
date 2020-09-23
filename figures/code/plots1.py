@@ -157,7 +157,6 @@ def plot_pair_relaxed_correlation(hcats, pdf):
         }
     )  # total = 10
 
-    print(plot_params)
     # plot in a triangular pattern
     # we can specify a custom param_locs
     grid_locs = []
