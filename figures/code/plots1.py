@@ -141,49 +141,40 @@ def plot_mean_centered_hists(hcats, pdf):
     plot.save(pdf=pdf)
 
 
-# def plot_decades_basic(hcats, pdf, colors):
-#     """Produce all the basic plots that require decade separation"""
-#
-#     general_kwargs = dict(xlabel_size=28, ylabel_size=28)
-#     binning_kwargs = dict(n_xbins=8, show_bands=False, **general_kwargs)
-#
-#     figsize = (24, 24)
-#     uplots = []
-#     hplots = [[] for _ in hcats]
-#
-#     # Plot 5: Correlation between all pairs of different relaxedness parameters as a function
-#     # of mass half decades.
-#     # params to include:  't/|u|', 'x0', 'v0', 'xoff', 'Voff', 'q', 'cvir'
-#     params = [
-#         (HaloParam("t/|u|", log=True), HaloParam("x0", log=True)),
-#         (HaloParam("t/|u|", log=True), HaloParam("v0", log=True)),
-#         (HaloParam("t/|u|", log=True), HaloParam("q", log=True)),
-#         (HaloParam("t/|u|", log=True), HaloParam("cvir", log=True)),
-#         (HaloParam("x0", log=True), HaloParam("v0", log=True)),
-#         (HaloParam("x0", log=True), HaloParam("q", log=True)),
-#         (HaloParam("x0", log=True), HaloParam("cvir", log=True)),
-#         (HaloParam("v0", log=True), HaloParam("q", log=True)),
-#         (HaloParam("v0", log=True), HaloParam("cvir", log=True)),
-#         (HaloParam("q", log=True), HaloParam("cvir", log=True)),
-#     ]  # total = 10
-#     param_locs = []  # triangular pattern, user defined param_locs.
-#     for i in range(4):
-#         for j in range(4 - i):
-#             param_locs.append((j, i))
-#
-#     plot1 = plots.BiPlot(
-#         plot_funcs.scatter_binning,
-#         params,
-#         nrows=4,
-#         ncols=4,
-#         figsize=figsize,
-#         param_locs=param_locs,
-#         plot_kwargs=binning_kwargs,
-#         title_size=40,
-#     )
-#
-#     uplots.append(plot1)
-#     for hplot in hplots:
-#         hplot.append(plot1)
-#
-#     generate_and_save(pdf, hcats, hplots, uplots, colors=colors, cached=False)
+def plot_pair_relaxed_correlation(hcats, pdf):
+    """Correlation between all pairs of different relaxedness parameters as a function
+    # of mass half decades."""
+    figsize = (24, 24)
+    names = [hcat.name for hcat in hcats]
+    # params to include:  't/|u|', 'x0', 'v0', 'xoff', 'voff', 'q', 'cvir'
+    params = ["t/|u|", "x0", "v0", "xoff", "voff", "q", "cvir"]
+    hparams = [get_hparam(param, log=True) for param in params]
+    plot_params = OrderedDict(
+        {
+            (param1, param2): {*names}
+            for i, param1 in enumerate(params)
+            for param2 in params[i + 1 :]
+        }
+    )  # total = 10
+
+    print(plot_params)
+    # plot in a triangular pattern
+    # we can specify a custom param_locs
+    grid_locs = []
+    for i in range(4):
+        for j in range(4 - i):
+            grid_locs.append((j, i))
+
+    scatter_binning = plot_funcs.ScatterBinning(
+        n_xbins=8, show_bands=False, xlabel_size=24, ylabel_size=24, ax_title_size=40
+    )
+
+    plot = plots.BiPlot(
+        scatter_binning, hparams, nrows=4, ncols=4, figsize=figsize, grid_locs=grid_locs
+    )
+
+    for hcat in hcats:
+        plot.load(hcat)
+
+    plot.generate(plot_params)
+    plot.save(pdf=pdf)

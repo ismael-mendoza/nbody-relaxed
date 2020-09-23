@@ -64,13 +64,11 @@ class Plot(ABC):
 
         if not grid_locs:
             # just plot sequentially if locations were not specified.
-            self.grid_locs = [
-                (i, j) for i in range(self.nrows) for j in range(self.ncols)
-            ]
+            grid_locs = [(i, j) for i in range(self.nrows) for j in range(self.ncols)]
         self.fig, _ = plt.subplots(squeeze=False, figsize=figsize)
         self.axes = [
             plt.subplot2grid((self.nrows, self.ncols), param_loc, fig=self.fig)
-            for param_loc in self.grid_locs
+            for param_loc in grid_locs
         ]
 
         self.fig.suptitle(self.title, fontsize=self.title_size)

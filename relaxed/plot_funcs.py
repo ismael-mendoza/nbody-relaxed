@@ -116,6 +116,7 @@ class ScatterBinning(PlotFunc):
         x, y = values
 
         if self.bin_bds is not None:
+            # ignoring self.n_xbins
             size = len(self.bin_bds) - 1
             x_bds = np.array(
                 [(self.bin_bds[i], self.bin_bds[i + 1]) for i in range(size)]
