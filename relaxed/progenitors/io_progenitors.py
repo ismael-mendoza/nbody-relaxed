@@ -52,6 +52,8 @@ def write_main_line_progenitors(tree_dir, out_file_prefix, Mcut, cpus=5):
     for p in tree_dir.iterdir():
         if p.suffix == ".dat" and p.name.startswith("tree"):
             print(f"Found tree: {p.name}")
+
+            # get numbered part.
             suffx = re.search(r"tree(_\d_\d_\d)\.dat", p.name).groups()[0]
             cmd = (
                 f"cd {utils.read_tree_path.as_posix()}; ./read_tree {p.as_posix()} "
@@ -64,7 +66,7 @@ def write_main_line_progenitors(tree_dir, out_file_prefix, Mcut, cpus=5):
 
 
 def merge_progenitors(progenitor_dir, progenitor_file):
-    """Merge all progenitor files into one, put it in tree_dir with name "progenitors.txt" """
+    """Merge all progenitor files in 'progenitor_dir' into one, save it as 'progenitor_file'.  """
     with open(progenitor_file, "w") as pf:
         for p in progenitor_dir.iterdir():
             assert p.name.startswith("mline")
@@ -74,43 +76,27 @@ def merge_progenitors(progenitor_dir, progenitor_file):
                 pf.write(single_pf.read())
 
 
-def summarize_progenitors(progenitor_file, out_file):
-    """Write the summary statistics of all the progenitors in progenitor_file into a
-    table with the root id.
-    """
-    assert out_file.as_posix().endswith(".csv")
-
-    prog_generator = progenitor_lines.get_prog_lines_generator(progenitor_file)
-    rows = []
-    names = ["id", "a2", "alpha"]
-    for prog in prog_generator:
-        rows.append((prog.root_id, prog.get_a2(), prog.get_alpha()))
-
-    t = Table(rows=rows, names=names)
-
-    ascii.write(t, out_file, format="csv")
-
-
-def save_tables(progenitor_file, output_file, ids):
-    # save only progenitors that have root_id in set ids to a hd5f file.
+def save_tables(progenitor_file, output_file, ids_to_save):
+    """Save tables of each of the progenitor lines (using prog_generator) to a single `output_file`
+    which has a .hdf5 extension. The final IDs extracted are also saved in the same file."""
     assert output_file.suffix == ".hdf5"
     prog_generator = progenitor_lines.get_prog_lines_generator(progenitor_file)
 
     new_ids = []
     for i, prog in enumerate(prog_generator):
-        if prog.root_id in ids:
+        if prog.root_id in ids_to_save:
             new_ids.append(prog.root_id)
             prog.cat.write(output_file, path=str(prog.root_id), compression=True)
 
     # save ids as well
     new_ids = np.array(new_ids).reshape(-1, 1)
     new_ids = Table(data=new_ids, names=["id"])
-    new_ids.write(output_file, path="ids", compression=True)
+    new_ids.write(output_file, path="id", compression=True)
 
 
 def create_z_file(z_dir, table_file):
     assert table_file.suffix == ".hdf5"
-    ids = Table.read(table_file, path="ids")["id"]
+    ids = Table.read(table_file, path="id")["id"]
 
     z_map = {}
     m_map = {}
@@ -153,3 +139,19 @@ def create_z_file(z_dir, table_file):
                 dct = {"root_id": root_id, "mvir": mvir}
                 writer.writerow(dct)
                 zf.flush()
+
+
+def summarize_progenitors(progenitor_file, out_file):
+    """Write the summary statistics of all the progenitors in progenitor_file into a
+    table with the root id.
+    """
+    assert out_file.as_posix().endswith(".csv")
+
+    prog_generator = progenitor_lines.get_prog_lines_generator(progenitor_file)
+    rows = []
+    names = ["id", "a2", "alpha"]
+    for prog in prog_generator:
+        rows.append((prog.root_id, prog.get_a2(), prog.get_alpha()))
+
+    t = Table(rows=rows, names=names)
+    ascii.write(t, out_file, format="csv")

@@ -17,13 +17,15 @@ def setup_paths(args):
         "trees": root_path.joinpath("trees"),
         "progenitor_dir": root_path.joinpath("progenitors"),
         "progenitor_file": root_path.joinpath("progenitors.txt"),
-        "summarize_file": root_path.joinpath("summarize.csv"),
+        "summary_file": root_path.joinpath("summary.csv"),
     }
 
     return paths
 
 
 def write(args, paths):
+    """Extract all the progenitor trees in the files contained in paths['trees'], save them to
+    progenitor_path with prefix 'mline'."""
     assert args.cpus is not None, "Need to specify cpus"
     # Bolshoi
     Mcut = 1e3 * catalog_properties["Bolshoi"][0]
@@ -47,11 +49,12 @@ def merge(paths):
 
 def summarize(paths):
     io_progenitors.summarize_progenitors(
-        paths["progenitor_file"], paths["progenitor_table"]
+        paths["progenitor_file"], paths["summary_file"]
     )
 
 
 def save_tables(paths, ids_file):
+
     # save all progenitors into tables in a single h5py file.
     # ids_file is a pickle file with ids that will be saved
     assert ids_file is not None
