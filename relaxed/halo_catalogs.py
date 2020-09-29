@@ -47,7 +47,7 @@ class HaloCatalog(object):
         self,
         name,
         cat_path,
-        params=None,
+        minh_params=None,
         hfilter=None,
         subhalos=False,
         verbose=False,
@@ -58,6 +58,7 @@ class HaloCatalog(object):
         * add_progenitor: filename of summary progenitor table.
         * add_subhalo: add catalog halo properties that depend on their subhalos.
         * labels: useful when plotting (titles, etc.)
+        * minh_params: list of keys (params) to add and be read from minh catalog.
         """
         assert name in props, "Catalog name is not recognized."
         assert subhalos is False, "Not implemented subhalo functionality."
@@ -70,7 +71,7 @@ class HaloCatalog(object):
         self.subhalos = subhalos
         self.label = label
 
-        self.params = params if params else self.get_default_params()
+        self.minh_params = minh_params if minh_params else self.get_default_params()
         self.hfilter = hfilter if hfilter else self.get_default_hfilter()
         assert set(self.hfilter.filters.keys()).issubset(set(self.params))
 
@@ -112,7 +113,7 @@ class HaloCatalog(object):
 
                 # obtain all params from minh and their values.
                 with np.errstate(divide="ignore", invalid="ignore"):
-                    for param in self.params:
+                    for param in self.minh_params:
                         hparam = halo_parameters.get_hparam(param, log=False)
                         values = hparam.get_values_minh_block(mcat, b)
                         cat.add_column(values, name=param)
