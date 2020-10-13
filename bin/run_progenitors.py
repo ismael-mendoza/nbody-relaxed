@@ -2,13 +2,14 @@
 
 from pathlib import Path
 import shutil
-import argparse
 import warnings
 import pickle
 import click
+import numpy as np
 
-from relaxed.frames.catalogs import catalog_properties
 from relaxed.progenitors import io_progenitors
+from relaxed.halo_catalogs import HaloCatalog, props
+from relaxed import halo_filters
 
 
 def get_json_dict(json_file):
@@ -19,12 +20,14 @@ def get_json_dict(json_file):
 @click.option("--overwrite", default=False)
 @click.option("--root", default=Path(__file__).absolute().parent.parent.as_posix())
 @click.option("--output-dir", default="output")
-@click.option("--catalog-name", default="M11")
+@click.option("--catalog-name", default="Bolshoi")
 @click.option("--minh-catalog", help="Minh catalog file to read")
 @click.option("--m-low", default=1e11, help="lower log-mass of halo considered.")
 @click.option("--m-high", default=1e12, help="high log-mass of halo considered.")
 @click.pass_context
-def pipeline(ctx, overwrite, root, output_dir, minh_catalog, m_low, m_high):
+def pipeline(
+    ctx, overwrite, root, output_dir, catalog_name, minh_catalog, m_low, m_high
+):
     ctx.ensure_object(dict)
     output = Path(root).joinpath("temp", output_dir)
     if output.exists() and overwrite:
@@ -34,6 +37,7 @@ def pipeline(ctx, overwrite, root, output_dir, minh_catalog, m_low, m_high):
         dict(
             root=Path(root),
             output=output,
+            catalog_name=catalog_name,
             cat_info=output.joinpath("info.json"),
             id_file=output.joinpath("ids.json"),
             dm_catalog=output.joinpath("dm_cat.csv"),
@@ -45,14 +49,46 @@ def pipeline(ctx, overwrite, root, output_dir, minh_catalog, m_low, m_high):
 
 
 @pipeline.command()
+@click.option("--N", default=1e4, help="Desired number of haloes in ID file.")
 @click.pass_context
-def select_ids(ctx):
-
+def select_ids(ctx, N):
     # read given minh catalog in ctx
 
-    # only read 'id' and 'mvir' files
+    # createa appropriate filters
+    particle_mass = props[ctx["catalog_name"]]
+    mass_filter = halo_filters.get_bound_filter("mvir", ctx["m_low"], ctx["m_high"])
+    default_filters = halo_filters.get_default_filters(particle_mass, subhalos=False)
+    the_filters = halo_filters.join_filters(mass_filter, default_filters)
+    hfilter = halo_filters.HaloFilter(the_filters, name=ctx["catalog_name"])
 
-    # need to create appropriate HaloFilter
+    # we only need the params that appear in the filter. (including 'id' and 'mvir')
+    minh_params = [
+        "id",
+        "mvir",
+        "upid",
+        "spin",
+        "q",
+        "vrms",
+    ]
+
+    # craete catalog
+    hcat = HaloCatalog(
+        ctx["name"],
+        ctx["min_catalog"],
+        minh_params,
+        hfilter,
+        subhalos=False,
+        label="all_haloes",
+    )
+    hcat.load_cat_minh()
+
+    # do we have enough haloes?
+    # keep only N of them
+    assert len(hcat) >= N
+    keep = np.random.choice(np.arange(len(hcat)), size=N, replace=False)
+    hcat.cat = hcat.cat[keep]
+
+    # extract ids into a json file
 
     # create json file with ids in a list?
 
@@ -142,28 +178,4 @@ def save_tables(paths, ids_file):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Write main line progenitors from tree files",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    parser.add_argument("--cpus", type=int, default=None)
-    parser.add_argument("--write", action="store_true")
-    parser.add_argument("--merge", action="store_true")
-    parser.add_argument("--summarize", action="store_true")
-    parser.add_argument("--save-tables", action="store_true")
-
-    parser.add_argument("--overwrite", action="store_true")
-
-    parser.add_argument(
-        "--root-path",
-        type=str,
-        help="Root path containing all tree associated files for a given catalog.",
-        default="/home/imendoza/alcca/nbody-relaxed/data/trees_bolshoi",
-    )
-    parser.add_argument(
-        "--ids-file", type=str, default=None, help="file containing ids to filter."
-    )
-
-    pargs = parser.parse_args()
-
-    main(pargs)
+    pipeline()

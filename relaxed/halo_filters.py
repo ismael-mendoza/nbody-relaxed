@@ -9,6 +9,20 @@ from copy import deepcopy
 from . import halo_parameters
 
 
+def join_filters(filter1, filter2):
+    filters = {}
+    keys = set(filter1.keys()).union(set(filter2.keys()))
+    for key in keys:
+        if key in filter1 and key not in filter2:
+            filters[key] = filter1[key]
+        if key in filter2 and key not in filter1:
+            filters[key] = filter2[key]
+        else:
+            filters[key] = lambda x: (filter1[key](x)) & (filter2[key](x))
+
+    return filters
+
+
 def get_bound_filter(param, low=-np.inf, high=np.inf, modifier=lambda x: x):
     return {param: lambda x: (modifier(x) > low) & (modifier(x) < high)}
 

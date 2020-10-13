@@ -41,8 +41,13 @@ def download_trees(ncubes, data_dir, url_skeleton):
     )
 
 
-def write_main_line_progenitors(tree_dir, out_file_prefix, Mcut, cpus=5):
-    """Use the consistent trees package to extract main progenitor lines from downloaded trees."""
+def write_main_line_progenitors(tree_dir, prefix, mcut, cpus=5):
+    """Use the consistent trees package to extract main progenitor lines from downloaded trees.
+
+    Args:
+        tree_dir (str): where trees are saved (.dat files).
+        prefix (str): where to save each file and it's name.
+    """
     subprocess.run(f"cd {utils.read_tree_path.as_posix()}; make", shell=True)
     cmds = []
     for p in tree_dir.iterdir():

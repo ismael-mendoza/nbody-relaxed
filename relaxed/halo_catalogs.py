@@ -52,7 +52,7 @@ class HaloCatalog(object):
         hfilter=None,
         subhalos=False,
         verbose=False,
-        label="all halos",
+        label="all haloes",
     ):
         """
         * cat_name: Should be one of `Bolshoi / BolshoiP / MDPL2`
@@ -119,7 +119,7 @@ class HaloCatalog(object):
                         values = hparam.get_values_minh_block(mcat, b)
                         cat.add_column(values, name=param)
 
-                # filter to reduce size.
+                # filter to reduce size of each block.
                 cat = self.hfilter.filter_cat(cat)
                 cats.append(cat)
 
