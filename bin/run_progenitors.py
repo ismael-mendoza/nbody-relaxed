@@ -5,22 +5,100 @@ import shutil
 import argparse
 import warnings
 import pickle
+import click
 
 from relaxed.frames.catalogs import catalog_properties
 from relaxed.progenitors import io_progenitors
 
 
-def setup_paths(args):
-    root_path = Path(args.root_path)
+def get_json_dict(json_file):
+    pass
 
-    paths = {
-        "trees": root_path.joinpath("trees"),
-        "progenitor_dir": root_path.joinpath("progenitors"),
-        "progenitor_file": root_path.joinpath("progenitors.txt"),
-        "summary_file": root_path.joinpath("summary.csv"),
-    }
 
-    return paths
+@click.group()
+@click.option("--overwrite", default=False)
+@click.option("--root", default=Path(__file__).absolute().parent.parent.as_posix())
+@click.option("--output-dir", default="output")
+@click.option("--catalog-name", default="M11")
+@click.option("--minh-catalog", help="Minh catalog file to read")
+@click.option("--m-low", default=1e11, help="lower log-mass of halo considered.")
+@click.option("--m-high", default=1e12, help="high log-mass of halo considered.")
+@click.pass_context
+def pipeline(ctx, overwrite, root, output_dir, minh_catalog, m_low, m_high):
+    ctx.ensure_object(dict)
+    output = Path(root).joinpath("temp", output_dir)
+    if output.exists() and overwrite:
+        shutil.rmtree(output)
+    output.mkdir(exist_ok=False)
+    ctx.obj.update(
+        dict(
+            root=Path(root),
+            output=output,
+            cat_info=output.joinpath("info.json"),
+            id_file=output.joinpath("ids.json"),
+            dm_catalog=output.joinpath("dm_cat.csv"),
+            minh_catalog=minh_catalog,
+            m_low=m_low,
+            m_high=m_high,
+        )
+    )
+
+
+@pipeline.command()
+@click.pass_context
+def select_ids(ctx):
+
+    # read given minh catalog in ctx
+
+    # only read 'id' and 'mvir' files
+
+    # need to create appropriate HaloFilter
+
+    # create json file with ids in a list?
+
+    # check upid==-1 no subhaloes should be allowed.
+
+    pass
+
+
+@pipeline.command()
+@click.pass_context
+def make_dmcat(ctx):
+    # check upid==-1
+
+    # create json file for info and CSV file for actual catalog after reading.
+    pass
+
+
+@pipeline.command()
+@click.pass_context
+def make_subhaloes(ctx):
+    # change function in subhaloes/catalog.py so that it only uses the host IDs to extract info.
+    # then use this function here after reading the ID json file.
+    subhaloes_name = "subhaloes.csv"
+
+
+@pipeline.command()
+@click.command("--cpus", default=1, help="number of cpus to use.")
+@click.command(
+    "--trees-dir",
+    default="data/trees_bolshoi",
+    help="folder containing raw data on all trees.",
+)
+@click.command(
+    "--progenitors-dir",
+    default="progenitors",
+    help="dir in output containing progenitor info",
+)
+@click.pass_context
+def progenitors(ctx, trees_dir, progenitors_dir):
+    trees_dir = ctx["root"].joinpath(trees_dir)
+    progenitors_dir = ctx["output"].joinpath(progenitors_dir)
+    assert trees_dir.exist()
+    progenitors_dir.mkdir(exist_ok=False)
+
+    progenitor_dump = progenitors_dir.joinpath("mline")
+    # first write all progenitors to a single file
 
 
 def write(args, paths):
@@ -61,22 +139,6 @@ def save_tables(paths, ids_file):
     with open(ids_file, "r") as fp:
         ids = pickle.load(fp)
         io_progenitors.save_tables()
-
-
-def main(args):
-    paths = setup_paths(args)
-
-    if args.write:
-        write(args, paths)
-
-    elif args.merge:
-        merge(paths)
-
-    elif args.summarize:
-        summarize(paths)
-
-    elif args.save_tables:
-        save_tables(paths, args.ids_file)
 
 
 if __name__ == "__main__":

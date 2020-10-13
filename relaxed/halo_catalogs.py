@@ -26,6 +26,7 @@ def intersection(cat, sub_cat):
     """Intersect two catalogs by their id attribute.
     * Returns all rows of cat whose ids are in sub_cat.
     * Full intersection by repeating operation but switching order.
+    * Both catalogs should be astropy tables and have 'id' as one of their columns.
     """
     cat.sort("id")
     sub_cat.sort("id")
@@ -73,7 +74,7 @@ class HaloCatalog(object):
 
         self.minh_params = minh_params if minh_params else self.get_default_params()
         self.hfilter = hfilter if hfilter else self.get_default_hfilter()
-        assert set(self.hfilter.filters.keys()).issubset(set(self.params))
+        assert set(self.hfilter.filters.keys()).issubset(set(self.minh_params))
 
         self.cat = None  # will be loaded later.
 

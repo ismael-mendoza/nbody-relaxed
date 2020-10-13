@@ -18,10 +18,7 @@ def small_bolshoi_cat():
     Return a small bolshoi catalog (one of the high z) for testing.
     :return:
     """
-    from relaxed.frames import catalogs
-    from relaxed.utils import const
 
-    path_to_cat = const.joinpath("data/bolshoi/...")
     hcat = catalogs.HaloCatalog(path_to_cat, "Bolshoi")
     return hcat
 

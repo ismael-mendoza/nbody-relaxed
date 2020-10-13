@@ -8,7 +8,6 @@ from astropy.io import ascii
 from astropy.table import Table
 
 from . import progenitor_lines
-from .. import utils
 
 url_skeletons = {
     "Bolshoi": "https://www.slac.stanford.edu/~behroozi/Bolshoi_Trees/tree"
@@ -19,18 +18,15 @@ def work(task):
     return subprocess.run(task, shell=True)
 
 
-def download_trees(ncubes, dir_name, url_skeleton):
-    """
-    Download all the bolshoi trees from the listed url.
-    """
-    dir_path = utils.data_path.joinpath(dir_name)
+def download_trees(ncubes, data_dir, url_skeleton):
+    """Download all the bolshoi trees from the listed url."""
 
-    if dir_path.exists():
+    if data_dir.exists():
         raise IOError("Directory already exists! Overwriting?")
 
-    downloads_file = dir_path.joinpath("downloads.txt")
+    downloads_file = data_dir.joinpath("downloads.txt")
 
-    # create file with all files to be downloaded...
+    # create file listing all files to be downloaded one-per-line.
     for x in range(0, ncubes):
         for y in range(0, ncubes):
             for z in range(0, ncubes):
@@ -39,7 +35,7 @@ def download_trees(ncubes, dir_name, url_skeleton):
                         f.write(f"{url_skeleton}_{x}_{y}_{z}.dat.gz\n")
 
     # then download the files using multiprocessing
-    os.chdir(dir_path.as_posix())
+    os.chdir(data_dir.as_posix())
     subprocess.run(
         "cat downloads.txt | xargs -n 1 --max-procs 10 --verbose wget", shell=True
     )
