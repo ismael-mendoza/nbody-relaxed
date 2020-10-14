@@ -1,5 +1,5 @@
 import warnings
-
+from pathlib import Path
 import numpy as np
 from astropy.table import Table, vstack
 from astropy.io import ascii
@@ -46,8 +46,8 @@ def intersection(cat, sub_cat):
 class HaloCatalog(object):
     def __init__(
         self,
-        name,
-        cat_path,
+        name="Bolshoi",
+        cat_file="bolshoi.minh",
         minh_params=None,
         hfilter=None,
         subhalos=False,
@@ -61,12 +61,13 @@ class HaloCatalog(object):
         * labels: useful when plotting (titles, etc.)
         * minh_params: list of keys (params) to add and be read from minh catalog.
         """
+        cat_file = Path(cat_file)
         assert name in props, "Catalog name is not recognized."
         assert subhalos is False, "Not implemented subhalo functionality."
-        assert cat_path.name.endswith(".minh") or cat_path.name.endswith(".csv")
+        assert cat_file.name.endswith(".minh") or cat_file.name.endswith(".csv")
 
         self.name = name
-        self.cat_path = cat_path
+        self.cat_file = cat_file
         self.cat_props = props[self.name]
         self.verbose = verbose
         self.subhalos = subhalos
@@ -95,17 +96,17 @@ class HaloCatalog(object):
         return hfilter
 
     def load_cat_csv(self):
-        assert self.cat_path.name.endswith(".csv")
-        self.cat = ascii.read(self.cat_path, format="csv", fast_reader=True)
+        assert self.cat_file.name.endswith(".csv")
+        self.cat = ascii.read(self.cat_file, format="csv", fast_reader=True)
 
     def load_cat_minh(self):
-        assert self.cat_path.name.endswith(".minh")
+        assert self.cat_file.name.endswith(".minh")
         if self.verbose:
             warnings.warn("Divide by zero errors are ignored, but filtered out.")
 
         # do filter on the fly, to avoid memory errors.
 
-        with minh.open(self.cat_path) as mcat:
+        with minh.open(self.cat_file) as mcat:
 
             cats = []
 

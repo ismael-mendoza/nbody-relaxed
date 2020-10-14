@@ -4,12 +4,15 @@ from pathlib import Path
 import shutil
 import warnings
 import pickle
+import json
 import click
 import numpy as np
 
 from relaxed.progenitors import io_progenitors
 from relaxed.halo_catalogs import HaloCatalog, props
 from relaxed import halo_filters
+
+default_root = Path(__file__).absolute().parent.parent.as_posix()
 
 
 def get_json_dict(json_file):
@@ -18,10 +21,10 @@ def get_json_dict(json_file):
 
 @click.group()
 @click.option("--overwrite", default=False)
-@click.option("--root", default=Path(__file__).absolute().parent.parent.as_posix())
-@click.option("--output-dir", default="output")
-@click.option("--catalog-name", default="Bolshoi")
+@click.option("--root", default=default_root)
+@click.option("--output-dir", default="output", help="Relative to temp")
 @click.option("--minh-catalog", help="Minh catalog file to read")
+@click.option("--catalog-name", default="Bolshoi")
 @click.option("--m-low", default=1e11, help="lower log-mass of halo considered.")
 @click.option("--m-high", default=1e12, help="high log-mass of halo considered.")
 @click.pass_context
@@ -29,10 +32,12 @@ def pipeline(
     ctx, overwrite, root, output_dir, catalog_name, minh_catalog, m_low, m_high
 ):
     ctx.ensure_object(dict)
+
+    # output directly lives in side temp
     output = Path(root).joinpath("temp", output_dir)
     if output.exists() and overwrite:
         shutil.rmtree(output)
-    output.mkdir(exist_ok=False)
+    output.mkdir(exist_ok=False, parents=False)
     ctx.obj.update(
         dict(
             root=Path(root),
@@ -52,9 +57,8 @@ def pipeline(
 @click.option("--N", default=1e4, help="Desired number of haloes in ID file.")
 @click.pass_context
 def select_ids(ctx, N):
-    # read given minh catalog in ctx
 
-    # createa appropriate filters
+    # create appropriate filters
     particle_mass = props[ctx["catalog_name"]]
     mass_filter = halo_filters.get_bound_filter("mvir", ctx["m_low"], ctx["m_high"])
     default_filters = halo_filters.get_default_filters(particle_mass, subhalos=False)
@@ -71,16 +75,19 @@ def select_ids(ctx, N):
         "vrms",
     ]
 
-    # craete catalog
+    # create catalog
     hcat = HaloCatalog(
         ctx["name"],
-        ctx["min_catalog"],
+        ctx["minh_catalog"],
         minh_params,
         hfilter,
         subhalos=False,
-        label="all_haloes",
+        label="all haloes",
     )
     hcat.load_cat_minh()
+
+    # double check only host haloes are allowed.
+    assert np.all(hcat.cat["upid"] == -1)
 
     # do we have enough haloes?
     # keep only N of them
@@ -89,17 +96,16 @@ def select_ids(ctx, N):
     hcat.cat = hcat.cat[keep]
 
     # extract ids into a json file
-
-    # create json file with ids in a list?
-
-    # check upid==-1 no subhaloes should be allowed.
-
-    pass
+    ids = list(hcat.cat["id"])
+    with open(ctx["id_file"], "w") as fp:
+        json.dump(ids, fp)
 
 
 @pipeline.command()
 @click.pass_context
 def make_dmcat(ctx):
+    # read json file
+
     # check upid==-1
 
     # create json file for info and CSV file for actual catalog after reading.
