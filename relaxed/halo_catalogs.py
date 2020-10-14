@@ -1,5 +1,5 @@
 import warnings
-from pathlib import Path
+from pathlib import Path, PosixPath
 import numpy as np
 from astropy.table import Table, vstack
 from astropy.io import ascii
@@ -22,25 +22,27 @@ props = {
 }
 
 
-def intersection(cat, sub_cat):
-    """Intersect two catalogs by their id attribute.
-    * Returns all rows of cat whose ids are in sub_cat.
-    * Full intersection by repeating operation but switching order.
-    * Both catalogs should be astropy tables and have 'id' as one of their columns.
+def intersect(ids1, ids2):
+    """Intersect two np.array IDs.
+
+    Args:
+        Both inputs should be np.arrays.
+
+    Returns:
+        An boolean array `indx_ok` corresponding to `ids1` s.t. `indx_ok[i]` is true iff
+        `ids1[i]` is contained in `ids2`.
+
+    Notes:
+        - Full intersection by repeating operation but switching order.
     """
-    cat.sort("id")
-    sub_cat.sort("id")
+    assert type(ids1) == type(ids2) == np.ndarray
+    ids1.sort()
+    ids2.sort()
+    indx = np.searchsorted(ids2, ids1)
+    indx_ok = indx < len(ids2)
+    indx_ok[indx_ok] &= ids2[indx[indx_ok]] == ids1[indx_ok]
 
-    ids = cat["id"]
-    sub_ids = sub_cat["id"]
-
-    indx = np.searchsorted(sub_ids, ids)
-    indx_ok = indx < len(sub_ids)
-    indx_ok[indx_ok] &= sub_ids[indx[indx_ok]] == ids[indx_ok]
-
-    new_cat = cat[indx_ok]
-
-    return new_cat
+    return indx_ok
 
 
 class HaloCatalog(object):
@@ -127,6 +129,7 @@ class HaloCatalog(object):
             self.cat = vstack(cats)
 
     def save_cat(self, cat_path):
+        assert type(cat_path) is PosixPath
         assert self.cat is not None, "cat must be loaded"
         assert cat_path.suffix == ".csv", "format supported will be csv for now"
         ascii.write(self.cat, cat_path, format="csv")

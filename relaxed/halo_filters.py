@@ -6,9 +6,9 @@ check `get_default_base_filters` below for an example.
 import numpy as np
 import warnings
 from copy import deepcopy
-from astropy.table import Table
 
 from . import halo_parameters
+from .halo_catalogs import intersect
 
 
 def join_filters(filter1, filter2):
@@ -25,10 +25,10 @@ def join_filters(filter1, filter2):
     return filters
 
 
-# def get_id_filter(ids):
-#     assert type(ids) is np.ndarray or type(ids) is list
-#     ids = Table(data=[ids], names=["id",])
-#     return {'id': lambda x: }
+def get_id_filter(ids):
+    assert type(ids) is np.ndarray or type(ids) is list
+    ids = np.array(ids)
+    return {"id": lambda x: intersect(np.array(x), ids)}
 
 
 def get_bound_filter(param, low=-np.inf, high=np.inf, modifier=lambda x: x):

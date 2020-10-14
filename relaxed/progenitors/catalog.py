@@ -1,4 +1,4 @@
-from ..halo_catalogs import intersection
+from ..halo_catalogs import intersect
 import astropy.table
 from astropy.table import Table
 
@@ -9,8 +9,8 @@ def add_progenitor_info(hcat, summary_file):
     pcat = Table.read(summary_file)
     assert set(pcat.colnames).intersection(set(cat.colnames)).pop() == "id"
 
-    pcat = intersection(pcat, cat)
-    cat = intersection(cat, pcat)
+    pcat = intersect(pcat, cat)
+    cat = intersect(cat, pcat)
 
     fcat = astropy.table.join(cat, pcat, keys="id")
     hcat.cat = fcat

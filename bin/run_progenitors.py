@@ -27,9 +27,10 @@ def get_json_dict(json_file):
 @click.option("--catalog-name", default="Bolshoi")
 @click.option("--m-low", default=1e11, help="lower log-mass of halo considered.")
 @click.option("--m-high", default=1e12, help="high log-mass of halo considered.")
+@click.option("--N", default=1e4, help="Desired number of haloes in ID file.")
 @click.pass_context
 def pipeline(
-    ctx, overwrite, root, output_dir, catalog_name, minh_catalog, m_low, m_high
+    ctx, overwrite, root, output_dir, catalog_name, minh_catalog, m_low, m_high, N
 ):
     ctx.ensure_object(dict)
 
@@ -49,14 +50,14 @@ def pipeline(
             minh_catalog=minh_catalog,
             m_low=m_low,
             m_high=m_high,
+            N=N,
         )
     )
 
 
 @pipeline.command()
-@click.option("--N", default=1e4, help="Desired number of haloes in ID file.")
 @click.pass_context
-def select_ids(ctx, N):
+def select_ids(ctx):
 
     # create appropriate filters
     particle_mass = props[ctx["catalog_name"]]
@@ -77,12 +78,11 @@ def select_ids(ctx, N):
 
     # create catalog
     hcat = HaloCatalog(
-        ctx["name"],
+        ctx["catalog_name"],
         ctx["minh_catalog"],
         minh_params,
         hfilter,
         subhalos=False,
-        label="all haloes",
     )
     hcat.load_cat_minh()
 
@@ -91,8 +91,8 @@ def select_ids(ctx, N):
 
     # do we have enough haloes?
     # keep only N of them
-    assert len(hcat) >= N
-    keep = np.random.choice(np.arange(len(hcat)), size=N, replace=False)
+    assert len(hcat) >= ctx["N"]
+    keep = np.random.choice(np.arange(len(hcat)), size=ctx["N"], replace=False)
     hcat.cat = hcat.cat[keep]
 
     # extract ids into a json file
@@ -105,11 +105,25 @@ def select_ids(ctx, N):
 @click.pass_context
 def make_dmcat(ctx):
     # read json file
+    with open(ctx["id_file"], "r") as fp:
+        ids = np.array(json.load(fp))
 
-    # check upid==-1
+    id_filter = halo_filters.get_id_filter(ids)
+    hfilter = halo_filters.HaloFilter(id_filter)
 
-    # create json file for info and CSV file for actual catalog after reading.
-    pass
+    # create hcat to store these ids (use default halo parameters)
+    hcat = HaloCatalog(ctx["catalog_name"], ctx["minh_catalog"], hfilter=hfilter)
+
+    # now load using minh to obtain dm catalog
+    hcat.load_cat_minh()
+
+    # check upid==-1 and length is appropriate
+    assert np.all(hcat.cat["upid"] == -1)
+    assert len(hcat) == ctx["N"]
+
+    # save as CSV to be loaded later.
+    dm_name = "dm_cat.csv"
+    hcat.save_cat(ctx["output"].joinpath(dm_name))
 
 
 @pipeline.command()
