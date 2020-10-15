@@ -16,7 +16,7 @@ _props = {
     "MDPL2": (1.51e9, 3840 ** 3, 1000),
 }
 
-props = {
+all_props = {
     key: {"particle_mass": value[0], "total_particles": value[1], "box_size": value[2]}
     for key, value in _props.items()
 }
@@ -64,13 +64,13 @@ class HaloCatalog(object):
         * minh_params: list of keys (params) to add and be read from minh catalog.
         """
         cat_file = Path(cat_file)
-        assert name in props, "Catalog name is not recognized."
+        assert name in all_props, "Catalog name is not recognized."
         assert subhalos is False, "Not implemented subhalo functionality."
         assert cat_file.name.endswith(".minh") or cat_file.name.endswith(".csv")
 
         self.name = name
         self.cat_file = cat_file
-        self.cat_props = props[self.name]
+        self.cat_props = all_props[self.name]
         self.verbose = verbose
         self.subhalos = subhalos
         self.label = label

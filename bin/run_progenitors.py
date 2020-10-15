@@ -7,30 +7,30 @@ import pickle
 import json
 import click
 import numpy as np
+from astropy.io import ascii
+from astropy.table import Table
 
-from relaxed.progenitors import io_progenitors
-from relaxed.halo_catalogs import HaloCatalog, props
+from relaxed.progenitors import io_progenitors, progenitor_lines
+from relaxed.halo_catalogs import HaloCatalog, all_props
 from relaxed import halo_filters
+from relaxed.subhaloes.catalog import create_subhalo_cat
 
-default_root = Path(__file__).absolute().parent.parent.as_posix()
-
-
-def get_json_dict(json_file):
-    pass
+default_root = Path(__file__).absolute().parent.parent
+read_trees_dir = default_root.joinpath("packages", "consistent_trees", "read_tree")
 
 
 @click.group()
 @click.option("--overwrite", default=False)
-@click.option("--root", default=default_root)
+@click.option("--root", default=default_root.as_posix())
 @click.option("--output-dir", default="output", help="Relative to temp")
-@click.option("--minh-catalog", help="Minh catalog file to read")
+@click.option("--minh-file", help="Minh catalog file to read")
 @click.option("--catalog-name", default="Bolshoi")
 @click.option("--m-low", default=1e11, help="lower log-mass of halo considered.")
 @click.option("--m-high", default=1e12, help="high log-mass of halo considered.")
 @click.option("--N", default=1e4, help="Desired number of haloes in ID file.")
 @click.pass_context
 def pipeline(
-    ctx, overwrite, root, output_dir, catalog_name, minh_catalog, m_low, m_high, N
+    ctx, overwrite, root, output_dir, minh_file, catalog_name, m_low, m_high, N
 ):
     ctx.ensure_object(dict)
 
@@ -44,10 +44,12 @@ def pipeline(
             root=Path(root),
             output=output,
             catalog_name=catalog_name,
-            cat_info=output.joinpath("info.json"),
-            id_file=output.joinpath("ids.json"),
-            dm_catalog=output.joinpath("dm_cat.csv"),
-            minh_catalog=minh_catalog,
+            ids_file=output.joinpath("ids.json"),
+            dm_file=output.joinpath("dm_cat.csv"),
+            subhaloes_file=output.joinpath("subhaloes.csv"),
+            progenitor_dir=output.joinpath("progenitors"),
+            progenitor_file=output.joinpath("progenitors.txt"),
+            minh_file=minh_file,
             m_low=m_low,
             m_high=m_high,
             N=N,
@@ -60,7 +62,7 @@ def pipeline(
 def select_ids(ctx):
 
     # create appropriate filters
-    particle_mass = props[ctx["catalog_name"]]
+    particle_mass = all_props[ctx["catalog_name"]]["particle_mass"]
     mass_filter = halo_filters.get_bound_filter("mvir", ctx["m_low"], ctx["m_high"])
     default_filters = halo_filters.get_default_filters(particle_mass, subhalos=False)
     the_filters = halo_filters.join_filters(mass_filter, default_filters)
@@ -79,7 +81,7 @@ def select_ids(ctx):
     # create catalog
     hcat = HaloCatalog(
         ctx["catalog_name"],
-        ctx["minh_catalog"],
+        ctx["minh_file"],
         minh_params,
         hfilter,
         subhalos=False,
@@ -97,7 +99,7 @@ def select_ids(ctx):
 
     # extract ids into a json file
     ids = list(hcat.cat["id"])
-    with open(ctx["id_file"], "w") as fp:
+    with open(ctx["ids_file"], "w") as fp:
         json.dump(ids, fp)
 
 
@@ -105,14 +107,14 @@ def select_ids(ctx):
 @click.pass_context
 def make_dmcat(ctx):
     # read json file
-    with open(ctx["id_file"], "r") as fp:
+    with open(ctx["ids_file"], "r") as fp:
         ids = np.array(json.load(fp))
 
     id_filter = halo_filters.get_id_filter(ids)
     hfilter = halo_filters.HaloFilter(id_filter)
 
     # create hcat to store these ids (use default halo parameters)
-    hcat = HaloCatalog(ctx["catalog_name"], ctx["minh_catalog"], hfilter=hfilter)
+    hcat = HaloCatalog(ctx["catalog_name"], ctx["minh_file"], hfilter=hfilter)
 
     # now load using minh to obtain dm catalog
     hcat.load_cat_minh()
@@ -122,8 +124,7 @@ def make_dmcat(ctx):
     assert len(hcat) == ctx["N"]
 
     # save as CSV to be loaded later.
-    dm_name = "dm_cat.csv"
-    hcat.save_cat(ctx["output"].joinpath(dm_name))
+    hcat.save_cat(ctx["dm_file"])
 
 
 @pipeline.command()
@@ -131,71 +132,67 @@ def make_dmcat(ctx):
 def make_subhaloes(ctx):
     # change function in subhaloes/catalog.py so that it only uses the host IDs to extract info.
     # then use this function here after reading the ID json file.
-    subhaloes_name = "subhaloes.csv"
+    with open(ctx["ids_file"], "r") as fp:
+        host_ids = np.array(json.load(fp))
+    subcat = create_subhalo_cat(host_ids, ctx["minh_file"])
+    ascii.write(subcat, ctx["subhaloes_file"], format="csv")
 
 
 @pipeline.command()
-@click.command("--cpus", default=1, help="number of cpus to use.")
+@click.command("--cpus", help="number of cpus to use.")
 @click.command(
     "--trees-dir",
     default="data/trees_bolshoi",
     help="folder containing raw data on all trees.",
 )
-@click.command(
-    "--progenitors-dir",
-    default="progenitors",
-    help="dir in output containing progenitor info",
-)
 @click.pass_context
-def progenitors(ctx, trees_dir, progenitors_dir):
+def create_progenitor_file(ctx, cpus, trees_dir):
     trees_dir = ctx["root"].joinpath(trees_dir)
-    progenitors_dir = ctx["output"].joinpath(progenitors_dir)
+    progenitor_dir = ctx["progenitors"]
     assert trees_dir.exist()
-    progenitors_dir.mkdir(exist_ok=False)
+    progenitor_dir.mkdir(exist_ok=False)
+    particle_mass = all_props[ctx["catalog_name"]]["particle_mass"]
+    mcut = particle_mass * 1e3
+    prefix = progenitor_dir.joinpath("mline").as_posix()
 
-    progenitor_dump = progenitors_dir.joinpath("mline")
-    # first write all progenitors to a single file
-
-
-def write(args, paths):
-    """Extract all the progenitor trees in the files contained in paths['trees'], save them to
-    progenitor_path with prefix 'mline'."""
-    assert args.cpus is not None, "Need to specify cpus"
-    # Bolshoi
-    Mcut = 1e3 * catalog_properties["Bolshoi"][0]
-
-    progenitor_path = paths["progenitor_dir"]
-
-    if progenitor_path.exists() and args.overwrite:
-        warnings.warn("Overwriting current progenitor directory")
-        shutil.rmtree(progenitor_path)
-
-    progenitor_path.mkdir(exist_ok=False)
-
+    # first write all progenitors to multiple files
     io_progenitors.write_main_line_progenitors(
-        paths["trees"], progenitor_path.joinpath("mline"), Mcut, cpus=args.cpus
+        read_trees_dir, trees_dir, prefix, mcut, cpus
     )
 
-
-def merge(paths):
-    io_progenitors.merge_progenitors(paths["progenitor_dir"], paths["progenitor_file"])
-
-
-def summarize(paths):
-    io_progenitors.summarize_progenitors(
-        paths["progenitor_file"], paths["summary_file"]
-    )
+    # then merge all of these into a single file
+    io_progenitors.merge_progenitors(progenitor_dir, ctx["progenitor_file"])
 
 
-def save_tables(paths, ids_file):
+@pipeline.command()
+@click.pass_context
+def create_progenitor_table(ctx):
+    with open(ctx["ids_file"], "r") as fp:
+        ids = set(json.load(fp))
 
-    # save all progenitors into tables in a single h5py file.
-    # ids_file is a pickle file with ids that will be saved
-    assert ids_file is not None
-    with open(ids_file, "r") as fp:
-        ids = pickle.load(fp)
-        io_progenitors.save_tables()
+    prog_lines = []
+    scales = set()
 
+    # now read the progenitor file using generators.
+    # first obtain all scales available, save lines that we want to use.
+    prog_generator = progenitor_lines.get_prog_lines_generator(ctx["progenitor_file"])
+    for prog_line in prog_generator:
+        if prog_line.root_id in ids:
+            scales = scales.union(set(prog_line.cat["scale"]))
+            prog_lines.append(prog_line)
 
-if __name__ == "__main__":
-    pipeline()
+    scales = sorted(list(scales), reverse=True)
+    z_map = {i: scales for i in range(len(scales))}
+    names = ("id", *[f"m_a_{i}" for i in range(len(scales))])
+    n_lines = len(prog_lines)
+    values = np.zeros(len(names), n_lines)
+
+    for i, prog_line in enumerate(prog_lines):
+        values[0] = prog_line.root_id
+        values[1:, i] = prog_line["mvir"]
+
+    t = Table(names=names, data=values)
+    ascii.write(t, "progenitor_table.csv", format="csv")
+
+    with open("z_map.json", "w") as fp:
+        json.dump(z_map, fp)

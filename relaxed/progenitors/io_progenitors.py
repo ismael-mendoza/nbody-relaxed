@@ -3,6 +3,7 @@ import os
 import re
 import subprocess
 import numpy as np
+from pathlib import PosixPath
 
 from astropy.io import ascii
 from astropy.table import Table
@@ -18,9 +19,11 @@ def work(task):
     return subprocess.run(task, shell=True)
 
 
-def download_trees(ncubes, data_dir, url_skeleton):
+def download_trees(ncubes, data_dir, catalog_name):
     """Download all the bolshoi trees from the listed url."""
+    assert type(data_dir) is PosixPath
 
+    url_skeleton = url_skeletons[catalog_name]
     if data_dir.exists():
         raise IOError("Directory already exists! Overwriting?")
 
@@ -41,24 +44,29 @@ def download_trees(ncubes, data_dir, url_skeleton):
     )
 
 
-def write_main_line_progenitors(tree_dir, prefix, mcut, cpus=5):
+def write_main_line_progenitors(read_trees_dir, trees_dir, prefix, mcut, cpus=5):
     """Use the consistent trees package to extract main progenitor lines from downloaded trees.
 
     Args:
-        tree_dir (str): where trees are saved (.dat files).
+        read_trees_dir
+        trees_dir: where trees are saved (.dat files).
         prefix (str): where to save each file and it's name.
+        mcut (float):
+        cpus (int):
     """
-    subprocess.run(f"cd {utils.read_tree_path.as_posix()}; make", shell=True)
+    assert type(read_trees_dir) is PosixPath
+    assert type(trees_dir) is PosixPath
+
+    subprocess.run(f"cd {read_trees_dir.as_posix()}; make", shell=True)
     cmds = []
-    for p in tree_dir.iterdir():
+    for p in trees_dir.iterdir():
         if p.suffix == ".dat" and p.name.startswith("tree"):
             print(f"Found tree: {p.name}")
-
             # get numbered part.
             suffx = re.search(r"tree(_\d_\d_\d)\.dat", p.name).groups()[0]
             cmd = (
-                f"cd {utils.read_tree_path.as_posix()}; ./read_tree {p.as_posix()} "
-                f"{out_file_prefix.as_posix()}{suffx}.txt {Mcut}"
+                f"cd {read_trees_dir.as_posix()}; "
+                f"./read_tree {p.as_posix()} {prefix}{suffx}.txt {mcut}"
             )
             cmds.append(cmd)
 

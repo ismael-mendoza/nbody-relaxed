@@ -1,39 +1,43 @@
 import numpy as np
-from . import quantities
-import astropy
 from astropy.table import Table
+from pminh import minh
+
+from . import quantities
+from ..halo_catalogs import intersect
 
 
-def extract_subhalo(host_cat, minh_cat):
-    # TODO: change this function to accommodate lower mass host halos.
+def create_subhalo_cat(host_ids, minh_file):
+    # mcat is complete and must be read by blocks.
+    # host_ids correspond only host haloes w/ upid == -1
     # now we also want to add subhalo fraction and we follow Phil's lead
 
-    host_ids = host_cat["id"]
-    host_mvir = host_cat["mvir"]
-    M_sub_sum = np.zeros(len(host_mvir))
+    assert type(host_ids) == np.ndarray
 
-    for b in range(minh_cat.blocks):
-        upid, mvir = minh_cat.block(b, ["upid", "mvir"])
+    # will fill out as we read the blocks.
+    f_sub = np.zeros(len(host_ids))
+    host_mvir = np.zeros(len(host_ids))
+    fnames = ["id", "mvir", "f_sub"]
+    fdata = [host_ids, host_mvir, f_sub]
+    subcat = Table(names=fnames, data=fdata)
+    subcat.sort("id")
 
-        # need to contain only ids of host_ids for it to work.
-        sub_pids = upid[upid != -1]
-        sub_mvir = mvir[upid != -1]
-        M_sub_sum += quantities.m_sub(host_ids, sub_pids, sub_mvir)
+    with minh.open(minh_file) as mcat:
+        for b in range(mcat.blocks):
+            names = ["id", "upid", "mvir"]
+            ids, upid, mvir = mcat.block(b, names)
+            table = Table(names=names, data=[ids, upid, mvir])
+            table.sort("id")
 
-    f_sub = M_sub_sum / host_mvir  # subhalo mass fraction.
-    subhalo_cat = Table(data=[host_ids, f_sub], names=["id", "f_sub"])
+            # first we calculate host_mvir
+            keep = intersect(table["id"], host_ids)
+            indx_ok = intersect(host_ids, table[keep]["id"])
+            subcat["mvir"][indx_ok] = table[keep]["mvir"]
 
-    return subhalo_cat
+            # need to contain only ids of host_ids for it to work.
+            sub_pids = upid[upid != -1]
+            sub_mvir = mvir[upid != -1]
+            subcat["f_sub"] += quantities.m_sub(host_ids, sub_pids, sub_mvir)
 
-
-def add_subhalo_info(host_hcat, minh_cat):
-    # mcat is complete
-    # host_hcat contains only host haloes w/ upid == -1
-    host_cat = host_hcat.cat
-    assert np.all(host_cat["upid"] == -1), "Needs to be a host catalog"
-    assert "mvir" in host_cat.colnames and "id" in host_cat.colnames
-    assert "f_sub" not in host_cat.colnames, "Already processed."
-    subhalo_cat = extract_subhalo(host_cat, minh_cat)
-    fcat = astropy.table.join(host_cat, subhalo_cat, keys="id")
-    host_hcat.cat = fcat
-    return host_hcat
+    assert np.all(subcat["mvir"] > 0)
+    subcat["f_sub"] = subcat["f_sub"] / subcat["m_vir"]
+    return subcat
