@@ -29,7 +29,7 @@ read_trees_dir = the_root.joinpath("packages", "consistent_trees", "read_tree")
     show_default=True,
 )
 @click.option("--catalog-name", default="Bolshoi", type=str)
-@click.option("--m-low", default=1e11, help="lower log-mass of halo considered.")
+@click.option("--m-low", default=1.5e11, help="lower log-mass of halo considered.")
 @click.option("--m-high", default=1e12, help="high log-mass of halo considered.")
 @click.option(
     "--num-haloes", default=1e4, type=int, help="Desired number of haloes in ID file."
@@ -39,12 +39,10 @@ def pipeline(
     ctx, overwrite, root, output_dir, minh_file, catalog_name, m_low, m_high, num_haloes
 ):
     ctx.ensure_object(dict)
-
-    # output directly lives in side temp
     output = Path(root).joinpath("temp", output_dir)
     if output.exists() and overwrite:
         shutil.rmtree(output)
-    output.mkdir(exist_ok=False, parents=False)
+    output.mkdir(exist_ok=True, parents=False)
     data = Path(root).joinpath("data")
     minh_file = data.joinpath(minh_file)
     ctx.obj.update(
@@ -71,7 +69,7 @@ def pipeline(
 def select_ids(ctx):
     # create appropriate filters
     particle_mass = all_props[ctx.obj["catalog_name"]]["particle_mass"]
-    assert ctx.obj["m_low"] > particle_mass * 1e3
+    assert ctx.obj["m_low"] > particle_mass * 1e3, f"particle mass: {particle_mass:.3g}"
     the_filters = {
         "mvir": lambda x: (x > ctx.obj["m_low"]) & (x < ctx.obj["m_high"]),
         "upid": lambda x: x == -1,
@@ -95,17 +93,18 @@ def select_ids(ctx):
     )
     hcat.load_cat_minh()
 
-    # double check only host haloes are allowed.
-    assert np.all(hcat.cat["upid"] == -1)
-
     # do we have enough haloes?
     # keep only N of them
     assert len(hcat) >= ctx.obj["N"]
     keep = np.random.choice(np.arange(len(hcat)), size=ctx.obj["N"], replace=False)
     hcat.cat = hcat.cat[keep]
 
-    # extract ids into a json file
-    ids = list(hcat.cat["id"])
+    # double check only host haloes are allowed.
+    assert np.all(hcat.cat["upid"] == -1)
+
+    # extract ids into a json file, first convert to int's.
+    ids = [int(x) for x in hcat.cat["id"]]
+    assert len(ids) == ctx.obj["N"]
     with open(ctx.obj["ids_file"], "w") as fp:
         json.dump(ids, fp)
 
@@ -113,25 +112,25 @@ def select_ids(ctx):
 @pipeline.command()
 @click.pass_context
 def make_dmcat(ctx):
-    # read json file
-    with open(ctx["ids_file"], "r") as fp:
+    with open(ctx.obj["ids_file"], "r") as fp:
         ids = np.array(json.load(fp))
 
     id_filter = halo_filters.get_id_filter(ids)
     hfilter = halo_filters.HaloFilter(id_filter)
 
-    # create hcat to store these ids (use default halo parameters)
-    hcat = HaloCatalog(ctx["catalog_name"], ctx["minh_file"], hfilter=hfilter)
+    # create hcat to store these ids
+    # NOTE: Use default halo parameters defined in HaloCatalog.
+    hcat = HaloCatalog(ctx.obj["catalog_name"], ctx.obj["minh_file"], hfilter=hfilter)
 
     # now load using minh to obtain dm catalog
     hcat.load_cat_minh()
 
-    # check upid==-1 and length is appropriate
+    assert np.all(hcat.cat["id"] == ids)
+    assert len(hcat) == ctx.obj["N"]
     assert np.all(hcat.cat["upid"] == -1)
-    assert len(hcat) == ctx["N"]
 
     # save as CSV to be loaded later.
-    hcat.save_cat(ctx["dm_file"])
+    hcat.save_cat(ctx.obj["dm_file"])
 
 
 @pipeline.command()
@@ -139,7 +138,7 @@ def make_dmcat(ctx):
 def make_subhaloes(ctx):
     # change function in subhaloes/catalog.py so that it only uses the host IDs to extract info.
     # then use this function here after reading the ID json file.
-    with open(ctx["ids_file"], "r") as fp:
+    with open(ctx.obj["ids_file"], "r") as fp:
         host_ids = np.array(json.load(fp))
     subcat = create_subhalo_cat(host_ids, ctx["minh_file"])
     ascii.write(subcat, ctx["subhaloes_file"], format="csv")
@@ -154,11 +153,11 @@ def make_subhaloes(ctx):
 )
 @click.pass_context
 def create_progenitor_file(ctx, cpus, trees_dir):
-    trees_dir = ctx["root"].joinpath(trees_dir)
-    progenitor_dir = ctx["progenitors"]
+    trees_dir = ctx.obj["root"].joinpath(trees_dir)
+    progenitor_dir = ctx.obj["progenitors"]
     assert trees_dir.exist()
     progenitor_dir.mkdir(exist_ok=False)
-    particle_mass = all_props[ctx["catalog_name"]]["particle_mass"]
+    particle_mass = all_props[ctx.obj["catalog_name"]]["particle_mass"]
     mcut = particle_mass * 1e3
     prefix = progenitor_dir.joinpath("mline").as_posix()
 
@@ -168,13 +167,13 @@ def create_progenitor_file(ctx, cpus, trees_dir):
     )
 
     # then merge all of these into a single file
-    io_progenitors.merge_progenitors(progenitor_dir, ctx["progenitor_file"])
+    io_progenitors.merge_progenitors(progenitor_dir, ctx.obj["progenitor_file"])
 
 
 @pipeline.command()
 @click.pass_context
 def create_progenitor_table(ctx):
-    with open(ctx["ids_file"], "r") as fp:
+    with open(ctx.obj["ids_file"], "r") as fp:
         ids = set(json.load(fp))
 
     prog_lines = []
@@ -182,7 +181,9 @@ def create_progenitor_table(ctx):
 
     # now read the progenitor file using generators.
     # first obtain all scales available, save lines that we want to use.
-    prog_generator = progenitor_lines.get_prog_lines_generator(ctx["progenitor_file"])
+    prog_generator = progenitor_lines.get_prog_lines_generator(
+        ctx.obj["progenitor_file"]
+    )
     for prog_line in prog_generator:
         if prog_line.root_id in ids:
             scales = scales.union(set(prog_line.cat["scale"]))
