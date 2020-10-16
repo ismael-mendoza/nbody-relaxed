@@ -8,7 +8,29 @@ import warnings
 from copy import deepcopy
 
 from . import halo_parameters
-from .halo_catalogs import intersect
+
+
+def intersect(ids1, ids2):
+    """Intersect two np.array IDs.
+
+    Args:
+        Both inputs should be np.arrays.
+
+    Returns:
+        An boolean array `indx_ok` corresponding to `ids1` s.t. `indx_ok[i]` is true iff
+        `ids1[i]` is contained in `ids2`.
+
+    Notes:
+        - Full intersection by repeating operation but switching order.
+    """
+    assert type(ids1) == type(ids2) == np.ndarray
+    ids1.sort()
+    ids2.sort()
+    indx = np.searchsorted(ids2, ids1)
+    indx_ok = indx < len(ids2)
+    indx_ok[indx_ok] &= ids2[indx[indx_ok]] == ids1[indx_ok]
+
+    return indx_ok
 
 
 def join_filters(filter1, filter2):

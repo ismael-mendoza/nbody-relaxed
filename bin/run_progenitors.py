@@ -2,8 +2,6 @@
 
 from pathlib import Path
 import shutil
-import warnings
-import pickle
 import json
 import click
 import numpy as np
@@ -139,8 +137,8 @@ def make_subhaloes(ctx):
 
 
 @pipeline.command()
-@click.command("--cpus", help="number of cpus to use.")
-@click.command(
+@click.option("--cpus", help="number of cpus to use.")
+@click.option(
     "--trees-dir",
     default="data/trees_bolshoi",
     help="folder containing raw data on all trees.",

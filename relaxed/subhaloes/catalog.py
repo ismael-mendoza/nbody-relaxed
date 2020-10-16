@@ -3,7 +3,7 @@ from astropy.table import Table
 from pminh import minh
 
 from . import quantities
-from ..halo_catalogs import intersect
+from ..halo_filters import intersect
 
 
 def create_subhalo_cat(host_ids, minh_file):
