@@ -13,22 +13,30 @@ from relaxed.halo_catalogs import HaloCatalog, all_props
 from relaxed import halo_filters
 from relaxed.subhaloes.catalog import create_subhalo_cat
 
-default_root = Path(__file__).absolute().parent.parent
-read_trees_dir = default_root.joinpath("packages", "consistent_trees", "read_tree")
+the_root = Path(__file__).absolute().parent.parent
+read_trees_dir = the_root.joinpath("packages", "consistent_trees", "read_tree")
 
 
 @click.group()
-@click.option("--overwrite", default=False)
-@click.option("--root", default=default_root.as_posix())
-@click.option("--output-dir", default="output", help="Relative to temp")
-@click.option("--minh-file", help="Minh catalog file to read")
-@click.option("--catalog-name", default="Bolshoi")
+@click.option("--overwrite", default=False, type=bool)
+@click.option("--root", default=the_root.as_posix(), type=str, show_default=True)
+@click.option("--output-dir", default="output", help="w.r.t temp", type=str)
+@click.option(
+    "--minh-file",
+    help="w.r.t. to data",
+    type=str,
+    default="Bolshoi/minh/hlist_1.00035.minh",
+    show_default=True,
+)
+@click.option("--catalog-name", default="Bolshoi", type=str)
 @click.option("--m-low", default=1e11, help="lower log-mass of halo considered.")
 @click.option("--m-high", default=1e12, help="high log-mass of halo considered.")
-@click.option("--N", default=1e4, help="Desired number of haloes in ID file.")
+@click.option(
+    "--num-haloes", default=1e4, type=int, help="Desired number of haloes in ID file."
+)
 @click.pass_context
 def pipeline(
-    ctx, overwrite, root, output_dir, minh_file, catalog_name, m_low, m_high, N
+    ctx, overwrite, root, output_dir, minh_file, catalog_name, m_low, m_high, num_haloes
 ):
     ctx.ensure_object(dict)
 
@@ -37,20 +45,23 @@ def pipeline(
     if output.exists() and overwrite:
         shutil.rmtree(output)
     output.mkdir(exist_ok=False, parents=False)
+    data = Path(root).joinpath("data")
+    minh_file = data.joinpath(minh_file)
     ctx.obj.update(
         dict(
             root=Path(root),
+            data=data,
             output=output,
             catalog_name=catalog_name,
+            minh_file=minh_file,
             ids_file=output.joinpath("ids.json"),
             dm_file=output.joinpath("dm_cat.csv"),
             subhaloes_file=output.joinpath("subhaloes.csv"),
             progenitor_dir=output.joinpath("progenitors"),
             progenitor_file=output.joinpath("progenitors.txt"),
-            minh_file=minh_file,
             m_low=m_low,
             m_high=m_high,
-            N=N,
+            N=num_haloes,
         )
     )
 
@@ -58,28 +69,26 @@ def pipeline(
 @pipeline.command()
 @click.pass_context
 def select_ids(ctx):
-
     # create appropriate filters
-    particle_mass = all_props[ctx["catalog_name"]]["particle_mass"]
-    mass_filter = halo_filters.get_bound_filter("mvir", ctx["m_low"], ctx["m_high"])
-    default_filters = halo_filters.get_default_filters(particle_mass, subhalos=False)
-    the_filters = halo_filters.join_filters(mass_filter, default_filters)
-    hfilter = halo_filters.HaloFilter(the_filters, name=ctx["catalog_name"])
+    particle_mass = all_props[ctx.obj["catalog_name"]]["particle_mass"]
+    m_low = max(ctx.obj["m_low"], particle_mass * 1e3)
+    the_filters = {
+        "mvir": lambda x: (x > m_low) & (x < ctx.obj["m_high"]),
+        "upid": lambda x: x == -1,
+    }
+    hfilter = halo_filters.HaloFilter(the_filters, name=ctx.obj["catalog_name"])
 
     # we only need the params that appear in the filter. (including 'id' and 'mvir')
     minh_params = [
         "id",
         "mvir",
         "upid",
-        "spin",
-        "q",
-        "vrms",
     ]
 
     # create catalog
     hcat = HaloCatalog(
-        ctx["catalog_name"],
-        ctx["minh_file"],
+        ctx.obj["catalog_name"],
+        ctx.obj["minh_file"],
         minh_params,
         hfilter,
         subhalos=False,
@@ -91,13 +100,13 @@ def select_ids(ctx):
 
     # do we have enough haloes?
     # keep only N of them
-    assert len(hcat) >= ctx["N"]
-    keep = np.random.choice(np.arange(len(hcat)), size=ctx["N"], replace=False)
+    assert len(hcat) >= ctx.obj["N"]
+    keep = np.random.choice(np.arange(len(hcat)), size=ctx.obj["N"], replace=False)
     hcat.cat = hcat.cat[keep]
 
     # extract ids into a json file
     ids = list(hcat.cat["id"])
-    with open(ctx["ids_file"], "w") as fp:
+    with open(ctx.obj["ids_file"], "w") as fp:
         json.dump(ids, fp)
 
 
@@ -194,3 +203,7 @@ def create_progenitor_table(ctx):
 
     with open("z_map.json", "w") as fp:
         json.dump(z_map, fp)
+
+
+if __name__ == "__main__":
+    pipeline()

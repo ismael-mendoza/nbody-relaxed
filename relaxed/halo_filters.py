@@ -33,20 +33,6 @@ def intersect(ids1, ids2):
     return indx_ok
 
 
-def join_filters(filter1, filter2):
-    filters = {}
-    keys = set(filter1.keys()).union(set(filter2.keys()))
-    for key in keys:
-        if key in filter1 and key not in filter2:
-            filters[key] = filter1[key]
-        if key in filter2 and key not in filter1:
-            filters[key] = filter2[key]
-        else:
-            filters[key] = lambda x: (filter1[key](x)) & (filter2[key](x))
-
-    return filters
-
-
 def get_id_filter(ids):
     assert type(ids) is np.ndarray or type(ids) is list
     ids = np.array(ids)
@@ -128,10 +114,6 @@ def get_default_filters(particle_mass, subhalos):
     return {
         **particle_mass_filter(particle_mass, subhalos),
         "upid": lambda x: (x == -1 if not subhalos else x >= 0),
-        # the ones after seem to have no effect after for not subhalos.
-        "spin": lambda x: x != 0,
-        "q": lambda x: x != 0,
-        "vrms": lambda x: x != 0,
     }
 
 
