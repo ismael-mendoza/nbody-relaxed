@@ -71,9 +71,9 @@ def pipeline(
 def select_ids(ctx):
     # create appropriate filters
     particle_mass = all_props[ctx.obj["catalog_name"]]["particle_mass"]
-    m_low = max(ctx.obj["m_low"], particle_mass * 1e3)
+    assert ctx.obj["m_low"] > particle_mass * 1e3
     the_filters = {
-        "mvir": lambda x: (x > m_low) & (x < ctx.obj["m_high"]),
+        "mvir": lambda x: (x > ctx.obj["m_low"]) & (x < ctx.obj["m_high"]),
         "upid": lambda x: x == -1,
     }
     hfilter = halo_filters.HaloFilter(the_filters, name=ctx.obj["catalog_name"])
