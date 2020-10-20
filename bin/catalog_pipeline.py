@@ -103,7 +103,7 @@ def select_ids(ctx):
     assert np.all(hcat.cat["upid"] == -1)
 
     # extract ids into a json file, first convert to int's.
-    ids = [int(x) for x in hcat.cat["id"]]
+    ids = sorted([int(x) for x in hcat.cat["id"]])
     assert len(ids) == ctx.obj["N"]
     with open(ctx.obj["ids_file"], "w") as fp:
         json.dump(ids, fp)

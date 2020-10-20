@@ -99,6 +99,9 @@ class HaloCatalog(object):
                         values = hparam.get_values_minh_block(mcat, b)
                         cat.add_column(values, name=param)
 
+                # make sure it's sorted by ID in case using id_filter
+                cat.sort("id")
+
                 # filter to reduce size of each block.
                 cat = self.hfilter.filter_cat(cat)
                 cats.append(cat)
