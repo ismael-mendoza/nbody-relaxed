@@ -7,6 +7,7 @@ import numpy as np
 from astropy.io import ascii
 from astropy.table import Table
 
+from halo_filters import intersect
 from relaxed.progenitors import io_progenitors, progenitor_lines
 from relaxed.halo_catalogs import HaloCatalog, all_props
 from relaxed import halo_filters
@@ -143,6 +144,7 @@ def make_subhaloes(ctx):
         host_ids = np.array(json.load(fp))
     subcat = create_subhalo_cat(host_ids, ctx.obj["minh_file"])
     ascii.write(subcat, ctx.obj["subhaloes_file"], format="csv")
+    assert np.all(subcat["id"] == host_ids)
 
 
 @pipeline.command()
@@ -172,8 +174,10 @@ def create_progenitor_file(ctx, cpus, trees_dir):
 
 
 @pipeline.command()
+@click.option("--logs-file", help="File for logging", default="logs.txt")
 @click.pass_context
-def create_progenitor_table(ctx):
+def create_progenitor_table(ctx, logs_file):
+
     # total in progenitor_file ~ 382477
     # takes like 2 hrs to run.
     with open(ctx.obj["ids_file"], "r") as fp:
@@ -183,24 +187,26 @@ def create_progenitor_table(ctx):
     scales = set()
 
     # now read the progenitor file using generators.
-    # first obtain all scales available, save lines that we want to use.
     prog_generator = progenitor_lines.get_prog_lines_generator(
         ctx.obj["progenitor_file"]
     )
 
+    # first obtain all scales available + save lines that we want to use.
     matches = 0
-    for i, prog_line in enumerate(prog_generator):
-        if i % 10000 == 0 and i > 0:
-            print(i)
-            print("matches:", matches)
-        if prog_line.root_id in ids:
-            if matches == 0:
-                # avoid empty set intersection.
-                scales = set(prog_line.cat["scale"])
-            else:
-                scales = scales.intersection(set(prog_line.cat["scale"]))
-            prog_lines.append(prog_line)
-            matches += 1
+    logs_file = ctx.obj["output"].joinpath(logs_file)
+    with open(logs_file, "w") as fp:
+        for i, prog_line in enumerate(prog_generator):
+            if i % 10000 == 0:
+                print(i, file=fp)
+                print("matches:", matches, file=fp, flush=True)
+            if prog_line.root_id in ids:
+                if matches == 0:
+                    # avoid empty set intersection.
+                    scales = set(prog_line.cat["scale"])
+                else:
+                    scales = scales.intersection(set(prog_line.cat["scale"]))
+                prog_lines.append(prog_line)
+                matches += 1
 
     scales = sorted(list(scales), reverse=True)
     z_map = {i: scale for i, scale in enumerate(scales)}
@@ -213,11 +219,12 @@ def create_progenitor_table(ctx):
         values[i, 1:] = prog_line.cat["mvir"][:n_scales]
 
     t = Table(names=names, data=values)
+    t.sort("id")
     progenitor_table_file = ctx.obj["output"].joinpath("progenitor_table.csv")
-    ascii.write(t, progenitor_table_file, format="csv")
-
     z_map_file = ctx.obj["output"].joinpath("z_map.json")
 
+    # save final table and json file mapping index to scale
+    ascii.write(t, progenitor_table_file, format="csv")
     with open(z_map_file, "w") as fp:
         json.dump(z_map, fp)
 
@@ -225,13 +232,30 @@ def create_progenitor_table(ctx):
 @pipeline.command()
 @click.pass_context
 def combine_all(ctx):
-    with open(ctx.obj["ids_file"], "r") as fp:
-        ids = set(json.load(fp))
 
+    # load the 3 catalogs that we will be combining
     dm_cat = ascii.read(ctx.obj["dm_file"], format="csv", fast_reader=True)
     subhalo_cat = ascii.read(ctx.obj["subhaloes_file"], format="csv", fast_reader=True)
+    progenitor_file = ctx.obj["output"].joinpath("progenitor_table.csv")
+    progenitor_cat = ascii.read(progenitor_file, format="csv", fast_reader=True)
 
-    assert np.all(dm_cat["m_vir"] == subhalo_cat["mvir"])
+    # make sure all 3 catalog have exactly the same IDs and in the correct order.
+    assert sorted(list(dm_cat["id"])) == sorted(list(subhalo_cat["id"]))
+    common_ids = set(dm_cat["id"]).intersection(set(progenitor_cat["id"]))
+    common_ids = np.array(sorted(list(common_ids)))
+    ids1 = np.array(dm_cat["id"])
+    ids2 = np.array(progenitor_cat["id"])
+    keep1 = intersect(ids1, common_ids)
+    keep2 = intersect(ids2, common_ids)
+    dm_cat = dm_cat[keep1]
+    subhalo_cat = subhalo_cat[keep1]
+    progenitor_cat = progenitor_cat[keep2]
+
+    # make sure masses and IDs are aok
+    assert np.all(dm_cat["id"] == subhalo_cat["id"] == progenitor_cat["id"])
+    assert np.all(dm_cat["m_vir"] == subhalo_cat["mvir"] == progenitor_cat["mvir_a0"])
+
+    # TODO: use astropy.table.join to merge tables by ID.
 
     # discard haloes with f_sub > 1
 
