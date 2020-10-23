@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 from pathlib import Path
-import shutil
 import json
 import click
 import numpy as np
@@ -14,11 +13,10 @@ from relaxed import halo_filters
 from relaxed.subhaloes.catalog import create_subhalo_cat
 
 the_root = Path(__file__).absolute().parent.parent
-read_trees_dir = the_root.joinpath("packages", "consistent_trees", "read_tree")
+read_trees_dir = the_root.joinpath("packages", "consistent-trees", "read_tree")
 
 
 @click.group()
-@click.option("--overwrite", default=False, type=bool)
 @click.option("--root", default=the_root.as_posix(), type=str, show_default=True)
 @click.option("--output-dir", default="output", help="w.r.t temp", type=str)
 @click.option(
@@ -32,17 +30,18 @@ read_trees_dir = the_root.joinpath("packages", "consistent_trees", "read_tree")
 @click.option("--m-low", default=1.5e11, help="lower log-mass of halo considered.")
 @click.option("--m-high", default=1e12, help="high log-mass of halo considered.")
 @click.option(
-    "--num-haloes", default=1e4, type=int, help="Desired number of haloes in ID file."
+    "--num-haloes",
+    default=int(1e4),
+    type=int,
+    help="Desired num haloes in ID file.",
 )
 @click.pass_context
-def pipeline(
-    ctx, overwrite, root, output_dir, minh_file, catalog_name, m_low, m_high, num_haloes
-):
+def pipeline(ctx, root, output_dir, minh_file, catalog_name, m_low, m_high, num_haloes):
     ctx.ensure_object(dict)
     output = Path(root).joinpath("temp", output_dir)
-    if output.exists() and overwrite:
-        shutil.rmtree(output)
-    output.mkdir(exist_ok=True, parents=False)
+    ids_file = output.joinpath("ids.json")
+    exist_ok = True if ids_file.exists() else False
+    output.mkdir(exist_ok=exist_ok, parents=False)
     data = Path(root).joinpath("data")
     minh_file = data.joinpath(minh_file)
     ctx.obj.update(
@@ -52,7 +51,7 @@ def pipeline(
             output=output,
             catalog_name=catalog_name,
             minh_file=minh_file,
-            ids_file=output.joinpath("ids.json"),
+            ids_file=ids_file,
             dm_file=output.joinpath("dm_cat.csv"),
             subhaloes_file=output.joinpath("subhaloes.csv"),
             progenitor_dir=output.joinpath("progenitors"),
@@ -115,6 +114,8 @@ def make_dmcat(ctx):
     with open(ctx.obj["ids_file"], "r") as fp:
         ids = np.array(json.load(fp))
 
+    assert np.all(np.sort(ids) == ids)
+
     id_filter = halo_filters.get_id_filter(ids)
     hfilter = halo_filters.HaloFilter(id_filter)
 
@@ -140,24 +141,24 @@ def make_subhaloes(ctx):
     # then use this function here after reading the ID json file.
     with open(ctx.obj["ids_file"], "r") as fp:
         host_ids = np.array(json.load(fp))
-    subcat = create_subhalo_cat(host_ids, ctx["minh_file"])
-    ascii.write(subcat, ctx["subhaloes_file"], format="csv")
+    subcat = create_subhalo_cat(host_ids, ctx.obj["minh_file"])
+    ascii.write(subcat, ctx.obj["subhaloes_file"], format="csv")
 
 
 @pipeline.command()
 @click.option("--cpus", help="number of cpus to use.")
 @click.option(
     "--trees-dir",
-    default="data/trees_bolshoi",
-    help="folder containing raw data on all trees.",
+    default="trees_bolshoi",
+    help="folder containing raw data on all trees relative to data.",
 )
 @click.pass_context
 def create_progenitor_file(ctx, cpus, trees_dir):
-    trees_dir = ctx.obj["root"].joinpath(trees_dir)
-    progenitor_dir = ctx.obj["progenitors"]
-    assert trees_dir.exist()
-    progenitor_dir.mkdir(exist_ok=False)
     particle_mass = all_props[ctx.obj["catalog_name"]]["particle_mass"]
+    trees_dir = ctx.obj["data"].joinpath(trees_dir)
+    progenitor_dir = ctx.obj["progenitor_dir"]
+    assert trees_dir.exists()
+    progenitor_dir.mkdir(exist_ok=False)
     mcut = particle_mass * 1e3
     prefix = progenitor_dir.joinpath("mline").as_posix()
 
@@ -173,6 +174,8 @@ def create_progenitor_file(ctx, cpus, trees_dir):
 @pipeline.command()
 @click.pass_context
 def create_progenitor_table(ctx):
+    # total in progenitor_file ~ 382477
+    # takes like 2 hrs to run.
     with open(ctx.obj["ids_file"], "r") as fp:
         ids = set(json.load(fp))
 
@@ -184,26 +187,53 @@ def create_progenitor_table(ctx):
     prog_generator = progenitor_lines.get_prog_lines_generator(
         ctx.obj["progenitor_file"]
     )
-    for prog_line in prog_generator:
+
+    matches = 0
+    for i, prog_line in enumerate(prog_generator):
+        if i % 10000 == 0 and i > 0:
+            print(i)
+            print("matches:", matches)
         if prog_line.root_id in ids:
-            scales = scales.union(set(prog_line.cat["scale"]))
+            if matches == 0:
+                # avoid empty set intersection.
+                scales = set(prog_line.cat["scale"])
+            else:
+                scales = scales.intersection(set(prog_line.cat["scale"]))
             prog_lines.append(prog_line)
+            matches += 1
 
     scales = sorted(list(scales), reverse=True)
-    z_map = {i: scales for i in range(len(scales))}
-    names = ("id", *[f"m_a_{i}" for i in range(len(scales))])
-    n_lines = len(prog_lines)
-    values = np.zeros(len(names), n_lines)
+    z_map = {i: scale for i, scale in enumerate(scales)}
+    n_scales = len(scales)
+    names = ("id", *[f"mvir_a{i}" for i in range(len(scales))])
+    values = np.zeros((len(prog_lines), len(names)))
 
     for i, prog_line in enumerate(prog_lines):
-        values[0] = prog_line.root_id
-        values[1:, i] = prog_line["mvir"]
+        values[i, 0] = prog_line.root_id
+        values[i, 1:] = prog_line.cat["mvir"][:n_scales]
 
     t = Table(names=names, data=values)
-    ascii.write(t, "progenitor_table.csv", format="csv")
+    progenitor_table_file = ctx.obj["output"].joinpath("progenitor_table.csv")
+    ascii.write(t, progenitor_table_file, format="csv")
 
-    with open("z_map.json", "w") as fp:
+    z_map_file = ctx.obj["output"].joinpath("z_map.json")
+
+    with open(z_map_file, "w") as fp:
         json.dump(z_map, fp)
+
+
+@pipeline.command()
+@click.pass_context
+def combine_all(ctx):
+    with open(ctx.obj["ids_file"], "r") as fp:
+        ids = set(json.load(fp))
+
+    dm_cat = ascii.read(ctx.obj["dm_file"], format="csv", fast_reader=True)
+    subhalo_cat = ascii.read(ctx.obj["subhaloes_file"], format="csv", fast_reader=True)
+
+    assert np.all(dm_cat["m_vir"] == subhalo_cat["mvir"])
+
+    # discard haloes with f_sub > 1
 
 
 if __name__ == "__main__":

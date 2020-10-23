@@ -48,14 +48,12 @@ def write_main_line_progenitors(read_trees_dir, trees_dir, prefix, mcut, cpus=5)
     """Use the consistent trees package to extract main progenitor lines from downloaded trees.
 
     Args:
-        read_trees_dir
-        trees_dir: where trees are saved (.dat files).
-        prefix (str): where to save each file and it's name.
+        read_trees_dir (PosixPath):
+        trees_dir (PosixPath): where trees are saved (.dat files).
+        prefix (PosixPath): where to save each file and it's name.
         mcut (float):
         cpus (int):
     """
-    assert type(read_trees_dir) is PosixPath
-    assert type(trees_dir) is PosixPath
 
     subprocess.run(f"cd {read_trees_dir.as_posix()}; make", shell=True)
     cmds = []

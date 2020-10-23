@@ -12,6 +12,7 @@ def create_subhalo_cat(host_ids, minh_file):
     # now we also want to add subhalo fraction and we follow Phil's lead
 
     assert type(host_ids) == np.ndarray
+    assert np.all(np.sort(host_ids) == host_ids)
 
     # will fill out as we read the blocks.
     f_sub = np.zeros(len(host_ids))
@@ -29,8 +30,8 @@ def create_subhalo_cat(host_ids, minh_file):
             table.sort("id")
 
             # first we calculate host_mvir
-            keep = intersect(table["id"], host_ids)
-            indx_ok = intersect(host_ids, table[keep]["id"])
+            keep = intersect(np.array(table["id"]), host_ids)
+            indx_ok = intersect(host_ids, np.array(table[keep]["id"]))
             subcat["mvir"][indx_ok] = table[keep]["mvir"]
 
             # need to contain only ids of host_ids for it to work.
@@ -39,5 +40,5 @@ def create_subhalo_cat(host_ids, minh_file):
             subcat["f_sub"] += quantities.m_sub(host_ids, sub_pids, sub_mvir)
 
     assert np.all(subcat["mvir"] > 0)
-    subcat["f_sub"] = subcat["f_sub"] / subcat["m_vir"]
+    subcat["f_sub"] = subcat["f_sub"] / subcat["mvir"]
     return subcat

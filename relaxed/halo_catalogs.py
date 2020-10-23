@@ -107,6 +107,7 @@ class HaloCatalog(object):
                 cats.append(cat)
 
             self.cat = vstack(cats)
+            self.cat.sort("id")
 
     def save_cat(self, cat_path):
         assert type(cat_path) is PosixPath
