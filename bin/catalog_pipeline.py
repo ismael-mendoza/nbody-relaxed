@@ -4,14 +4,13 @@ from pathlib import Path
 import json
 import click
 import numpy as np
+from astropy import table
 from astropy.io import ascii
-from astropy.table import Table
 
-from halo_filters import intersect
 from relaxed.progenitors import io_progenitors, progenitor_lines
 from relaxed.halo_catalogs import HaloCatalog, all_props
-from relaxed import halo_filters
 from relaxed.subhaloes.catalog import create_subhalo_cat
+from relaxed import halo_filters
 
 the_root = Path(__file__).absolute().parent.parent
 read_trees_dir = the_root.joinpath("packages", "consistent-trees", "read_tree")
@@ -28,13 +27,24 @@ read_trees_dir = the_root.joinpath("packages", "consistent-trees", "read_tree")
     show_default=True,
 )
 @click.option("--catalog-name", default="Bolshoi", type=str)
-@click.option("--m-low", default=1.5e11, help="lower log-mass of halo considered.")
-@click.option("--m-high", default=1e12, help="high log-mass of halo considered.")
+@click.option(
+    "--m-low",
+    default=11.3,
+    help="lower log-mass of halo considered.",
+    show_default=True,
+)
+@click.option(
+    "--m-high",
+    default=12,
+    help="high log-mass of halo considered.",
+    show_default=True,
+)
 @click.option(
     "--num-haloes",
     default=int(1e4),
     type=int,
     help="Desired num haloes in ID file.",
+    show_default=True,
 )
 @click.pass_context
 def pipeline(ctx, root, output_dir, minh_file, catalog_name, m_low, m_high, num_haloes):
@@ -57,8 +67,9 @@ def pipeline(ctx, root, output_dir, minh_file, catalog_name, m_low, m_high, num_
             subhaloes_file=output.joinpath("subhaloes.csv"),
             progenitor_dir=output.joinpath("progenitors"),
             progenitor_file=output.joinpath("progenitors.txt"),
-            m_low=m_low,
-            m_high=m_high,
+            progenitor_table=output.joinpath("progenitor_table.csv"),
+            m_low=10 ** m_low,
+            m_high=10 ** m_high,
             N=num_haloes,
         )
     )
@@ -156,6 +167,7 @@ def make_subhaloes(ctx):
 )
 @click.pass_context
 def create_progenitor_file(ctx, cpus, trees_dir):
+    assert not ctx.obj["progenitor_file"].exists(), "overwriting the large prog file!"
     particle_mass = all_props[ctx.obj["catalog_name"]]["particle_mass"]
     trees_dir = ctx.obj["data"].joinpath(trees_dir)
     progenitor_dir = ctx.obj["progenitor_dir"]
@@ -164,7 +176,8 @@ def create_progenitor_file(ctx, cpus, trees_dir):
     mcut = particle_mass * 1e3
     prefix = progenitor_dir.joinpath("mline").as_posix()
 
-    # first write all progenitors to multiple files
+    # first write all progenitors to multiple files using consistent trees across possibly
+    # multiple gpus.
     io_progenitors.write_main_line_progenitors(
         read_trees_dir, trees_dir, prefix, mcut, cpus
     )
@@ -218,13 +231,12 @@ def create_progenitor_table(ctx, logs_file):
         values[i, 0] = prog_line.root_id
         values[i, 1:] = prog_line.cat["mvir"][:n_scales]
 
-    t = Table(names=names, data=values)
+    t = table.Table(names=names, data=values)
     t.sort("id")
-    progenitor_table_file = ctx.obj["output"].joinpath("progenitor_table.csv")
     z_map_file = ctx.obj["output"].joinpath("z_map.json")
 
     # save final table and json file mapping index to scale
-    ascii.write(t, progenitor_table_file, format="csv")
+    ascii.write(t, ctx.obj["progenitor_table"], format="csv")
     with open(z_map_file, "w") as fp:
         json.dump(z_map, fp)
 
@@ -232,32 +244,44 @@ def create_progenitor_table(ctx, logs_file):
 @pipeline.command()
 @click.pass_context
 def combine_all(ctx):
-
     # load the 3 catalogs that we will be combining
     dm_cat = ascii.read(ctx.obj["dm_file"], format="csv", fast_reader=True)
     subhalo_cat = ascii.read(ctx.obj["subhaloes_file"], format="csv", fast_reader=True)
-    progenitor_file = ctx.obj["output"].joinpath("progenitor_table.csv")
-    progenitor_cat = ascii.read(progenitor_file, format="csv", fast_reader=True)
+    progenitor_cat = ascii.read(
+        ctx.obj["progenitor_table"], format="csv", fast_reader=True
+    )
+    progenitor_cat.sort("id")
 
-    # make sure all 3 catalog have exactly the same IDs and in the correct order.
-    assert sorted(list(dm_cat["id"])) == sorted(list(subhalo_cat["id"]))
+    # check all are sorted.
+    assert np.array_equal(np.sort(dm_cat["id"]), dm_cat["id"])
+    assert np.array_equal(np.sort(subhalo_cat["id"]), subhalo_cat["id"])
+    assert np.array_equal(np.sort(progenitor_cat["id"]), progenitor_cat["id"])
+
+    # make sure all 3 catalog have exactly the same IDs.
+    assert np.array_equal(dm_cat["id"], subhalo_cat["id"])
     common_ids = set(dm_cat["id"]).intersection(set(progenitor_cat["id"]))
     common_ids = np.array(sorted(list(common_ids)))
     ids1 = np.array(dm_cat["id"])
     ids2 = np.array(progenitor_cat["id"])
-    keep1 = intersect(ids1, common_ids)
-    keep2 = intersect(ids2, common_ids)
+    keep1 = halo_filters.intersect(ids1, common_ids)
+    keep2 = halo_filters.intersect(ids2, common_ids)
     dm_cat = dm_cat[keep1]
     subhalo_cat = subhalo_cat[keep1]
     progenitor_cat = progenitor_cat[keep2]
 
-    # make sure masses and IDs are aok
-    assert np.all(dm_cat["id"] == subhalo_cat["id"] == progenitor_cat["id"])
-    assert np.all(dm_cat["m_vir"] == subhalo_cat["mvir"] == progenitor_cat["mvir_a0"])
+    # one last check on all IDs.
+    assert np.array_equal(dm_cat["id"], subhalo_cat["id"])
+    assert np.array_equal(dm_cat["id"], progenitor_cat["id"])
+    assert np.array_equal(dm_cat["mvir"], subhalo_cat["mvir"])
+    assert np.array_equal(dm_cat["mvir"], progenitor_cat["mvir_a0"])
 
-    # TODO: use astropy.table.join to merge tables by ID.
+    cat1 = table.join(dm_cat, subhalo_cat, keys=["id", "mvir"], join_type="inner")
+    fcat = table.join(cat1, progenitor_cat, keys=["id"], join_type="inner")
 
-    # discard haloes with f_sub > 1
+    fcat_file = ctx.obj["output"].joinpath("final_table.csv")
+
+    # save final csv containing all the information.
+    ascii.write(fcat, fcat_file)
 
 
 if __name__ == "__main__":
