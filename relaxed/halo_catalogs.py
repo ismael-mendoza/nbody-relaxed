@@ -75,17 +75,17 @@ class HaloCatalog(object):
 
     def load_cat_minh(
         self,
-        minh_params=None,
-        minh_hfilter=None,
+        params=None,
+        hfilter=None,
     ):
         assert self.cat_file.name.endswith(".minh")
         if self.verbose:
             warnings.warn("Divide by zero errors are ignored, but filtered out.")
 
         # do filter on the fly, to avoid memory errors.
-        minh_params = minh_params if minh_params else self.get_default_params()
-        minh_hfilter = minh_hfilter if minh_hfilter else self.get_default_hfilter()
-        assert set(minh_hfilter.filters.keys()).issubset(set(minh_params))
+        params = params if params else self.get_default_params()
+        hfilter = hfilter if hfilter else self.get_default_hfilter()
+        assert set(hfilter.filters.keys()).issubset(set(params))
 
         with minh.open(self.cat_file) as mcat:
             cats = []
@@ -94,7 +94,7 @@ class HaloCatalog(object):
 
                 # obtain all params from minh and their values.
                 with np.errstate(divide="ignore", invalid="ignore"):
-                    for param in minh_params:
+                    for param in params:
                         hparam = halo_parameters.get_hparam(param, log=False)
                         values = hparam.get_values_minh_block(mcat, b)
                         cat.add_column(values, name=param)
@@ -103,7 +103,7 @@ class HaloCatalog(object):
                 cat.sort("id")
 
                 # filter to reduce size of each block.
-                cat = minh_hfilter.filter_cat(cat)
+                cat = hfilter.filter_cat(cat)
                 cats.append(cat)
 
             self.cat = vstack(cats)
