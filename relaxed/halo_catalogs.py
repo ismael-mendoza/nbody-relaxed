@@ -29,7 +29,7 @@ class HaloCatalog(object):
         name="Bolshoi",
         cat_file="bolshoi.minh",
         minh_params=None,
-        hfilter=None,
+        minh_hfilter=None,
         subhalos=False,
         verbose=False,
         label="all haloes",
@@ -39,7 +39,7 @@ class HaloCatalog(object):
         * add_progenitor: filename of summary progenitor table.
         * add_subhalo: add catalog halo properties that depend on their subhalos.
         * labels: useful when plotting (titles, etc.)
-        * minh_params: list of keys (params) to add and be read from minh catalog.
+        * minh_params: list of keys (params) to be loaded when loading from minh catalog.
         """
         cat_file = Path(cat_file)
         assert name in all_props, "Catalog name is not recognized."
@@ -54,8 +54,8 @@ class HaloCatalog(object):
         self.label = label
 
         self.minh_params = minh_params if minh_params else self.get_default_params()
-        self.hfilter = hfilter if hfilter else self.get_default_hfilter()
-        assert set(self.hfilter.filters.keys()).issubset(set(self.minh_params))
+        self.minh_hfilter = minh_hfilter if minh_hfilter else self.get_default_hfilter()
+        assert set(self.minh_hfilter.filters.keys()).issubset(set(self.minh_params))
 
         self.cat = None  # will be loaded later.
 
@@ -104,7 +104,7 @@ class HaloCatalog(object):
                 cat.sort("id")
 
                 # filter to reduce size of each block.
-                cat = self.hfilter.filter_cat(cat)
+                cat = self.minh_hfilter.filter_cat(cat)
                 cats.append(cat)
 
             self.cat = vstack(cats)

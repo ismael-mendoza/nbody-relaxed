@@ -133,7 +133,9 @@ def make_dmcat(ctx):
 
     # create hcat to store these ids
     # NOTE: Use default halo parameters defined in HaloCatalog.
-    hcat = HaloCatalog(ctx.obj["catalog_name"], ctx.obj["minh_file"], hfilter=hfilter)
+    hcat = HaloCatalog(
+        ctx.obj["catalog_name"], ctx.obj["minh_file"], minh_hfilter=hfilter
+    )
 
     # now load using minh to obtain dm catalog
     hcat.load_cat_minh()
