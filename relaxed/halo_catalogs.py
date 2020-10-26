@@ -28,8 +28,6 @@ class HaloCatalog(object):
         self,
         name="Bolshoi",
         cat_file="bolshoi.minh",
-        minh_params=None,
-        minh_hfilter=None,
         subhalos=False,
         verbose=False,
         label="all haloes",
@@ -53,11 +51,7 @@ class HaloCatalog(object):
         self.subhalos = subhalos
         self.label = label
 
-        self.minh_params = minh_params if minh_params else self.get_default_params()
-        self.minh_hfilter = minh_hfilter if minh_hfilter else self.get_default_hfilter()
-        assert set(self.minh_hfilter.filters.keys()).issubset(set(self.minh_params))
-
-        self.cat = None  # will be loaded later.
+        self.cat = None  # loaded later
 
     def __len__(self):
         return len(self.cat)
@@ -79,23 +73,28 @@ class HaloCatalog(object):
         assert self.cat_file.name.endswith(".csv")
         self.cat = ascii.read(self.cat_file, format="csv", fast_reader=True)
 
-    def load_cat_minh(self):
+    def load_cat_minh(
+        self,
+        minh_params=None,
+        minh_hfilter=None,
+    ):
         assert self.cat_file.name.endswith(".minh")
         if self.verbose:
             warnings.warn("Divide by zero errors are ignored, but filtered out.")
 
         # do filter on the fly, to avoid memory errors.
+        minh_params = minh_params if minh_params else self.get_default_params()
+        minh_hfilter = minh_hfilter if minh_hfilter else self.get_default_hfilter()
+        assert set(minh_hfilter.filters.keys()).issubset(set(minh_params))
 
         with minh.open(self.cat_file) as mcat:
-
             cats = []
-
             for b in range(mcat.blocks):
                 cat = Table()
 
                 # obtain all params from minh and their values.
                 with np.errstate(divide="ignore", invalid="ignore"):
-                    for param in self.minh_params:
+                    for param in minh_params:
                         hparam = halo_parameters.get_hparam(param, log=False)
                         values = hparam.get_values_minh_block(mcat, b)
                         cat.add_column(values, name=param)
@@ -104,7 +103,7 @@ class HaloCatalog(object):
                 cat.sort("id")
 
                 # filter to reduce size of each block.
-                cat = self.minh_hfilter.filter_cat(cat)
+                cat = minh_hfilter.filter_cat(cat)
                 cats.append(cat)
 
             self.cat = vstack(cats)
