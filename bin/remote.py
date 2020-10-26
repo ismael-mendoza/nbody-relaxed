@@ -9,7 +9,7 @@ import argparse
 from pathlib import Path
 
 
-# ToDo: Implement iterations, make it clear
+# ToDo: Implement iterations, make it clear how to use them
 def run_sbatch_job(
     cmd,
     job_dir_name,
@@ -79,7 +79,7 @@ if __name__ == "__main__":
         "--ntasks",
         type=int,
         default=1,
-        help="How many processes do you want to " "run?",
+        help="How many processes do you want to run?",
     )
     parser.add_argument(
         "--cpus-per-task", type=int, default=1, help="How many cpus per process?"

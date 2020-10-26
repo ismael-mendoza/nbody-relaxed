@@ -7,12 +7,12 @@ directly other than setting them up nad passing them along. The rest is up to pl
 It also rounds up all parameter values to be plotted from multiple catalogs and their
 corresponding labels.
 """
+from pathlib import Path
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 import matplotlib.pyplot as plt
 import numpy as np
 
-from relaxed import utils
 from . import plot_funcs
 
 
@@ -28,6 +28,7 @@ class Plot(ABC):
         title="",
         title_size=20,
         grid_locs=None,
+        figpath="figures",
     ):
         """Represents a single plot to draw and produce. Each plot will be outputted
         in a single page of a pdf.
@@ -57,6 +58,10 @@ class Plot(ABC):
         self.n_loaded = 0
         self.hcat_names = []  # preserve order in which catalogs are added.
 
+        # where to save figures
+        self.figpath = Path(figpath)
+        assert self.figpath.exists()
+
     def _setup_fig_and_axes(self, grid_locs, figsize):
         # mainly setup grids for plotting multiple axes.
 
@@ -79,7 +84,7 @@ class Plot(ABC):
         self.fig.tight_layout(rect=[0, 0.03, 1, 0.95])
 
         if fname:
-            self.fig.savefig(utils.figure_path.joinpath(fname))
+            self.fig.savefig(self.figpath.joinpath(fname))
 
         else:
             pdf.savefig(self.fig)

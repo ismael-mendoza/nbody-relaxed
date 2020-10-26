@@ -6,7 +6,37 @@ check `get_default_base_filters` below for an example.
 import numpy as np
 import warnings
 from copy import deepcopy
+
 from . import halo_parameters
+
+
+def intersect(ids1, ids2):
+    """Intersect two np.array IDs.
+
+    Args:
+        Both inputs should be np.arrays.
+
+    Returns:
+        An boolean array `indx_ok` corresponding to `ids1` s.t. `indx_ok[i]` is true iff
+        `ids1[i]` is contained in `ids2`.
+
+    Notes:
+        - Full intersection by repeating operation but switching order.
+    """
+    assert type(ids1) == type(ids2) == np.ndarray
+    assert np.all(np.sort(ids1) == ids1)
+    assert np.all(np.sort(ids2) == ids2)
+    indx = np.searchsorted(ids2, ids1)
+    indx_ok = indx < len(ids2)
+    indx_ok[indx_ok] &= ids2[indx[indx_ok]] == ids1[indx_ok]
+
+    return indx_ok
+
+
+def get_id_filter(ids):
+    assert type(ids) is np.ndarray or type(ids) is list
+    ids = np.array(ids)
+    return {"id": lambda x: intersect(np.array(x), ids)}
 
 
 def get_bound_filter(param, low=-np.inf, high=np.inf, modifier=lambda x: x):
@@ -84,10 +114,6 @@ def get_default_filters(particle_mass, subhalos):
     return {
         **particle_mass_filter(particle_mass, subhalos),
         "upid": lambda x: (x == -1 if not subhalos else x >= 0),
-        # the ones after seem to have no effect after for not subhalos.
-        "spin": lambda x: x != 0,
-        "q": lambda x: x != 0,
-        "vrms": lambda x: x != 0,
     }
 
 

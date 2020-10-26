@@ -438,7 +438,10 @@ class Fsub(HaloParam):
             "form": "f_{\\rm sub}",
         }
 
-    def get_values_minh(self, mcat, b=None):
+    def get_values_minh(self, mcat):
+        raise NotImplementedError("Cannot obtain f_sub from minh")
+
+    def get_values_minh_block(self, mcat, b=None):
         raise NotImplementedError("Cannot obtain f_sub from minh")
 
 
@@ -456,7 +459,10 @@ class A2(HaloParam):
             "form": "a_{1/2}",
         }
 
-    def get_values_minh(self, mcat, b=None):
+    def get_values_minh(self, mcat):
+        raise NotImplementedError("Cannot obtain a2 from minh")
+
+    def get_values_minh_block(self, mcat, b=None):
         raise NotImplementedError("Cannot obtain a2 from minh")
 
 

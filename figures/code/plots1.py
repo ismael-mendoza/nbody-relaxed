@@ -146,7 +146,6 @@ def plot_pair_relaxed_correlation(hcats, pdf):
     # of mass half decades."""
     figsize = (24, 24)
     names = [hcat.name for hcat in hcats]
-    # params to include:  't/|u|', 'x0', 'v0', 'xoff', 'voff', 'q', 'cvir'
     params = ["t/|u|", "x0", "v0", "xoff", "voff", "q", "cvir"]
     hparams = [get_hparam(param, log=True) for param in params]
     plot_params = OrderedDict(
