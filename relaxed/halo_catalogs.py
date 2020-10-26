@@ -10,6 +10,7 @@ from . import halo_filters
 from . import halo_parameters
 
 # particle mass (Msun/h), total particles, box size (Mpc/h).
+# bolshoi log_m_low: 11.13
 _props = {
     "Bolshoi": (1.35e8, 2048 ** 3, 250),
     "BolshoiP": (1.55e8, 2048 ** 3, 250),
