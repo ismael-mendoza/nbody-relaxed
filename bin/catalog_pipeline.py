@@ -88,21 +88,15 @@ def select_ids(ctx):
     hfilter = halo_filters.HaloFilter(the_filters, name=ctx.obj["catalog_name"])
 
     # we only need the params that appear in the filter. (including 'id' and 'mvir')
-    minh_params = [
-        "id",
-        "mvir",
-        "upid",
-    ]
+    minh_params = ["id", "mvir", "upid"]
 
     # create catalog
     hcat = HaloCatalog(
         ctx.obj["catalog_name"],
         ctx.obj["minh_file"],
-        minh_params,
-        hfilter,
         subhalos=False,
     )
-    hcat.load_cat_minh()
+    hcat.load_cat_minh(minh_params, hfilter)
 
     # do we have enough haloes?
     # keep only N of them
@@ -131,14 +125,10 @@ def make_dmcat(ctx):
     id_filter = halo_filters.get_id_filter(ids)
     hfilter = halo_filters.HaloFilter(id_filter)
 
-    # create hcat to store these ids
+    # create hcat to store these ids, then load from minh
     # NOTE: Use default halo parameters defined in HaloCatalog.
-    hcat = HaloCatalog(
-        ctx.obj["catalog_name"], ctx.obj["minh_file"], minh_hfilter=hfilter
-    )
-
-    # now load using minh to obtain dm catalog
-    hcat.load_cat_minh()
+    hcat = HaloCatalog(ctx.obj["catalog_name"], ctx.obj["minh_file"])
+    hcat.load_cat_minh(hfilter=hfilter)
 
     assert np.all(hcat.cat["id"] == ids)
     assert len(hcat) == ctx.obj["N"]

@@ -28,9 +28,9 @@ class HaloCatalog(object):
         self,
         name="Bolshoi",
         cat_file="bolshoi.minh",
+        label="all haloes",
         subhalos=False,
         verbose=False,
-        label="all haloes",
     ):
         """
         * cat_name: Should be one of `Bolshoi / BolshoiP / MDPL2`
