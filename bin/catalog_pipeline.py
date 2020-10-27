@@ -7,13 +7,17 @@ import numpy as np
 from astropy import table
 from astropy.io import ascii
 
-from relaxed.progenitors import io_progenitors, progenitor_lines
+from relaxed.progenitors import progenitor_lines
 from relaxed.halo_catalogs import HaloCatalog, all_props
 from relaxed.subhaloes.catalog import create_subhalo_cat
 from relaxed import halo_filters
 
 the_root = Path(__file__).absolute().parent.parent
 read_trees_dir = the_root.joinpath("packages", "consistent-trees", "read_tree")
+catname_map = {
+    "Bolshoi": "bolshoi",
+    "BolshoiP": "bolshoi_p",
+}
 
 
 @click.group()
@@ -55,6 +59,9 @@ def pipeline(ctx, root, output_dir, minh_file, catalog_name, m_low, m_high, num_
     output.mkdir(exist_ok=exist_ok, parents=False)
     data = Path(root).joinpath("data")
     minh_file = data.joinpath(minh_file)
+
+    catname = catname_map[catalog_name]
+    progenitor_file = Path(root).joinpath("temp", f"{catname}_progenitors.txt")
     ctx.obj.update(
         dict(
             root=Path(root),
@@ -65,8 +72,7 @@ def pipeline(ctx, root, output_dir, minh_file, catalog_name, m_low, m_high, num_
             ids_file=ids_file,
             dm_file=output.joinpath("dm_cat.csv"),
             subhaloes_file=output.joinpath("subhaloes.csv"),
-            progenitor_dir=output.joinpath("progenitors"),
-            progenitor_file=output.joinpath("progenitors.txt"),
+            progenitor_file=progenitor_file,
             progenitor_table=output.joinpath("progenitor_table.csv"),
             m_low=10 ** m_low,
             m_high=10 ** m_high,
@@ -151,37 +157,10 @@ def make_subhaloes(ctx):
 
 
 @pipeline.command()
-@click.option("--cpus", help="number of cpus to use.")
-@click.option(
-    "--trees-dir",
-    default="trees_bolshoi",
-    help="folder containing raw data on all trees relative to data.",
-)
-@click.pass_context
-def make_progenitor_file(ctx, cpus, trees_dir):
-    assert not ctx.obj["progenitor_file"].exists(), "overwriting the large prog file!"
-    particle_mass = all_props[ctx.obj["catalog_name"]]["particle_mass"]
-    trees_dir = ctx.obj["data"].joinpath(trees_dir)
-    progenitor_dir = ctx.obj["progenitor_dir"]
-    assert trees_dir.exists()
-    progenitor_dir.mkdir(exist_ok=False)
-    mcut = particle_mass * 1e3
-    prefix = progenitor_dir.joinpath("mline").as_posix()
-
-    # first write all progenitors to multiple files using consistent trees across possibly
-    # multiple gpus.
-    io_progenitors.write_main_line_progenitors(
-        read_trees_dir, trees_dir, prefix, mcut, cpus
-    )
-
-    # then merge all of these into a single file
-    io_progenitors.merge_progenitors(progenitor_dir, ctx.obj["progenitor_file"])
-
-
-@pipeline.command()
 @click.option("--logs-file", help="File for logging", default="logs.txt")
 @click.pass_context
-def make_progenitor_table(ctx, logs_file):
+def make_progenitors(ctx, logs_file):
+    assert ctx.obj["progenitor_file"].exists()
 
     # total in progenitor_file ~ 382477
     # takes like 2 hrs to run.

@@ -14,7 +14,7 @@ import click
 @click.option("--cmd", required=True, type=str)
 @click.option("--jobname", required=True, type=str)
 @click.option("--jobdir", default="temp/jobs", type=str, show_default=True)
-@click.option("--time", default="01.00", type=str, show_default=True)
+@click.option("--time", default="01:00", type=str, show_default=True)
 @click.option("--nodes", default=1, type=int, show_default=True)
 @click.option("--ntasks", default=1, type=int, show_default=True)
 @click.option("--cpus-per-task", default=1, type=int, show_default=True)
