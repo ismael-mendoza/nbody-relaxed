@@ -209,7 +209,7 @@ def create_progenitor_table(ctx, logs_file):
                     # avoid empty set intersection.
                     scales = set(prog_line.cat["scale"])
                 else:
-                    scales = scales.intersection(set(prog_line.cat["scale"]))
+                    scales = scales.union(set(prog_line.cat["scale"]))
                 prog_lines.append(prog_line)
                 matches += 1
 
@@ -220,8 +220,12 @@ def create_progenitor_table(ctx, logs_file):
     values = np.zeros((len(prog_lines), len(names)))
 
     for i, prog_line in enumerate(prog_lines):
+        n_scales_i = len(prog_line.cat["mvir"])
         values[i, 0] = prog_line.root_id
-        values[i, 1:] = prog_line.cat["mvir"][:n_scales]
+        values[i, 1:n_scales_i] = prog_line.cat["mvir"]
+
+    # replace all unfilled zeroes w/ NaN
+    values[values == 0] = np.nan
 
     t = table.Table(names=names, data=values)
     t.sort("id")
@@ -273,7 +277,7 @@ def combine_all(ctx):
     fcat_file = ctx.obj["output"].joinpath("final_table.csv")
 
     # save final csv containing all the information.
-    ascii.write(fcat, fcat_file)
+    ascii.write(fcat, fcat_file, format="csv")
 
 
 if __name__ == "__main__":
