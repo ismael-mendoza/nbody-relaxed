@@ -77,7 +77,7 @@ def pipeline(ctx, root, output_dir, minh_file, catalog_name, m_low, m_high, num_
 
 @pipeline.command()
 @click.pass_context
-def select_ids(ctx):
+def make_ids(ctx):
     # create appropriate filters
     particle_mass = all_props[ctx.obj["catalog_name"]]["particle_mass"]
     assert ctx.obj["m_low"] > particle_mass * 1e3, f"particle mass: {particle_mass:.3g}"
@@ -199,17 +199,14 @@ def make_progenitor_table(ctx, logs_file):
     # first obtain all scales available + save lines that we want to use.
     matches = 0
     logs_file = ctx.obj["output"].joinpath(logs_file)
+    scales = set()
     with open(logs_file, "w") as fp:
         for i, prog_line in enumerate(prog_generator):
             if i % 10000 == 0:
                 print(i, file=fp)
                 print("matches:", matches, file=fp, flush=True)
             if prog_line.root_id in ids:
-                if matches == 0:
-                    # avoid empty set intersection.
-                    scales = set(prog_line.cat["scale"])
-                else:
-                    scales = scales.union(set(prog_line.cat["scale"]))
+                scales = scales.union(set(prog_line.cat["scale"]))
                 prog_lines.append(prog_line)
                 matches += 1
 
