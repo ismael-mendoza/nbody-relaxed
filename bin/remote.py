@@ -22,8 +22,8 @@ import click
 @click.option("--iterations", default=1, type=int, show_default=True)
 def run_sbatch_job(
     cmd,
-    job_name,
-    job_dir_name,
+    jobname,
+    jobdir,
     time,
     nodes,
     ntasks,
@@ -33,8 +33,8 @@ def run_sbatch_job(
 ):
     # prepare files and directories
     jobseed = np.random.randint(1e7)
-    jobfile_name = f"{job_name}_{jobseed}.sbatch"
-    job_dir = Path(job_dir_name)
+    jobfile_name = f"{jobname}_{jobseed}.sbatch"
+    job_dir = Path(jobdir)
     jobfile = job_dir.joinpath(jobfile_name)
     if not job_dir.exists():
         job_dir.mkdir(exist_ok=True)
@@ -42,8 +42,8 @@ def run_sbatch_job(
     with open(jobfile, "w") as f:
         f.writelines(
             "#!/bin/bash\n\n"
-            f"#SBATCH --job-name={job_name}\n"
-            f"#SBATCH --output={job_dir_name}/%j.out\n"
+            f"#SBATCH --job-name={jobname}\n"
+            f"#SBATCH --output={jobdir}/%j.out\n"
             f"#SBATCH --time={time}:00\n"
             f"#SBATCH --nodes={nodes}\n"
             f"#SBATCH --ntasks={ntasks}\n"
