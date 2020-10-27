@@ -26,7 +26,7 @@ read_trees_dir = the_root.joinpath("packages", "consistent-trees", "read_tree")
     default="Bolshoi/minh/hlist_1.00035.minh",
     show_default=True,
 )
-@click.option("--catalog-name", default="Bolshoi", type=str)
+@click.option("--catalog-name", default="Bolshoi", type=str, show_default=True)
 @click.option(
     "--m-low",
     default=11.3,
@@ -35,7 +35,7 @@ read_trees_dir = the_root.joinpath("packages", "consistent-trees", "read_tree")
 )
 @click.option(
     "--m-high",
-    default=12,
+    default=12.0,
     help="high log-mass of halo considered.",
     show_default=True,
 )
@@ -158,7 +158,7 @@ def make_subhaloes(ctx):
     help="folder containing raw data on all trees relative to data.",
 )
 @click.pass_context
-def create_progenitor_file(ctx, cpus, trees_dir):
+def make_progenitor_file(ctx, cpus, trees_dir):
     assert not ctx.obj["progenitor_file"].exists(), "overwriting the large prog file!"
     particle_mass = all_props[ctx.obj["catalog_name"]]["particle_mass"]
     trees_dir = ctx.obj["data"].joinpath(trees_dir)
@@ -181,7 +181,7 @@ def create_progenitor_file(ctx, cpus, trees_dir):
 @pipeline.command()
 @click.option("--logs-file", help="File for logging", default="logs.txt")
 @click.pass_context
-def create_progenitor_table(ctx, logs_file):
+def make_progenitor_table(ctx, logs_file):
 
     # total in progenitor_file ~ 382477
     # takes like 2 hrs to run.
@@ -215,7 +215,6 @@ def create_progenitor_table(ctx, logs_file):
 
     scales = sorted(list(scales), reverse=True)
     z_map = {i: scale for i, scale in enumerate(scales)}
-    n_scales = len(scales)
     names = ("id", *[f"mvir_a{i}" for i in range(len(scales))])
     values = np.zeros((len(prog_lines), len(names)))
 
