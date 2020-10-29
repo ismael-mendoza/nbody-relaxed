@@ -114,7 +114,7 @@ def make_ids(ctx, m_low, m_high, n_haloes):
 
     # extract ids into a json file, first convert to int's.
     ids = sorted([int(x) for x in hcat.cat["id"]])
-    assert len(ids) == ctx.obj["N"]
+    assert len(ids) == n_haloes
     with open(ctx.obj["ids_file"], "w") as fp:
         json.dump(ids, fp)
 
