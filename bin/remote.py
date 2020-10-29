@@ -9,7 +9,6 @@ from pathlib import Path
 import click
 
 
-# ToDo: Implement iterations, make it clear how to use them
 @click.command()
 @click.option("--cmd", required=True, type=str)
 @click.option("--jobname", required=True, type=str)
@@ -19,7 +18,6 @@ import click
 @click.option("--ntasks", default=1, type=int, show_default=True)
 @click.option("--cpus-per-task", default=1, type=int, show_default=True)
 @click.option("--mem-per-cpu", default="1GB", type=str, show_default=True)
-@click.option("--iterations", default=1, type=int, show_default=True)
 def run_sbatch_job(
     cmd,
     jobname,
@@ -29,7 +27,6 @@ def run_sbatch_job(
     ntasks,
     cpus_per_task,
     mem_per_cpu,
-    iterations=1,
 ):
     # prepare files and directories
     jobseed = np.random.randint(1e7)
@@ -55,8 +52,6 @@ def run_sbatch_job(
             f"#SBATCH --partition=standard\n"
             f"{cmd}\n"
         )
-
-        # f.writelines(f"#SBATCH --array=1-{iterations}%1000\n")
 
     subprocess.run(f"sbatch {jobfile.as_posix()}", shell=True)
 
