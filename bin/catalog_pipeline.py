@@ -22,7 +22,7 @@ catname_map = {
 
 @click.group()
 @click.option("--root", default=the_root.as_posix(), type=str, show_default=True)
-@click.option("--output-dir", type=str, required=True, help="w.r.t temp")
+@click.option("--outdir", type=str, required=True, help="w.r.t temp")
 @click.option(
     "--minh-file",
     help="w.r.t. to data",
@@ -32,9 +32,9 @@ catname_map = {
 )
 @click.option("--catalog-name", default="Bolshoi", type=str, show_default=True)
 @click.pass_context
-def pipeline(ctx, root, output_dir, minh_file, catalog_name):
+def pipeline(ctx, root, outdir, minh_file, catalog_name):
     ctx.ensure_object(dict)
-    output = Path(root).joinpath("temp", output_dir)
+    output = Path(root).joinpath("temp", outdir)
     ids_file = output.joinpath("ids.json")
     exist_ok = True if ids_file.exists() else False
     output.mkdir(exist_ok=exist_ok, parents=False)
