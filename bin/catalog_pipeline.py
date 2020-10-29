@@ -82,6 +82,7 @@ def pipeline(ctx, root, output_dir, minh_file, catalog_name):
 @click.pass_context
 def make_ids(ctx, m_low, m_high, n_haloes):
     # create appropriate filters
+    assert not ctx.obj["ids_file"].exists()
     m_low = 10 ** m_low
     m_high = 10 ** m_high
     particle_mass = all_props[ctx.obj["catalog_name"]]["particle_mass"]
@@ -158,10 +159,9 @@ def make_subhaloes(ctx):
 @pipeline.command()
 @click.pass_context
 def make_progenitors(ctx):
-    assert ctx.obj["progenitor_file"].exists()
-
     # total in progenitor_file ~ 382477
     # takes like 2 hrs to run.
+    assert ctx.obj["progenitor_file"].exists()
     with open(ctx.obj["ids_file"], "r") as fp:
         ids = set(json.load(fp))
 
