@@ -156,9 +156,8 @@ def make_subhaloes(ctx):
 
 
 @pipeline.command()
-@click.option("--logs-file", help="File for logging", default="logs.txt")
 @click.pass_context
-def make_progenitors(ctx, logs_file):
+def make_progenitors(ctx):
     assert ctx.obj["progenitor_file"].exists()
 
     # total in progenitor_file ~ 382477
@@ -176,7 +175,7 @@ def make_progenitors(ctx, logs_file):
     # first obtain all scales available + save lines that we want to use.
     matches = 0
     scales = set()
-    logs_file = ctx.obj["output"].joinpath(logs_file)
+    logs_file = ctx.obj["output"].joinpath("logs.txt")
     with open(logs_file, "w") as fp:
         for i, prog_line in enumerate(prog_generator):
             if i % 10000 == 0:
