@@ -22,7 +22,7 @@ catname_map = {
 
 @click.group()
 @click.option("--root", default=the_root.as_posix(), type=str, show_default=True)
-@click.option("--output-dir", default="output", help="w.r.t temp", type=str)
+@click.option("--output-dir", type=str, required=True, help="w.r.t temp")
 @click.option(
     "--minh-file",
     help="w.r.t. to data",
@@ -31,27 +31,8 @@ catname_map = {
     show_default=True,
 )
 @click.option("--catalog-name", default="Bolshoi", type=str, show_default=True)
-@click.option(
-    "--m-low",
-    default=11.3,
-    help="lower log-mass of halo considered.",
-    show_default=True,
-)
-@click.option(
-    "--m-high",
-    default=12.0,
-    help="high log-mass of halo considered.",
-    show_default=True,
-)
-@click.option(
-    "--num-haloes",
-    default=int(1e4),
-    type=int,
-    help="Desired num haloes in ID file.",
-    show_default=True,
-)
 @click.pass_context
-def pipeline(ctx, root, output_dir, minh_file, catalog_name, m_low, m_high, num_haloes):
+def pipeline(ctx, root, output_dir, minh_file, catalog_name):
     ctx.ensure_object(dict)
     output = Path(root).joinpath("temp", output_dir)
     ids_file = output.joinpath("ids.json")
@@ -73,22 +54,40 @@ def pipeline(ctx, root, output_dir, minh_file, catalog_name, m_low, m_high, num_
             dm_file=output.joinpath("dm_cat.csv"),
             subhaloes_file=output.joinpath("subhaloes.csv"),
             progenitor_file=progenitor_file,
-            progenitor_table=output.joinpath("progenitor_table.csv"),
-            m_low=10 ** m_low,
-            m_high=10 ** m_high,
-            N=num_haloes,
+            progenitor_table_file=output.joinpath("progenitor_table.csv"),
         )
     )
 
 
 @pipeline.command()
+@click.option(
+    "--m-low",
+    default=11.3,
+    help="lower log-mass of halo considered.",
+    show_default=True,
+)
+@click.option(
+    "--m-high",
+    default=11.6,
+    help="high log-mass of halo considered.",
+    show_default=True,
+)
+@click.option(
+    "--n-haloes",
+    default=int(1e4),
+    type=int,
+    help="Desired num haloes in ID file.",
+    show_default=True,
+)
 @click.pass_context
-def make_ids(ctx):
+def make_ids(ctx, m_low, m_high, n_haloes):
     # create appropriate filters
+    m_low = 10 ** m_low
+    m_high = 10 ** m_high
     particle_mass = all_props[ctx.obj["catalog_name"]]["particle_mass"]
-    assert ctx.obj["m_low"] > particle_mass * 1e3, f"particle mass: {particle_mass:.3g}"
+    assert m_low > particle_mass * 1e3, f"particle mass: {particle_mass:.3g}"
     the_filters = {
-        "mvir": lambda x: (x > ctx.obj["m_low"]) & (x < ctx.obj["m_high"]),
+        "mvir": lambda x: (x > m_low) & (x < m_high),
         "upid": lambda x: x == -1,
     }
     hfilter = halo_filters.HaloFilter(the_filters, name=ctx.obj["catalog_name"])
@@ -106,8 +105,8 @@ def make_ids(ctx):
 
     # do we have enough haloes?
     # keep only N of them
-    assert len(hcat) >= ctx.obj["N"]
-    keep = np.random.choice(np.arange(len(hcat)), size=ctx.obj["N"], replace=False)
+    assert len(hcat) >= n_haloes
+    keep = np.random.choice(np.arange(len(hcat)), size=n_haloes, replace=False)
     hcat.cat = hcat.cat[keep]
 
     # double check only host haloes are allowed.
@@ -137,7 +136,7 @@ def make_dmcat(ctx):
     hcat.load_cat_minh(hfilter=hfilter)
 
     assert np.all(hcat.cat["id"] == ids)
-    assert len(hcat) == ctx.obj["N"]
+    assert len(hcat) == len(ids)
     assert np.all(hcat.cat["upid"] == -1)
 
     # save as CSV to be loaded later.
@@ -168,7 +167,6 @@ def make_progenitors(ctx, logs_file):
         ids = set(json.load(fp))
 
     prog_lines = []
-    scales = set()
 
     # now read the progenitor file using generators.
     prog_generator = progenitor_lines.get_prog_lines_generator(
@@ -177,8 +175,8 @@ def make_progenitors(ctx, logs_file):
 
     # first obtain all scales available + save lines that we want to use.
     matches = 0
-    logs_file = ctx.obj["output"].joinpath(logs_file)
     scales = set()
+    logs_file = ctx.obj["output"].joinpath(logs_file)
     with open(logs_file, "w") as fp:
         for i, prog_line in enumerate(prog_generator):
             if i % 10000 == 0:
@@ -197,7 +195,7 @@ def make_progenitors(ctx, logs_file):
     for i, prog_line in enumerate(prog_lines):
         n_scales_i = len(prog_line.cat["mvir"])
         values[i, 0] = prog_line.root_id
-        values[i, 1:n_scales_i] = prog_line.cat["mvir"]
+        values[i, 1 : n_scales_i + 1] = prog_line.cat["mvir"]
 
     # replace all unfilled zeroes w/ NaN
     values[values == 0] = np.nan
@@ -207,7 +205,7 @@ def make_progenitors(ctx, logs_file):
     z_map_file = ctx.obj["output"].joinpath("z_map.json")
 
     # save final table and json file mapping index to scale
-    ascii.write(t, ctx.obj["progenitor_table"], format="csv")
+    ascii.write(t, ctx.obj["progenitor_table_file"], format="csv")
     with open(z_map_file, "w") as fp:
         json.dump(z_map, fp)
 
@@ -219,7 +217,7 @@ def combine_all(ctx):
     dm_cat = ascii.read(ctx.obj["dm_file"], format="csv", fast_reader=True)
     subhalo_cat = ascii.read(ctx.obj["subhaloes_file"], format="csv", fast_reader=True)
     progenitor_cat = ascii.read(
-        ctx.obj["progenitor_table"], format="csv", fast_reader=True
+        ctx.obj["progenitor_table_file"], format="csv", fast_reader=True
     )
     progenitor_cat.sort("id")
 

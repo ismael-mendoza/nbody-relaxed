@@ -17,13 +17,8 @@ catname_map = {
 @click.option("--root", default=the_root.as_posix(), type=str, show_default=True)
 @click.option("--catalog-name", default="Bolshoi", type=str, show_default=True)
 @click.option("--cpus", help="number of cpus to use.")
-@click.option(
-    "--trees-dir",
-    default="trees_bolshoi",
-    help="folder containing raw data on all trees relative to data.",
-)
 @click.pass_context
-def make_progenitor_file(root, catalog_name, cpus, trees_dir):
+def make_progenitor_file(root, catalog_name, cpus):
     # setup required names and directories first.
     catname = catname_map[catalog_name]
     prog_name = f"{catname}_progenitors"
