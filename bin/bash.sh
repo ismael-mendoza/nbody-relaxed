@@ -1,5 +1,5 @@
 ROOT_DIR="/home/imendoza/alcca/nbody-relaxed"
-NAME="m11_2"
+NAME="m11"
 OUTPUT="output_$NAME"
 JOBNAME="job_$NAME"
 M_LOW=11.15
