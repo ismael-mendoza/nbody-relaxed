@@ -10,6 +10,7 @@ from . import halo_filters
 from . import halo_parameters
 
 # particle mass (Msun/h), total particles, box size (Mpc/h).
+# bolshoi log_m_low: 11.13
 _props = {
     "Bolshoi": (1.35e8, 2048 ** 3, 250),
     "BolshoiP": (1.55e8, 2048 ** 3, 250),
@@ -27,18 +28,16 @@ class HaloCatalog(object):
         self,
         name="Bolshoi",
         cat_file="bolshoi.minh",
-        minh_params=None,
-        hfilter=None,
+        label="all haloes",
         subhalos=False,
         verbose=False,
-        label="all haloes",
     ):
         """
         * cat_name: Should be one of `Bolshoi / BolshoiP / MDPL2`
         * add_progenitor: filename of summary progenitor table.
         * add_subhalo: add catalog halo properties that depend on their subhalos.
         * labels: useful when plotting (titles, etc.)
-        * minh_params: list of keys (params) to add and be read from minh catalog.
+        * minh_params: list of keys (params) to be loaded when loading from minh catalog.
         """
         cat_file = Path(cat_file)
         assert name in all_props, "Catalog name is not recognized."
@@ -52,11 +51,7 @@ class HaloCatalog(object):
         self.subhalos = subhalos
         self.label = label
 
-        self.minh_params = minh_params if minh_params else self.get_default_params()
-        self.hfilter = hfilter if hfilter else self.get_default_hfilter()
-        assert set(self.hfilter.filters.keys()).issubset(set(self.minh_params))
-
-        self.cat = None  # will be loaded later.
+        self.cat = None  # loaded later
 
     def __len__(self):
         return len(self.cat)
@@ -78,23 +73,28 @@ class HaloCatalog(object):
         assert self.cat_file.name.endswith(".csv")
         self.cat = ascii.read(self.cat_file, format="csv", fast_reader=True)
 
-    def load_cat_minh(self):
+    def load_cat_minh(
+        self,
+        params=None,
+        hfilter=None,
+    ):
         assert self.cat_file.name.endswith(".minh")
         if self.verbose:
             warnings.warn("Divide by zero errors are ignored, but filtered out.")
 
         # do filter on the fly, to avoid memory errors.
+        params = params if params else self.get_default_params()
+        hfilter = hfilter if hfilter else self.get_default_hfilter()
+        assert set(hfilter.filters.keys()).issubset(set(params))
 
         with minh.open(self.cat_file) as mcat:
-
             cats = []
-
             for b in range(mcat.blocks):
                 cat = Table()
 
                 # obtain all params from minh and their values.
                 with np.errstate(divide="ignore", invalid="ignore"):
-                    for param in self.minh_params:
+                    for param in params:
                         hparam = halo_parameters.get_hparam(param, log=False)
                         values = hparam.get_values_minh_block(mcat, b)
                         cat.add_column(values, name=param)
@@ -103,7 +103,7 @@ class HaloCatalog(object):
                 cat.sort("id")
 
                 # filter to reduce size of each block.
-                cat = self.hfilter.filter_cat(cat)
+                cat = hfilter.filter_cat(cat)
                 cats.append(cat)
 
             self.cat = vstack(cats)
