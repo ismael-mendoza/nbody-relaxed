@@ -466,6 +466,51 @@ class A2(HaloParam):
         raise NotImplementedError("Cannot obtain a2 from minh")
 
 
+class X(HaloParam):
+    units = "Mpc/h"
+
+    @property
+    def name(self):
+        return "x"
+
+    @property
+    def latex(self):
+        return {
+            "units": "h^{-1} \\, \\rm kpc",
+            "form": "x",
+        }
+
+
+class Y(HaloParam):
+    units = "Mpc/h"
+
+    @property
+    def name(self):
+        return "y"
+
+    @property
+    def latex(self):
+        return {
+            "units": "h^{-1} \\, \\rm kpc",
+            "form": "y",
+        }
+
+
+class Z(HaloParam):
+    units = "Mpc/h"
+
+    @property
+    def name(self):
+        return "z"
+
+    @property
+    def latex(self):
+        return {
+            "units": "h^{-1} \\, \\rm kpc",
+            "form": "z",
+        }
+
+
 # map from parameter name -> class
 hparam_dict = {c().name: c for c in HaloParam.__subclasses__()}
 
