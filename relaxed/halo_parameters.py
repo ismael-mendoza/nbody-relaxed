@@ -170,9 +170,9 @@ class Vvir(HaloParam):
         }
 
     @staticmethod
-    def calc_vvir(mvir, rvir):
-        mvir_mks = mvir * 1.988435e30
-        rvir_mks = rvir * 3.086e22
+    def calc_vvir(cat):
+        mvir_mks = cat["mvir"] * 1.988435e30
+        rvir_mks = cat["vvir"] * 3.086e22
         G_mks = 6.674e-11
         vvir_mks = np.sqrt(G_mks * mvir_mks / rvir_mks)
         return vvir_mks / 1e3
@@ -180,7 +180,7 @@ class Vvir(HaloParam):
     @property
     def derive(self):
         return {
-            "func": lambda cat: self.calc_vvir(cat["mvir"], cat["rvir"]),
+            "func": lambda cat: self.calc_vvir(cat),
             "requires": ("mvir", "rvir"),
         }
 
@@ -441,8 +441,8 @@ class V0(HaloParam):
     @property
     def derive(self):
         return {
-            "func": lambda cat: cat["voff"] / cat["vrms"],
-            "requires": ("voff", "vrms"),
+            "func": lambda cat: cat["voff"] / Vvir.calc_vvir(cat),
+            "requires": ("mvir", "rvir", "voff"),
         }
 
 
