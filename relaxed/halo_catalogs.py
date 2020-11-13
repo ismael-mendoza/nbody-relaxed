@@ -58,8 +58,8 @@ class HaloCatalog(object):
 
     @staticmethod
     def get_default_params():
-        params = ["id", "upid", "mvir", "rvir", "rs", "xoff", "voff"]
-        params += ["x0", "v0", "cvir", "spin", "q", "vrms", "t/|u|", "eta", "phi_l"]
+        params = ["id", "upid", "mvir", "rvir", "rs", "xoff", "voff", "x", "y", "z"]
+        params += ["x0", "v0", "cvir", "spin", "q", "vvir", "t/|u|", "eta", "phi_l"]
         return params
 
     def get_default_hfilter(self):

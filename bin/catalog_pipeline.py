@@ -62,13 +62,13 @@ def pipeline(ctx, root, outdir, minh_file, catalog_name):
 @pipeline.command()
 @click.option(
     "--m-low",
-    default=11.3,
+    default=11.15,
     help="lower log-mass of halo considered.",
     show_default=True,
 )
 @click.option(
     "--m-high",
-    default=11.6,
+    default=11.22,
     help="high log-mass of halo considered.",
     show_default=True,
 )

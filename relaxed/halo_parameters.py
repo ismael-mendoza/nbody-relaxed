@@ -155,6 +155,36 @@ class Voff(HaloParam):
         }
 
 
+class Vvir(HaloParam):
+    units = "km/s"
+
+    @property
+    def name(self):
+        return "vvir"
+
+    @property
+    def latex(self):
+        return {
+            "units": "h^{-1} \\, \\rm kpc",
+            "form": "V_{\\rm vir}",
+        }
+
+    @staticmethod
+    def calc_vvir(mvir, rvir):
+        mvir_mks = mvir * 1.988435e30
+        rvir_mks = rvir * 3.086e22
+        G_mks = 6.674e-11
+        vvir_mks = np.sqrt(G_mks * mvir_mks / rvir_mks)
+        return vvir_mks / 1e3
+
+    @property
+    def derive(self):
+        return {
+            "func": lambda cat: self.calc_vvir(cat["mvir"], cat["rvir"]),
+            "requires": ("mvir", "rvir"),
+        }
+
+
 class Vrms(HaloParam):
     units = "km/s"
 
