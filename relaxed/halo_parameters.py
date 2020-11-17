@@ -171,10 +171,11 @@ class Vvir(HaloParam):
 
     @staticmethod
     def calc_vvir(cat):
-        mvir_mks = cat["mvir"] * 1.988435e30
-        rvir_mks = cat["vvir"] * 3.086e22
+        # prevent overflow by combining MKS factors into one constant.
         G_mks = 6.674e-11
-        vvir_mks = np.sqrt(G_mks * mvir_mks / rvir_mks)
+        C = G_mks * 1.988435e30 / 3.086e22
+
+        vvir_mks = np.sqrt(C * cat["mvir"] / cat["rvir"])
         return vvir_mks / 1e3
 
     @property
