@@ -1,7 +1,7 @@
 *.list.gz
 *.ipynb_checkpoints
-*data
-/packages/
+data/
+packages/
 .idea
 *.fdb_latexmk
 *.fls
@@ -11,5 +11,5 @@
 *.bbl
 *.synctex.gz
 *.egg-info
-consistent-trees
-!consistent-trees/read_tree
+consistent-trees/
+!consistent-trees/read_tree/*
