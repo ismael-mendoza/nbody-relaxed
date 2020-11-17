@@ -11,3 +11,5 @@
 *.bbl
 *.synctex.gz
 *.egg-info
+consistent-trees
+!consistent-trees/read_tree
