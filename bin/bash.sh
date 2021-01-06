@@ -1,9 +1,8 @@
-ROOT_DIR="/home/imendoza/alcca/nbody-relaxed"
-NAME="m11"
+NAME="m12"
 OUTPUT="output_$NAME"
 JOBNAME="job_$NAME"
-M_LOW=11.15
-M_HIGH=11.22
+M_LOW=12.0
+M_HIGH=12.2
 N=10000
 # M_LOW,M_HIGH = (11.15, 11.22), (12.0,12.2), (13, 14)
 

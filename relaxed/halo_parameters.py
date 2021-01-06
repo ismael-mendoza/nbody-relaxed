@@ -155,6 +155,37 @@ class Voff(HaloParam):
         }
 
 
+class Vvir(HaloParam):
+    units = "km/s"
+
+    @property
+    def name(self):
+        return "vvir"
+
+    @property
+    def latex(self):
+        return {
+            "units": "h^{-1} \\, \\rm kpc",
+            "form": "V_{\\rm vir}",
+        }
+
+    @staticmethod
+    def calc_vvir(cat):
+        # prevent overflow by combining MKS factors into one constant.
+        G_mks = 6.674e-11
+        C = G_mks * 1.988435e30 / 3.086e22
+
+        vvir_mks = np.sqrt(C * cat["mvir"] / cat["rvir"])
+        return vvir_mks / 1e3
+
+    @property
+    def derive(self):
+        return {
+            "func": lambda cat: self.calc_vvir(cat),
+            "requires": ("mvir", "rvir"),
+        }
+
+
 class Vrms(HaloParam):
     units = "km/s"
 
@@ -411,8 +442,8 @@ class V0(HaloParam):
     @property
     def derive(self):
         return {
-            "func": lambda cat: cat["voff"] / cat["vrms"],
-            "requires": ("voff", "vrms"),
+            "func": lambda cat: cat["voff"] / Vvir.calc_vvir(cat),
+            "requires": ("mvir", "rvir", "voff"),
         }
 
 
@@ -464,6 +495,51 @@ class A2(HaloParam):
 
     def get_values_minh_block(self, mcat, b=None):
         raise NotImplementedError("Cannot obtain a2 from minh")
+
+
+class X(HaloParam):
+    units = "Mpc/h"
+
+    @property
+    def name(self):
+        return "x"
+
+    @property
+    def latex(self):
+        return {
+            "units": "h^{-1} \\, \\rm kpc",
+            "form": "x",
+        }
+
+
+class Y(HaloParam):
+    units = "Mpc/h"
+
+    @property
+    def name(self):
+        return "y"
+
+    @property
+    def latex(self):
+        return {
+            "units": "h^{-1} \\, \\rm kpc",
+            "form": "y",
+        }
+
+
+class Z(HaloParam):
+    units = "Mpc/h"
+
+    @property
+    def name(self):
+        return "z"
+
+    @property
+    def latex(self):
+        return {
+            "units": "h^{-1} \\, \\rm kpc",
+            "form": "z",
+        }
 
 
 # map from parameter name -> class
