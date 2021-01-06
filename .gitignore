@@ -13,3 +13,7 @@ packages/
 *.egg-info
 consistent-trees/*
 !consistent-trees/read_tree/example.c
+jupyter/exploratory/
+.vscode/
+figures/*
+!figures/code/
