@@ -20,3 +20,4 @@ jupyter/exploratory/
 figures/*
 !figures/code/
 temp/
+build/
