@@ -1,5 +1,7 @@
 *.list.gz
 *.ipynb_checkpoints
+*__pycache__
+data
 data/
 packages/
 .idea
@@ -17,3 +19,4 @@ jupyter/exploratory/
 .vscode/
 figures/*
 !figures/code/
+temp/

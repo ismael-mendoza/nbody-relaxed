@@ -6,7 +6,7 @@ from relaxed.progenitors import io_progenitors
 from relaxed.halo_catalogs import all_props
 
 the_root = Path(__file__).absolute().parent.parent
-read_trees_dir = the_root.joinpath("packages", "consistent-trees", "read_tree")
+read_trees_dir = the_root.joinpath("consistent-trees", "read_tree")
 catname_map = {
     "Bolshoi": "bolshoi",
     "BolshoiP": "bolshoi_p",
@@ -16,8 +16,7 @@ catname_map = {
 @click.command()
 @click.option("--root", default=the_root.as_posix(), type=str, show_default=True)
 @click.option("--catalog-name", default="Bolshoi", type=str, show_default=True)
-@click.option("--cpus", help="number of cpus to use.")
-@click.pass_context
+@click.option("--cpus", type=int, help="number of cpus to use.")
 def make_progenitor_file(root, catalog_name, cpus):
     # setup required names and directories first.
     catname = catname_map[catalog_name]
