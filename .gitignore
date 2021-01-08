@@ -20,3 +20,5 @@ jupyter/exploratory/
 figures/*
 !figures/code/
 temp/
+build/lib.linux-x86_64-3.8/relaxed/subhaloes/cy_binning.cpython-38-x86_64-linux-gnu.so
+build/temp.linux-x86_64-3.8/relaxed/subhaloes/cy_binning.o
