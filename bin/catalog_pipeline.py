@@ -193,10 +193,11 @@ def make_progenitors(ctx):
     z_map = {i: scale for i, scale in enumerate(scales)}
 
     mvir_names = [f"mvir_a{i}" for i in range(len(scales))]
-    # merger ratio (m2 / m1)
+    # merger ratio (m2 / m1) where m2 is second most massive progenitor.
     mratio_names = [f"mratio_a{i}" for i in range(len(scales))]
     names = ("id", *mvir_names, *mratio_names)
     values = np.zeros((len(prog_lines), len(names)))
+    values[values == 0] = np.nan
 
     for i, prog_line in enumerate(prog_lines):
         n_scales = len(prog_line.cat["mvir"])
@@ -204,10 +205,9 @@ def make_progenitors(ctx):
         values[i, 1 : n_scales + 1] = prog_line.cat["mvir"]
         m2_vir = np.array(prog_line.cat["coprog_mvirs"])
         m2_vir[m2_vir < 0] = 0  # missing values with -1 -> 0
-        values[i, n_scales + 1 :] = m2_vir / np.array(prog_line.cat["mvir"])
-
-    # replace all unfilled zeroes w/ NaN
-    values[values == 0] = np.nan
+        values[i, n_scales + 1 : 2 * n_scales + 1] = m2_vir / np.array(
+            prog_line.cat["mvir"]
+        )
 
     t = table.Table(names=names, data=values)
     t.sort("id")
