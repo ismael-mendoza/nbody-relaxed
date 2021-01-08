@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from setuptools import setup
+from Cython.Build import cythonize
 
 with open("README.md") as readme_file:
     readme = readme_file.read()
@@ -22,4 +23,5 @@ setup(
     setup_requires=setup_requirements,
     url="https://github.com/ismael2395/nbody-relaxed",
     version="0.1.0",
+    ext_modules=cythonize("relaxed/subhaloes/cy_binning.pyx"),
 )

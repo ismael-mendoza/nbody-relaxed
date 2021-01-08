@@ -1,10 +1,12 @@
 from __future__ import print_function
+import pyximport
 
+pyximport.install()
 import time
 
 import numpy as np
 
-from . import cy_binning
+from relaxed.subhaloes import cy_binning
 
 """ binning.py contains wrappers for Cython routines which bin data almost a
 hundred times faster than any native Python routine can.

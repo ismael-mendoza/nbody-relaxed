@@ -26,9 +26,7 @@ def make_progenitor_file(root, catalog_name, cpus):
     progenitor_dir = root.joinpath("temp", prog_name)
     progenitor_file = root.joinpath("temp", prog_name).with_suffix(".txt")
     assert trees_dir.exists()
-    assert not progenitor_dir.exists(), "overwriting large results"
-    assert not progenitor_file.exists(), "overwriting the large prog file!"
-    progenitor_dir.mkdir(exist_ok=False)
+    progenitor_dir.mkdir(exist_ok=True)
     particle_mass = all_props[catalog_name]["particle_mass"]
     mcut = particle_mass * 1e3
 

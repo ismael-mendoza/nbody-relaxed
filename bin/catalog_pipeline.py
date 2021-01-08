@@ -22,10 +22,10 @@ catname_map = {
 
 @click.group()
 @click.option("--root", default=the_root.as_posix(), type=str, show_default=True)
-@click.option("--outdir", type=str, required=True, help="w.r.t temp")
+@click.option("--outdir", type=str, required=True, help="wrt temp")
 @click.option(
     "--minh-file",
-    help="w.r.t. to data",
+    help="wrt to data",
     type=str,
     default="Bolshoi/minh/hlist_1.00035.minh",
     show_default=True,
@@ -176,6 +176,9 @@ def make_progenitors(ctx):
     matches = 0
     scales = set()
     logs_file = ctx.obj["output"].joinpath("logs.txt")
+
+    # iterate through the progenitor generator, obtaining the haloes that match IDs
+    # as wel as all available scales (will be nan's if not available for a given line)
     with open(logs_file, "w") as fp:
         for i, prog_line in enumerate(prog_generator):
             if i % 10000 == 0:
@@ -188,16 +191,23 @@ def make_progenitors(ctx):
 
     scales = sorted(list(scales), reverse=True)
     z_map = {i: scale for i, scale in enumerate(scales)}
-    names = ("id", *[f"mvir_a{i}" for i in range(len(scales))])
+
+    mvir_names = [f"mvir_a{i}" for i in range(len(scales))]
+    # merger ratio (m2 / m1) where m2 is second most massive progenitor.
+    mratio_names = [f"mratio_a{i}" for i in range(len(scales))]
+    names = ("id", *mvir_names, *mratio_names)
     values = np.zeros((len(prog_lines), len(names)))
+    values[values == 0] = np.nan
 
     for i, prog_line in enumerate(prog_lines):
-        n_scales_i = len(prog_line.cat["mvir"])
+        n_scales = len(prog_line.cat["mvir"])
         values[i, 0] = prog_line.root_id
-        values[i, 1 : n_scales_i + 1] = prog_line.cat["mvir"]
-
-    # replace all unfilled zeroes w/ NaN
-    values[values == 0] = np.nan
+        values[i, 1 : n_scales + 1] = prog_line.cat["mvir"]
+        m2_vir = np.array(prog_line.cat["coprog_mvirs"])
+        m2_vir[m2_vir < 0] = 0  # missing values with -1 -> 0
+        values[i, n_scales + 1 : 2 * n_scales + 1] = m2_vir / np.array(
+            prog_line.cat["mvir"]
+        )
 
     t = table.Table(names=names, data=values)
     t.sort("id")
