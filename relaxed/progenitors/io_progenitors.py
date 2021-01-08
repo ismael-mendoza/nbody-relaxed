@@ -3,7 +3,7 @@ import os
 import re
 import subprocess
 import numpy as np
-from pathlib import PosixPath
+from pathlib import PosixPath, Path
 
 from astropy.io import ascii
 from astropy.table import Table
@@ -55,18 +55,17 @@ def write_main_line_progenitors(read_trees_dir, trees_dir, prefix, mcut, cpus=5)
         cpus (int):
     """
 
-    subprocess.run(f"cd {read_trees_dir.as_posix()}; make", shell=True)
+    subprocess.run(f"cd {read_trees_dir}; make", shell=True)
     cmds = []
     for p in trees_dir.iterdir():
         if p.suffix == ".dat" and p.name.startswith("tree"):
             print(f"Found tree: {p.name}")
             # get numbered part.
             suffx = re.search(r"tree(_\d_\d_\d)\.dat", p.name).groups()[0]
-            cmd = (
-                f"cd {read_trees_dir.as_posix()}; "
-                f"./read_tree {p.as_posix()} {prefix}{suffx}.txt {mcut}"
-            )
-            cmds.append(cmd)
+            final = Path(f"{prefix}{suffx}.txt")
+            if not final.is_file():
+                cmd = f"cd {read_trees_dir}; " f"./read_tree {p} {final} {mcut}"
+                cmds.append(cmd)
 
     pool = multiprocessing.Pool(cpus)
     pool.map(work, cmds)

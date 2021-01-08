@@ -35,7 +35,7 @@ def get_prog_lines_generator(progenitor_file):
                         halo_id,
                         mvir,
                         scale,
-                        scale_of_last_MM,
+                        scale_of_last_mm,
                         coprog_id,
                         coprog_mvir,
                         coprog_scale,
@@ -45,7 +45,7 @@ def get_prog_lines_generator(progenitor_file):
                             halo_id,
                             mvir,
                             scale,
-                            scale_of_last_MM,
+                            scale_of_last_mm,
                             coprog_id,
                             coprog_mvir,
                             coprog_scale,
@@ -101,30 +101,3 @@ class ProgenitorLine(object):
         assert not self.finalized
         self.finalized = True
         self.cat = Table(rows=self.rows, names=self.colnames)
-
-    def get_a2(self):
-        assert self.finalized
-
-        # return the a_1/2 scale.
-        idx = np.argmin(
-            np.where(
-                self.cat["mvir"] > self.cat["mvir"][0] * 0.5, self.cat["mvir"], np.inf
-            )
-        )
-
-        return self.cat["scale"][idx]
-
-    def get_alpha(self):
-        assert self.finalized
-
-        # get best exponential fit to the line of main progenitors.
-        from scipy.optimize import curve_fit
-
-        def func(x, alpha, b, c):
-            return b * np.log10(alpha * x) + c
-
-        opt_params, _ = curve_fit(
-            func, self.cat["scale"], self.cat["mvir"], p0=(0.5, 1, 12)
-        )
-
-        return opt_params[0]  # = alpha.
