@@ -2,6 +2,8 @@ import numpy as np
 from astropy.table import Table
 from abc import ABC, abstractmethod
 
+from .progenitors.catalog import get_ma
+
 
 class HaloParam(ABC):
     def __init__(self, log=False, modifiers=(lambda x: x,)):
@@ -212,7 +214,7 @@ class GammaTDyn(HaloParam):
     def latex(self):
         return {
             "units": "h^{-1}\\, yr^{-1} \\, M_{\\odot}",
-            "form": "\\alpha_{\\tau_{\\rm dyn}}",
+            "form": "\\gamma_{\\tau_{\\rm dyn}}",
         }
 
 
@@ -477,6 +479,7 @@ class Fsub(HaloParam):
 
 
 class A2(HaloParam):
+    # a_{1/2}: scale at which half of mass has been accreted.
     units = ""
 
     @property
@@ -495,6 +498,60 @@ class A2(HaloParam):
 
     def get_values_minh_block(self, mcat, b=None):
         raise NotImplementedError("Cannot obtain a2 from minh")
+
+    @staticmethod
+    def from_cat(cat, scales, indices):
+        m_a = get_ma(cat, indices)
+
+        # obtain a_1/2 corresponding indices
+        idx = np.argmax(np.where(m_a < 0.5, m_a, -np.inf), 1)
+
+        # and the scales
+        return scales[idx]
+
+
+class Alpha(HaloParam):
+    # fit of m(a) using the M(z) = M(0) * (1 + z)^{\beta} * exp(- \alpha * z) parametrization.
+    units = ""
+
+    @property
+    def name(self):
+        return "alpha"
+
+    @property
+    def latex(self):
+        return {
+            "units": "",
+            "form": "\\alpha",
+        }
+
+    def get_values_minh(self, mcat):
+        raise NotImplementedError("Cannot obtain alpha from minh")
+
+    def get_values_minh_block(self, mcat, b=None):
+        raise NotImplementedError("Cannot obtain alpha from minh")
+
+
+class Beta(HaloParam):
+    # fit of m(a) using the M(z) = M(0) * (1 + z)^{\beta} * exp(- \gamma * z) parametrization.
+    units = ""
+
+    @property
+    def name(self):
+        return "beta"
+
+    @property
+    def latex(self):
+        return {
+            "units": "",
+            "form": "\\beta",
+        }
+
+    def get_values_minh(self, mcat):
+        raise NotImplementedError("Cannot obtain beta from minh")
+
+    def get_values_minh_block(self, mcat, b=None):
+        raise NotImplementedError("Cannot obtain beta from minh")
 
 
 class X(HaloParam):
@@ -539,6 +596,21 @@ class Z(HaloParam):
         return {
             "units": "h^{-1} \\, \\rm kpc",
             "form": "z",
+        }
+
+
+class Chi2(HaloParam):
+    units = ""
+
+    @property
+    def name(self):
+        return "chi2"
+
+    @property
+    def latex(self):
+        return {
+            "units": "",
+            "form": "\\chi^{2}",
         }
 
 
