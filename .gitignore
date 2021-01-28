@@ -1,9 +1,7 @@
 *.list.gz
 *.ipynb_checkpoints
 *__pycache__
-data
-data/
-packages/
+
 .idea
 *.fdb_latexmk
 *.fls
@@ -13,11 +11,14 @@ packages/
 *.bbl
 *.synctex.gz
 *.egg-info
-consistent-trees/*
+consistent-trees/
 !consistent-trees/read_tree/example.c
+data/
+packages/
 jupyter/exploratory/
 .vscode/
-figures/*
+figures/
 !figures/code/
 temp/
 build/
+data
