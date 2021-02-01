@@ -3,24 +3,68 @@ from pathlib import Path, PosixPath
 import numpy as np
 from astropy.table import Table, vstack
 from astropy.io import ascii
+from collections import namedtuple
 
 from pminh import minh
 
 from . import halo_filters
 from . import halo_parameters
 
-# particle mass (Msun/h), total particles, box size (Mpc/h).
-# bolshoi log_m_low: 11.13
-_props = {
-    "Bolshoi": (1.35e8, 2048 ** 3, 250),
-    "BolshoiP": (1.55e8, 2048 ** 3, 250),
-    "MDPL2": (1.51e9, 3840 ** 3, 1000),
-}
+Sim = namedtuple(
+    "Simulation",
+    [
+        "name",
+        "box_size",  # Mpc/h
+        "n_particles",
+        "particle_mass",  # Msun/h
+        "force_resolution",  # kpc/h
+        "initial_redshift",
+        "h",
+        "omega_lambda",
+        "omega_m",
+        "omega_b",
+        "n",
+        "sigma_8",
+    ],
+)
 
-all_props = {
-    key: {"particle_mass": value[0], "total_particles": value[1], "box_size": value[2]}
-    for key, value in _props.items()
-}
+# From https://www.cosmosim.org/cms/simulations/bolshoi/
+Bolshoi = Sim(
+    "Bolshoi", 250, 2048 ** 3, 1.35e8, 1.0, 80, 0.70, 0.73, 0.27, 0.0469, 0.95, 0.82
+)
+
+# From https://www.cosmosim.org/cms/simulations/bolshoip/
+BolshoiP = Sim(
+    "BolshoiP",
+    250,
+    2048 ** 3,
+    1.55e8,
+    1.0,
+    80,
+    0.70,
+    0.69289,
+    0.30711,
+    0.048,
+    0.96,
+    0.82,
+)
+
+
+MDPL2 = Sim(
+    "MDPL2",
+    1e3,
+    3840 ** 3,
+    1.51e9,
+    (5, 13),  # low redshift and high redshift respectively
+    120,
+    0.6777,
+    0.692885,
+    0.307115,
+    0.048206,
+    0.96,
+    0.8228,
+)
+sims = {sim.name: sim for sim in [Bolshoi, BolshoiP, MDPL2]}
 
 
 class HaloCatalog(object):
@@ -40,13 +84,13 @@ class HaloCatalog(object):
         * minh_params: list of keys (params) to be loaded when loading from minh catalog.
         """
         cat_file = Path(cat_file)
-        assert name in all_props, "Catalog name is not recognized."
+        assert name in sims, "Catalog name is not recognized."
         assert subhalos is False, "Not implemented subhalo functionality."
         assert cat_file.name.endswith(".minh") or cat_file.name.endswith(".csv")
 
         self.name = name
         self.cat_file = cat_file
-        self.cat_props = all_props[self.name]
+        self.sim = sims[self.name]
         self.verbose = verbose
         self.subhalos = subhalos
         self.label = label
@@ -60,12 +104,12 @@ class HaloCatalog(object):
     def get_default_params():
         params = ["id", "upid", "mvir", "rvir", "rs", "xoff", "voff", "x", "y", "z"]
         params += ["x0", "v0", "cvir", "spin", "q", "vvir", "t/|u|", "eta", "phi_l"]
-        params += ["gamma_tdyn"]
+        params += ["gamma_tdyn", "tdyn"]
         return params
 
     def get_default_hfilter(self):
         default_filters = halo_filters.get_default_filters(
-            self.cat_props["particle_mass"], self.subhalos
+            self.sim.particle_mass, self.subhalos
         )
         hfilter = halo_filters.HaloFilter(default_filters)
         return hfilter

@@ -157,6 +157,36 @@ class Voff(HaloParam):
         }
 
 
+class Tdyn(HaloParam):
+    units = "Gyr"
+
+    @property
+    def name(self):
+        return "tdyn"
+
+    @property
+    def latex(self):
+        return {
+            "units": "Gyr",
+            "form": "T_{\\rm dyn}",
+        }
+
+    @staticmethod
+    def calc_tdyn(cat):
+        # prevent overflow by combining MKS factors into one constant.
+        rvir_mks = cat["rvir"] * 3.086e19  # rvir in kpc/h not Mpc/h
+        vvir_mks = Vvir.calc_vvir(cat) * 1e3
+        tdyn_mks = 2 * rvir_mks / vvir_mks
+        return tdyn_mks / (365 * 24 * 3600)
+
+    @property
+    def derive(self):
+        return {
+            "func": self.calc_tdyn,
+            "requires": ("mvir", "rvir"),
+        }
+
+
 class Vvir(HaloParam):
     units = "km/s"
 
@@ -174,16 +204,15 @@ class Vvir(HaloParam):
     @staticmethod
     def calc_vvir(cat):
         # prevent overflow by combining MKS factors into one constant.
-        G_mks = 6.674e-11
-        C = G_mks * 1.988435e30 / 3.086e22
-
+        # C = G_mks * mvir_factor_mks / rvir_factor_mks
+        C = 6.674e-11 * 1.988435e30 / 3.086e19
         vvir_mks = np.sqrt(C * cat["mvir"] / cat["rvir"])
         return vvir_mks / 1e3
 
     @property
     def derive(self):
         return {
-            "func": lambda cat: self.calc_vvir(cat),
+            "func": self.calc_vvir,
             "requires": ("mvir", "rvir"),
         }
 
