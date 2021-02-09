@@ -8,7 +8,7 @@ from astropy import table
 from astropy.io import ascii
 
 from relaxed.progenitors import progenitor_lines
-from relaxed.halo_catalogs import HaloCatalog, all_props
+from relaxed.halo_catalogs import HaloCatalog, sims
 from relaxed.subhaloes.catalog import create_subhalo_cat
 from relaxed import halo_filters
 
@@ -85,7 +85,7 @@ def make_ids(ctx, m_low, m_high, n_haloes):
     assert not ctx.obj["ids_file"].exists()
     m_low = 10 ** m_low
     m_high = 10 ** m_high
-    particle_mass = all_props[ctx.obj["catalog_name"]]["particle_mass"]
+    particle_mass = sims[ctx.obj["catalog_name"]].particle_mass
     assert m_low > particle_mass * 1e3, f"particle mass: {particle_mass:.3g}"
     the_filters = {
         "mvir": lambda x: (x > m_low) & (x < m_high),

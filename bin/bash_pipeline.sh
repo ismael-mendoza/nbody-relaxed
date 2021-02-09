@@ -8,7 +8,7 @@ N=10000
 
 ################# run pipeline #########################
 # ./bin/catalog_pipeline.py --outdir $OUTPUT make-ids --m-low $M_LOW --m-high $M_HIGH --n-haloes $N
-# ./bin/catalog_pipeline.py --outdir $OUTPUT make-dmcat
+./bin/catalog_pipeline.py --outdir $OUTPUT make-dmcat
 # ./bin/catalog_pipeline.py --outdir $OUTPUT make-subhaloes
 # ./bin/remote.py --cmd "./bin/catalog_pipeline.py --outdir $OUTPUT make-progenitors && ./bin/catalog_pipeline.py --outdir $OUTPUT combine-all" --jobname $JOBNAME
-# ./bin/catalog_pipeline.py --outdir $OUTPUT combine-all
+./bin/catalog_pipeline.py --outdir $OUTPUT combine-all

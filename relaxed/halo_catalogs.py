@@ -23,7 +23,7 @@ Sim = namedtuple(
         "omega_lambda",
         "omega_m",
         "omega_b",
-        "n",
+        "n",  # normalization of the Power spectrum
         "sigma_8",
     ],
 )
