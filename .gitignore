@@ -8,7 +8,7 @@
 *.blg
 *.bbl
 *.synctex.gz
-*.egg-info
+relaxed.egg-info
 consistent-trees/
 !consistent-trees/read_tree/example.c
 data/
