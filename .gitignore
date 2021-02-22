@@ -1,8 +1,6 @@
 *.list.gz
 *.ipynb_checkpoints
 *__pycache__
-
-.idea
 *.fdb_latexmk
 *.fls
 *.aux
