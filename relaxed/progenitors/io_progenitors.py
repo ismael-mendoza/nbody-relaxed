@@ -2,13 +2,7 @@ import multiprocessing
 import os
 import re
 import subprocess
-import numpy as np
 from pathlib import PosixPath, Path
-
-from astropy.io import ascii
-from astropy.table import Table
-
-from . import progenitor_lines
 
 url_skeletons = {
     "Bolshoi": "https://www.slac.stanford.edu/~behroozi/Bolshoi_Trees/tree"
