@@ -2,7 +2,6 @@ import multiprocessing
 import os
 import re
 import subprocess
-import numpy as np
 from pathlib import PosixPath, Path
 
 url_skeletons = {
