@@ -205,9 +205,9 @@ def make_progenitors(ctx):
         values[i, 1 : n_scales + 1] = prog_line.cat["mvir"]
         m2_vir = np.array(prog_line.cat["coprog_mvirs"])
         m2_vir[m2_vir < 0] = 0  # missing values with -1 -> 0
-        values[i, n_scales + 1 : 2 * n_scales + 1] = m2_vir / np.array(
-            prog_line.cat["mvir"]
-        )
+        values[
+            i, len(mvir_names) + 1 : len(mvir_names) + n_scales + 1
+        ] = m2_vir / np.array(prog_line.cat["mvir"])
 
     t = table.Table(names=names, data=values)
     t.sort("id")
