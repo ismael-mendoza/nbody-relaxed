@@ -1,9 +1,15 @@
 import numpy as np
+from .. import analysis
 from scipy.optimize import curve_fit
+from scipy.interpolate import interp1d
 
 
 def lma_fit(z, alpha):
     return -alpha * z
+
+
+def log_m_a_fit_ab(z, alpha, beta):
+    return beta * np.log(1 + z) - alpha * z
 
 
 def get_alpha(zs, lma):
@@ -13,6 +19,13 @@ def get_alpha(zs, lma):
 
     opt_params, _ = curve_fit(lma_fit, zs, lma, p0=(1,))
     return opt_params  # = alpha
+
+
+def get_alpha_beta(zs, log_m_a):
+    # use the fit of the ofrm M(z) = M(0) * (1 + z)^{\beta} * exp(- \gamma * z)
+    # get best exponential fit to the line of main progenitors.
+    opt_params, _ = curve_fit(log_m_a_fit_ab, zs, log_m_a, p0=(1, 1))
+    return opt_params  # = alpha, beta
 
 
 def get_ma(cat, indices):
@@ -48,7 +61,7 @@ def get_am(name="m11"):
 
     5. Evaluate f(m) at the mass bins you decided that you liked in step 2. Now you can run your pipeline on this, just like you did for m(a).
     """
-    hcat, indices, scales = setup(name)
+    hcat, indices, scales = analysis.setup(name)
 
     # 2.
     mass_bins = np.linspace(np.log(0.01), np.log(1.0), 100)
@@ -65,8 +78,6 @@ def get_am(name="m11"):
 
     # 4. + 5.
     # We will get the interpolation for each halo separately
-    import scipy
-
     fs = []
     for i in range(len(Ma)):
         pairs = [(scales[0], Ma[i][0])]
@@ -79,26 +90,11 @@ def get_am(name="m11"):
         _scales = np.array([pair[0] for pair in pairs])
         _Mas = np.array([pair[1] for pair in pairs])
         fs.append(
-            scipy.interpolate.interp1d(
+            interp1d(
                 np.log(_Mas), np.log(_scales), bounds_error=False, fill_value=np.nan
             )
         )
 
     # 6.
     am = np.array([np.exp(f(mass_bins)) for f in fs])
-
     return am, np.exp(mass_bins)
-
-
-def log_m_a_fit_ab(z, alpha, beta):
-    return beta * np.log(1 + z) - alpha * z
-
-
-def get_alpha_beta(zs, log_m_a):
-    # use the fit of the ofrm M(z) = M(0) * (1 + z)^{\beta} * exp(- \gamma * z)
-    # get best exponential fit to the line of main progenitors.
-    from scipy.optimize import curve_fit
-
-    opt_params, _ = curve_fit(log_m_a_fit_ab, zs, log_m_a, p0=(1, 1))
-
-    return opt_params  # = alpha, beta

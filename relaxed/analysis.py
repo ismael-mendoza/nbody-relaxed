@@ -8,7 +8,7 @@ from scipy import stats
 from . import halo_catalogs
 
 
-def setup(name="m11", path="../temp"):
+def setup(name="m11", path="../../temp"):
     # get catalog, indices, and scales (redshift) from given catalog pipeline output name
     output = f"{path}/output_{name}/"
     cat_file = Path(output, "final_table.csv")
