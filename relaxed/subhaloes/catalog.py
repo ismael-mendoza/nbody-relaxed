@@ -11,7 +11,7 @@ def create_subhalo_cat(host_ids, minh_file):
     # host_ids correspond only host haloes w/ upid == -1
     # now we also want to add subhalo fraction and we follow Phil's lead
 
-    assert isinstance(host_ids, np.ndarrya)
+    assert isinstance(host_ids, np.ndarray)
     assert np.all(np.sort(host_ids) == host_ids)
 
     # will fill out as we read the blocks.
