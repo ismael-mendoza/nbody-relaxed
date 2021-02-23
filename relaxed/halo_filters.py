@@ -3,9 +3,10 @@ Manages the interface for returning filters that can be used in catalogs.
 A filter is always a dictionary of keys which are catalog parameters and values of lambda functions,
 check `get_default_base_filters` below for an example.
 """
-import numpy as np
 import warnings
 from copy import deepcopy
+
+import numpy as np
 
 from . import halo_parameters
 

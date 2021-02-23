@@ -1,6 +1,8 @@
+from abc import ABC
+from abc import abstractmethod
+
 import numpy as np
 from astropy.table import Table
-from abc import ABC, abstractmethod
 
 from .progenitors.catalog import get_ma
 
@@ -530,10 +532,10 @@ class A2(HaloParam):
 
     @staticmethod
     def from_cat(cat, scales, indices):
-        m_a = get_ma(cat, indices)
+        ma = get_ma(cat, indices)
 
         # obtain a_1/2 corresponding indices
-        idx = np.argmax(np.where(m_a < 0.5, m_a, -np.inf), 1)
+        idx = np.argmax(np.where(ma < 0.5, ma, -np.inf), 1)
 
         # and the scales
         return scales[idx]

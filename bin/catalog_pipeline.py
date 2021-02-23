@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
-
-from pathlib import Path
 import json
+from pathlib import Path
+
 import click
 import numpy as np
 from astropy import table
 from astropy.io import ascii
 
-from relaxed.progenitors import progenitor_lines
-from relaxed.halo_catalogs import HaloCatalog, sims
-from relaxed.subhaloes.catalog import create_subhalo_cat
 from relaxed import halo_filters
+from relaxed.halo_catalogs import HaloCatalog
+from relaxed.halo_catalogs import sims
+from relaxed.progenitors import progenitor_lines
+from relaxed.subhaloes.catalog import create_subhalo_cat
 
 the_root = Path(__file__).absolute().parent.parent
 read_trees_dir = the_root.joinpath("packages", "consistent-trees", "read_tree")

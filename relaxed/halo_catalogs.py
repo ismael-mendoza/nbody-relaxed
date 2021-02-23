@@ -1,10 +1,12 @@
 import warnings
-from pathlib import Path, PosixPath
-import numpy as np
-from astropy.table import Table, vstack
-from astropy.io import ascii
 from collections import namedtuple
+from pathlib import Path
+from pathlib import PosixPath
 
+import numpy as np
+from astropy.io import ascii
+from astropy.table import Table
+from astropy.table import vstack
 from pminh import minh
 
 from . import halo_filters

@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-import click
 from pathlib import Path
 
-from relaxed.progenitors import io_progenitors
+import click
+
 from relaxed.halo_catalogs import all_props
+from relaxed.progenitors import io_progenitors
 
 the_root = Path(__file__).absolute().parent.parent
 read_trees_dir = the_root.joinpath("consistent-trees", "read_tree")

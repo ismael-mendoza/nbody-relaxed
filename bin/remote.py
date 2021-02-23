@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-
 """
 Useful functions for submitting sbatch jobs.
 """
 import subprocess
-import numpy as np
 from pathlib import Path
+
 import click
+import numpy as np
 
 
 @click.command()

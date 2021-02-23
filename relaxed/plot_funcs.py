@@ -1,9 +1,10 @@
 """Plotting functions that can be used along with the Plot class in plots.py
 """
-from abc import ABC, abstractmethod
-import numpy as np
-import matplotlib.pyplot as plt
+from abc import ABC
+from abc import abstractmethod
 
+import matplotlib.pyplot as plt
+import numpy as np
 from scipy.stats import spearmanr
 
 
