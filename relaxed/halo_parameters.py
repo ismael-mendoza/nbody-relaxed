@@ -1,6 +1,8 @@
+from abc import ABC
+from abc import abstractmethod
+
 import numpy as np
 from astropy.table import Table
-from abc import ABC, abstractmethod
 
 from .progenitors.catalog import get_ma
 

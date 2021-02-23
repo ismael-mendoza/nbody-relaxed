@@ -1,7 +1,8 @@
 import numpy as np
-from .. import analysis
-from scipy.optimize import curve_fit
 from scipy.interpolate import interp1d
+from scipy.optimize import curve_fit
+
+from .. import analysis
 
 
 def lma_fit(z, alpha):

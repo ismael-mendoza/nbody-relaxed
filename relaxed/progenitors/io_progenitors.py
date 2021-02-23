@@ -2,7 +2,8 @@ import multiprocessing
 import os
 import re
 import subprocess
-from pathlib import PosixPath, Path
+from pathlib import Path
+from pathlib import PosixPath
 
 url_skeletons = {
     "Bolshoi": "https://www.slac.stanford.edu/~behroozi/Bolshoi_Trees/tree"

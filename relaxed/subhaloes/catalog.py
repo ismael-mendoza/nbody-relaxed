@@ -2,8 +2,8 @@ import numpy as np
 from astropy.table import Table
 from pminh import minh
 
-from relaxed.subhaloes import quantities
 from relaxed.halo_filters import intersect
+from relaxed.subhaloes import quantities
 
 
 def create_subhalo_cat(host_ids, minh_file):

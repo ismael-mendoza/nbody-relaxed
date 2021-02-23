@@ -1,9 +1,9 @@
 import json
-from astropy.cosmology import LambdaCDM
 from pathlib import Path
-import numpy as np
-from scipy import stats
 
+import numpy as np
+from astropy.cosmology import LambdaCDM
+from scipy import stats
 
 from . import halo_catalogs
 

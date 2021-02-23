@@ -7,9 +7,11 @@ directly other than setting them up nad passing them along. The rest is up to pl
 It also rounds up all parameter values to be plotted from multiple catalogs and their
 corresponding labels.
 """
-from pathlib import Path
-from abc import ABC, abstractmethod
+from abc import ABC
+from abc import abstractmethod
 from collections import OrderedDict
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
 

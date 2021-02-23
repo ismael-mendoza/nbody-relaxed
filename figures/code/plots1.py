@@ -1,7 +1,9 @@
-import numpy as np
 from collections import OrderedDict
 
-from relaxed import plots, plot_funcs
+import numpy as np
+
+from relaxed import plot_funcs
+from relaxed import plots
 from relaxed.halo_parameters import get_hparam
 
 
