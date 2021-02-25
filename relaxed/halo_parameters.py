@@ -410,9 +410,7 @@ class Phi_L(HaloParam):
         :return: Value of phi_l for each row of the catalog cat.
         :rtype: astropy.Column
         """
-        numerator = (
-            cat["ax"] * cat["jx"] + cat["ay"] * cat["jy"] + cat["az"] * cat["jz"]
-        )
+        numerator = cat["ax"] * cat["jx"] + cat["ay"] * cat["jy"] + cat["az"] * cat["jz"]
         denominator = np.sqrt(cat["ax"] ** 2 + cat["ay"] ** 2 + cat["az"] ** 2)
         denominator *= np.sqrt(cat["jx"] ** 2 + cat["jy"] ** 2 + cat["jz"] ** 2)
         return np.arccos(numerator / denominator)

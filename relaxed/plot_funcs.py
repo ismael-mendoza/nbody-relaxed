@@ -66,13 +66,7 @@ class PlotFunc(ABC):
 
 class CreateHistogram(PlotFunc):
     def __init__(
-        self,
-        n_bins=30,
-        histtype="step",
-        vline=None,
-        log_y=True,
-        hist_kwargs=None,
-        **parent_kwargs
+        self, n_bins=30, histtype="step", vline=None, log_y=True, hist_kwargs=None, **parent_kwargs
     ):
         """
         Args:
@@ -119,9 +113,7 @@ class ScatterBinning(PlotFunc):
         if self.bin_bds is not None:
             # ignoring self.n_xbins
             size = len(self.bin_bds) - 1
-            x_bds = np.array(
-                [(self.bin_bds[i], self.bin_bds[i + 1]) for i in range(size)]
-            )
+            x_bds = np.array([(self.bin_bds[i], self.bin_bds[i + 1]) for i in range(size)])
         else:
             # divide uniformly.
             xs = np.linspace(np.min(x), np.max(x), self.n_xbins)
