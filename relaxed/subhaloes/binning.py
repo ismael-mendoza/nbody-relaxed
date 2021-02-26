@@ -94,9 +94,7 @@ def bin_2d(points, n_bins, L, workspace=None):
 
     # Convert to a list.
     for i in range(n_bins * n_bins):
-        out[i] = workspace.out_bins[
-            workspace.out_bin_edges[i] : workspace.out_bin_edges[i + 1]
-        ]
+        out[i] = workspace.out_bins[workspace.out_bin_edges[i] : workspace.out_bin_edges[i + 1]]
 
     return out
 
@@ -137,9 +135,7 @@ def bin_3d(points, n_bins, L, workspace=None):
 
     # Convert to a list.
     for i in range(n_bins * n_bins * n_bins):
-        out[i] = workspace.out_bins[
-            workspace.out_bin_edges[i] : workspace.out_bin_edges[i + 1]
-        ]
+        out[i] = workspace.out_bins[workspace.out_bin_edges[i] : workspace.out_bin_edges[i + 1]]
 
     return out
 
@@ -167,10 +163,7 @@ def main():
         exp_mean = float(n) / n_bins ** 3
         exp_std = np.sqrt(exp_mean)
         print("Expected mean = %.4g, expected std = %.3g" % (exp_mean, exp_std))
-        print(
-            "Actual mean =   %.4g, actual std =   %.3g"
-            % (np.mean(bin_sizes), np.std(bin_sizes))
-        )
+        print("Actual mean =   %.4g, actual std =   %.3g" % (np.mean(bin_sizes), np.std(bin_sizes)))
         print("dt = %.3g" % (t1 - t0))
         print()
 

@@ -31,9 +31,7 @@ Sim = namedtuple(
 )
 
 # From https://www.cosmosim.org/cms/simulations/bolshoi/
-Bolshoi = Sim(
-    "Bolshoi", 250, 2048 ** 3, 1.35e8, 1.0, 80, 0.70, 0.73, 0.27, 0.0469, 0.95, 0.82
-)
+Bolshoi = Sim("Bolshoi", 250, 2048 ** 3, 1.35e8, 1.0, 80, 0.70, 0.73, 0.27, 0.0469, 0.95, 0.82)
 
 # From https://www.cosmosim.org/cms/simulations/bolshoip/
 BolshoiP = Sim(
@@ -110,9 +108,7 @@ class HaloCatalog(object):
         return params
 
     def get_default_hfilter(self):
-        default_filters = halo_filters.get_default_filters(
-            self.sim.particle_mass, self.subhalos
-        )
+        default_filters = halo_filters.get_default_filters(self.sim.particle_mass, self.subhalos)
         hfilter = halo_filters.HaloFilter(default_filters)
         return hfilter
 

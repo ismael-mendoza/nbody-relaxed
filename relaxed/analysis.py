@@ -103,9 +103,7 @@ def get_fractional_tdyn(scale, tdyn, sim_name="Bolshoi"):
     sim = halo_catalogs.sims[sim_name]
 
     # get cosmology based on given sim
-    cosmo = LambdaCDM(
-        H0=sim.h * 100, Ob0=sim.omega_b, Ode0=sim.omega_lambda, Om0=sim.omega_m
-    )
+    cosmo = LambdaCDM(H0=sim.h * 100, Ob0=sim.omega_b, Ode0=sim.omega_lambda, Om0=sim.omega_m)
 
     # tdyn in Gyrs
     z = (1 / scale) - 1
@@ -173,12 +171,18 @@ def get_am(name="m11"):
                 count += 1
         _scales = np.array([pair[0] for pair in pairs])
         _Mas = np.array([pair[1] for pair in pairs])
-        fs.append(
-            interp1d(
-                np.log(_Mas), np.log(_scales), bounds_error=False, fill_value=np.nan
-            )
-        )
+        fs.append(interp1d(np.log(_Mas), np.log(_scales), bounds_error=False, fill_value=np.nan))
 
     # 6.
     am = np.array([np.exp(f(mass_bins)) for f in fs])
     return am, np.exp(mass_bins)
+
+
+def get_a2(cat, scales, indices):
+    ma = get_ma(cat, indices)
+
+    # obtain a_1/2 corresponding indices
+    idx = np.argmax(np.where(ma < 0.5, ma, -np.inf), 1)
+
+    # and the scales
+    return scales[idx]

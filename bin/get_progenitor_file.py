@@ -35,9 +35,7 @@ def make_progenitor_file(root, catalog_name, cpus):
     prefix = progenitor_dir.joinpath("mline")
 
     # write all progenitors to multiple files using consistent trees.
-    io_progenitors.write_main_line_progenitors(
-        read_trees_dir, trees_dir, prefix, mcut, cpus
-    )
+    io_progenitors.write_main_line_progenitors(read_trees_dir, trees_dir, prefix, mcut, cpus)
 
     # then merge all of these into a single file
     io_progenitors.merge_progenitors(progenitor_dir, progenitor_file)

@@ -169,9 +169,7 @@ def make_progenitors(ctx):
     prog_lines = []
 
     # now read the progenitor file using generators.
-    prog_generator = progenitor_lines.get_prog_lines_generator(
-        ctx.obj["progenitor_file"]
-    )
+    prog_generator = progenitor_lines.get_prog_lines_generator(ctx.obj["progenitor_file"])
 
     # first obtain all scales available + save lines that we want to use.
     matches = 0
@@ -206,9 +204,9 @@ def make_progenitors(ctx):
         values[i, 1 : n_scales + 1] = prog_line.cat["mvir"]
         m2_vir = np.array(prog_line.cat["coprog_mvirs"])
         m2_vir[m2_vir < 0] = 0  # missing values with -1 -> 0
-        values[
-            i, len(mvir_names) + 1 : len(mvir_names) + n_scales + 1
-        ] = m2_vir / np.array(prog_line.cat["mvir"])
+        values[i, len(mvir_names) + 1 : len(mvir_names) + n_scales + 1] = m2_vir / np.array(
+            prog_line.cat["mvir"]
+        )
 
     t = table.Table(names=names, data=values)
     t.sort("id")
@@ -226,9 +224,7 @@ def combine_all(ctx):
     # load the 3 catalogs that we will be combining
     dm_cat = ascii.read(ctx.obj["dm_file"], format="csv", fast_reader=True)
     subhalo_cat = ascii.read(ctx.obj["subhaloes_file"], format="csv", fast_reader=True)
-    progenitor_cat = ascii.read(
-        ctx.obj["progenitor_table_file"], format="csv", fast_reader=True
-    )
+    progenitor_cat = ascii.read(ctx.obj["progenitor_table_file"], format="csv", fast_reader=True)
     progenitor_cat.sort("id")
 
     # check all are sorted.

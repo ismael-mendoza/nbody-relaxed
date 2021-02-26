@@ -5,9 +5,7 @@ import subprocess
 from pathlib import Path
 from pathlib import PosixPath
 
-url_skeletons = {
-    "Bolshoi": "https://www.slac.stanford.edu/~behroozi/Bolshoi_Trees/tree"
-}
+url_skeletons = {"Bolshoi": "https://www.slac.stanford.edu/~behroozi/Bolshoi_Trees/tree"}
 
 
 def work(task):
@@ -34,9 +32,7 @@ def download_trees(ncubes, data_dir, catalog_name):
 
     # then download the files using multiprocessing
     os.chdir(data_dir.as_posix())
-    subprocess.run(
-        "cat downloads.txt | xargs -n 1 --max-procs 10 --verbose wget", shell=True
-    )
+    subprocess.run("cat downloads.txt | xargs -n 1 --max-procs 10 --verbose wget", shell=True)
 
 
 def write_main_line_progenitors(read_trees_dir, trees_dir, prefix, mcut, cpus=5):
