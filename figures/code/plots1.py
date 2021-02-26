@@ -1,47 +1,3 @@
-from collections import OrderedDict
-
-import numpy as np
-
-from relaxed import plot_funcs
-from relaxed import plots
-from relaxed.halo_parameters import get_hparam
-
-
-def plot_mvir_histogram(hcats, pdf):
-    """Basic plot showcasing features with a single histogram of Mvir, multiple catalogs may be
-    used at once.
-
-    NOTE: To be used for non-decade catalogs.
-
-    Args:
-        hcats (list): Already loaded, list of hcat objects.
-        pdf: PDF object that can be used to save figures to.
-    """
-    names = [hcat.name for hcat in hcats]
-
-    # (1) Start with plot_func creation, just using default values for everything.
-    create_histogram = plot_funcs.CreateHistogram(xlabel_size=24)
-
-    # (2) Create list of all unique halo_params that are necessary for plotting.
-    hparams = [get_hparam("mvir", log=True)]
-
-    # (3) Create Plot object.
-    histogram_plot = plots.Histogram(create_histogram, hparams, nrows=1, ncols=1)
-
-    # (4) Load corresponding values of hparams from hcats into plot object
-    for hcat in hcats:
-        histogram_plot.load(hcat)
-
-    # (5) Create a list of names of which order you want to plot your hparams
-    plot_params = OrderedDict({"mvir": {*names}})
-
-    # (6) Generate figure
-    histogram_plot.generate(plot_params)
-
-    # (7) Save the figure.
-    histogram_plot.save(pdf=pdf)
-
-
 def plot_scatter_relaxed_and_mass(hcats, pdf):
     """Obtain some of the basic plots where multiple catalogs might be overlaid. Plot mass vs
     identified relaxedness parameters.
@@ -57,7 +13,6 @@ def plot_scatter_relaxed_and_mass(hcats, pdf):
     params = ["eta", "x0", "v0", "xoff", "voff", "q", "cvir", "a2"]
     _params = ["mvir", *params]
     hparams = [get_hparam(param, log=True) for param in _params]
-    hparams.append(get_hparam("f_sub", log=False))
 
     # prepare the plot_func
     scatter_binning = plot_funcs.ScatterBinning(
@@ -103,12 +58,9 @@ def plot_correlation_matrix_basic(hcats, pdf=None):
         "phi_l",
     ]
     hparams = [get_hparam(param, log=True) for param in params]
-    hparams.append(get_hparam("f_sub", log=False))
 
     scatter_binning = plot_funcs.MatrixValues(xlabel_size=24, ylabel_size=24)
-    plot = plots.MatrixPlot(
-        scatter_binning, hparams, nrows=1, ncols=3, figsize=(30, 10)
-    )
+    plot = plots.MatrixPlot(scatter_binning, hparams, nrows=1, ncols=3, figsize=(30, 10))
 
     # load catalogs
     for hcat in hcats:
@@ -124,9 +76,7 @@ def plot_mean_centered_hists(hcats, pdf):
     mean_center = [lambda x: (x - np.mean(x)) / np.std(x)]
     params = ["cvir", "eta", "x0", "v0", "spin", "q", "phi_l"]
     hparams = [get_hparam(param, log=True, modifiers=mean_center) for param in params]
-    create_histogram = plot_funcs.CreateHistogram(
-        xlabel_size=24, vline="median", log_y=True
-    )
+    create_histogram = plot_funcs.CreateHistogram(xlabel_size=24, vline="median", log_y=True)
     plot_params = OrderedDict({param: {*names} for param in params})
     plot = plots.Histogram(
         create_histogram,

@@ -9,13 +9,9 @@ corresponding labels.
 """
 from abc import ABC
 from abc import abstractmethod
-from collections import OrderedDict
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-import numpy as np
-
-from . import plot_funcs
 
 
 class Plot(ABC):
@@ -114,7 +110,6 @@ class Plot(ABC):
                                        corresponding to axes each key is param or tuple of
                                        params, values are sets of cat_names.
         """
-        pass
 
 
 class UniPlot(Plot):
@@ -195,132 +190,3 @@ class MatrixPlot(Plot):
                 "use_legend": False,
             }
             self.plot_func(ax, values, ax_kwargs=ax_kwargs)
-
-
-class Histogram(Plot):
-    """Creates histogram and uses caching to set the bin sizes of
-    all the catalogs plotted to be the same.
-    """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        assert type(self.plot_func) is plot_funcs.CreateHistogram
-        self.create_histogram = self.plot_func
-        self.n_bins = self.create_histogram.n_bins
-
-    def run_histogram(self, ax, cat_name, param, color, bins):
-        param_value = self.values[cat_name][param]
-        hparam = self.hparam_dict[param]
-        ax_kwargs = {"use_legend": True, "xlabel": hparam.text}
-        self.create_histogram(
-            ax,
-            param_value,
-            ax_kwargs=ax_kwargs,
-            bins=bins,
-            legend_label=cat_name,
-            color=color,
-        )
-
-    def generate(self, plot_params):
-        for ax, param in zip(self.axes, plot_params):
-            param_values = []
-            for cat_name in plot_params[param]:
-                param_value = self.values[cat_name][param]
-                param_values.append(param_value)
-            # get the bin edges
-            bins = np.histogram(np.hstack(param_values), bins=self.n_bins)[1]
-
-            for cat_name in plot_params[param]:
-                color = self.color_map[cat_name]
-                self.run_histogram(ax, cat_name, param, color, bins)
-
-
-class StackedHistogram(Histogram):
-    """
-    Create a stacked histogram, this is specifically useful to reproduce plots like in Figure 3
-    of https://arxiv.org/pdf/1404.4634.pdf, where the top histogram are all the individual plots
-    and the bottom row shows the ratio of each with respect to the total.
-
-    * Pass in n_row as if this wasn't stacked (just thinking of normal histogram.
-    * Credit:
-    https://stackoverflow.com/questions/37737538/merge-matplotlib-subplots-with-shared-x-axis
-    """
-
-    # assume the first catalog given is the one we are taking rations with respect to.
-    def __init__(self, *args, **kwargs):
-        super(StackedHistogram, self).__init__(*args, **kwargs)
-        self.main_catalog_idx = 0
-
-    # def generate_from_cached(self):
-    #     # first get bin edges.
-    #     assert 'bins' in self.plot_kwargs
-    #
-    #     num_bins = self.plot_kwargs['bins']
-    #     bin_edges = []
-    #     main_cat = self.cached_args[self.main_catalog_idx][0]
-    #
-    #     for param in self.params:
-    #
-    #         # first do it normally.
-    #         param_values = []
-    #         for (cat, _) in self.cached_args:
-    #             param_values.append(param.get_values(cat))
-    #
-    #         bins1 = np.histogram(np.hstack(param_values), bins=num_bins)[1]
-    #
-    #         # then the ratio ones.
-    #         param_values = []
-    #         for i, (cat, _) in enumerate(self.cached_args):
-    #             if i != self.main_catalog_idx:
-    #                 assert len(main_cat) >= len(cat)
-    #                 param_values.append(param.get_values(cat) / param.get_values(main_cat))
-    #         bins2 = np.histogram(np.hstack(param_values), bins=num_bins)[1]
-    #
-    #         bin_edges.append((bins1, bins2))
-    #
-    #     # then use the bin edges to plot.
-    #     for (cat, kwargs) in self.cached_args:
-    #         self.generate(cat, bin_edges=bin_edges, main_cat=main_cat, **kwargs)
-    #
-    # @staticmethod
-    # def get_subplots_config(nrows, ncols, param_locs, figsize):
-    #     fig = plt.figure(figsize=figsize)
-    #     new_nrows = nrows*2
-    #     grids = gridspec.GridSpec(new_nrows, ncols, height_ratios=[2, 1]*nrows)
-    #     axes = [[] for _ in range(new_nrows)]
-    #
-    #     for i in range(new_nrows):
-    #         for j in range(ncols):
-    #             gs = grids[i, j]
-    #             if i % 2 == 0:
-    #                 ax = plt.subplot(gs)
-    #             else:
-    #                 ax_above = axes[i-1][j]
-    #                 ax = plt.subplot(gs, sharex=ax_above)
-    #             axes[i].append(ax)
-    #     plt.subplots_adjust(hspace=.0)
-    #     return fig, axes, param_locs
-    #
-    # def run(self, cat, bin_edges=None, main_cat=None, **kwargs):
-    #     assert main_cat is not None
-    #
-    #     for i in range(self.nrows*2):
-    #         param =
-    #         for j in range(self.ncols):
-    #             ax = self.axes[i][j]
-    #             if bin_edges:
-    #                 bin_edge = bin_edges[i][i % 2]
-    #                 assert 'bins' in kwargs
-    #                 kwargs.update(dict(bins=bin_edge1))
-    #             if i % 2 == 0:
-    #                 self.plot_func(cat, param, ax, xlabel=param.text, **kwargs)
-    #
-    #         if i % 2 == 0:
-    #             self.plot_func(main_cat, param, )
-    #
-    #             else:
-    #
-    #
-    #     for i, (ax, param) in enumerate(zip(self.axes, self.params)):
-    #         if bin_edges:
-    #             bin_edge1, bin_edge2 = bin_edges[i]

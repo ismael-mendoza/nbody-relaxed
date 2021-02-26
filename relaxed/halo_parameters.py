@@ -4,8 +4,6 @@ from abc import abstractmethod
 import numpy as np
 from astropy.table import Table
 
-from .progenitors.catalog import get_ma
-
 
 class HaloParam(ABC):
     def __init__(self, log=False, modifiers=(lambda x: x,)):
@@ -527,16 +525,6 @@ class A2(HaloParam):
 
     def get_values_minh_block(self, mcat, b=None):
         raise NotImplementedError("Cannot obtain a2 from minh")
-
-    @staticmethod
-    def from_cat(cat, scales, indices):
-        ma = get_ma(cat, indices)
-
-        # obtain a_1/2 corresponding indices
-        idx = np.argmax(np.where(ma < 0.5, ma, -np.inf), 1)
-
-        # and the scales
-        return scales[idx]
 
 
 class Alpha(HaloParam):

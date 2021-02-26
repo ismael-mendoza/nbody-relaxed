@@ -179,4 +179,10 @@ def get_am(name="m11"):
 
 
 def get_a2(cat, scales, indices):
-    pass
+    ma = get_ma(cat, indices)
+
+    # obtain a_1/2 corresponding indices
+    idx = np.argmax(np.where(ma < 0.5, ma, -np.inf), 1)
+
+    # and the scales
+    return scales[idx]

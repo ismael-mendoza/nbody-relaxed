@@ -64,40 +64,6 @@ class PlotFunc(ABC):
         pass
 
 
-class CreateHistogram(PlotFunc):
-    def __init__(
-        self, n_bins=30, histtype="step", vline=None, log_y=True, hist_kwargs=None, **parent_kwargs
-    ):
-        """
-        Args:
-            **hist_kwargs: Additional (general) histogram parameters to plt.hist()
-        """
-        super().__init__(**parent_kwargs)
-        self.n_bins = n_bins
-        self.histtype = histtype
-        self.vline = vline
-        self.log_y = log_y
-        self.hist_kwargs = {} if hist_kwargs is None else hist_kwargs
-
-    def _plot(self, ax, values, legend_label="", color="r", bins=None):
-
-        ax.hist(
-            values,
-            bins=bins if bins is not None else self.n_bins,
-            histtype=self.histtype,
-            color=color,
-            label=legend_label,
-            **self.hist_kwargs
-        )
-
-        # add a vertical line.
-        if self.vline == "median":
-            ax.axvline(np.median(values), c=color, ls="--")
-
-        if self.log_y:
-            ax.set_yscale("log")
-
-
 # ToDo: Deal with empty bins better, right now it just skips that bin.
 class ScatterBinning(PlotFunc):
     def __init__(self, n_xbins=10, show_bands=False, bin_bds=None, **parent_kwargs):
