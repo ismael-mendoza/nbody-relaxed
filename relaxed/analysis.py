@@ -62,17 +62,7 @@ def get_am_corrs(cat, param, am):
     corrs = []
     n_mass_bins = am.shape[1]
     for k in range(n_mass_bins):
-        keep = ~np.isnan(am[:, k])
-
-        # get mass fraction at this scale
-        am_k = am[:, k][keep]
-        pvalue = cat[param][keep]
-
-        # get correlation.
-        assert np.all(~np.isnan(pvalue)) and np.all(~np.isnan(am_k))
-        corr = stats.spearmanr(pvalue, am_k)[0]
-        corrs.append(corr)
-
+        corrs.append(stats.spearmanr(cat[param], am[:, k], nan_policy="omit")[0])
     return np.array(corrs)
 
 
@@ -127,7 +117,7 @@ def get_ma(cat, indices):
     return ma
 
 
-def get_am(name="m11"):
+def get_am(name="m11", min_mass=0.1, path="../../temp"):
     """
     Here are the steps that Phil outlined (in slack) to do this:
 
@@ -143,10 +133,10 @@ def get_am(name="m11"):
 
     5. Evaluate f(m) at the mass bins you decided that you liked in step 2. Now you can run your pipeline on this, just like you did for m(a).
     """
-    hcat, indices, scales = setup(name)
+    hcat, indices, scales = setup(name, path=path)
 
     # 2.
-    mass_bins = np.linspace(np.log(0.01), np.log(1.0), 100)
+    mass_bins = np.linspace(np.log(min_mass), np.log(1.0), 100)
 
     # 3.
     ma = get_ma(hcat.cat, indices)
