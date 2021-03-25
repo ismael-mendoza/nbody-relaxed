@@ -5,6 +5,7 @@ import numpy as np
 from astropy.cosmology import LambdaCDM
 from scipy import stats
 from scipy.interpolate import interp1d
+from scipy.stats import spearmanr
 
 from . import halo_catalogs
 
@@ -176,3 +177,68 @@ def get_a2(cat, scales, indices):
 
     # and the scales
     return scales[idx]
+
+
+def get_quantiles(arr):
+    return np.vectorize(lambda x: stats.percentileofscore(arr, x))(arr) / 100.0
+
+
+def gaussian_conditional(x, lam, ind=False):
+    # x represents one of the dark matter halo properties at z=0.
+    # x and log(am) is assumed to be Gaussian.
+
+    n_bins = lam.shape[1]
+    assert len(x.shape) == 1
+    assert lam.shape == (x.shape[0], n_bins)
+
+    # calculate sigma/correlation matrix bewteen all quantitie
+    z = np.vstack([x.reshape(1, -1), lam.T]).T
+    assert z.shape == (x.shape[0], n_bins + 1)
+    np.testing.assert_equal(x, z[:, 0])
+    np.testing.assert_equal(lam[:, 0], z[:, 1])  # ignore mutual nan's
+    np.testing.assert_equal(lam[:, -1], z[:, -1])
+
+    # calculate covariances
+    Sigma = np.zeros((1 + n_bins, 1 + n_bins))
+    rho = np.zeros((1 + n_bins, 1 + n_bins))
+    for i in range(n_bins + 1):
+        for j in range(n_bins + 1):
+            if i <= j:
+                z1, z2 = z[:, i], z[:, j]
+                keep = ~np.isnan(z1) & ~np.isnan(z2)
+                cov = np.cov(z1[keep], z2[keep])
+                assert cov.shape == (2, 2)
+                Sigma[i, j] = cov[0, 1]
+                rho[i, j] = np.corrcoef(z1[keep], z2[keep])[0, 1]
+            else:
+                rho[i, j] = rho[j, i]
+                Sigma[i, j] = Sigma[j, i]
+
+    # we assume a multivariate-gaussian distribution P(X, a(m1), a(m2), ...) with
+    # conditional distribution P(X | {a(m_i)}) uses the rule here:
+    # https://stats.stackexchange.com/questions/30588/deriving-the-conditional-distributions-of-a-multivariate-normal-distribution
+    # we return the mean/std deviation of the conditional gaussian.
+    assert np.all(~np.isnan(Sigma))
+    assert np.all(~np.isnan(rho))
+
+    mu1 = np.nanmean(z[:, 0]).reshape(1, 1)
+    mu2 = np.nanmean(lam, axis=0).reshape(n_bins, 1)
+    Sigma11 = Sigma[0, 0].reshape(1, 1)
+    Sigma12 = Sigma[0, 1:].reshape(1, n_bins)
+    Sigma22 = Sigma[1:, 1:].reshape(n_bins, n_bins)
+
+    if ind:
+        for i in range(Sigma22.shape[0]):
+            for j in range(Sigma22.shape[1]):
+                if i != j:
+                    Sigma22[i, j] = 0
+
+    def mu_cond(lam_test):
+        assert np.sum(np.isnan(lam_test)) == 0
+        lam_test = lam_test.reshape(-1, n_bins).T
+        mu_cond = mu1 + Sigma12.dot(np.linalg.inv(Sigma22)).dot(lam_test - mu2)
+        return mu_cond.reshape(-1)
+
+    sigma_cond = Sigma11 - Sigma12.dot(np.linalg.inv(Sigma22)).dot(Sigma12.T)
+
+    return mu1, mu2, Sigma, rho, mu_cond, sigma_cond
