@@ -12,6 +12,7 @@ mpl.rcParams.update(
         "figure.figsize": (10, 10),
         # axes
         "axes.labelsize": 24,
+        "axes.titlesize": 28,
         # ticks
         "xtick.major.size": 5,
         "xtick.minor.size": 2.5,

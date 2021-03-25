@@ -179,6 +179,27 @@ def get_a2(cat, scales, indices):
     return scales[idx]
 
 
+def get_bins(values, n_bins=30):
+    return np.histogram(values, bins=n_bins)[1]
+
+
+def draw_histogram(
+    ax, values, n_bins=30, bins=None, vline="median", legend_label="", color="r", density=False
+):
+    ax.hist(
+        values,
+        bins=bins if bins is not None else n_bins,
+        histtype="step",
+        label=legend_label,
+        color=color,
+        density=density,
+    )
+
+    # add a vertical line.
+    if vline == "median":
+        ax.axvline(np.median(values), ls="--", color=color)
+
+
 def get_quantiles(arr):
     return np.vectorize(lambda x: stats.percentileofscore(arr, x))(arr) / 100.0
 
