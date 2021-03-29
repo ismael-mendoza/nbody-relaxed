@@ -200,6 +200,11 @@ def draw_histogram(
         ax.axvline(np.median(values), ls="--", color=color)
 
 
+def get_a2(am, mass_bins):
+    idx = np.where((0.498 < mass_bins) & (mass_bins < 0.51))[0].item()
+    return am[:, idx]
+
+
 def get_quantiles(arr):
     return np.vectorize(lambda x: stats.percentileofscore(arr, x))(arr) / 100.0
 
@@ -263,3 +268,13 @@ def gaussian_conditional(x, lam, ind=False):
     sigma_cond = Sigma11 - Sigma12.dot(np.linalg.inv(Sigma22)).dot(Sigma12.T)
 
     return mu1, mu2, Sigma, rho, mu_cond, sigma_cond
+
+
+def get_lam(am, *args):
+    lam = np.log(am)
+    keep = np.ones(len(lam), dtype=bool)
+    for i in range(len(lam)):
+        keep[i] = ~np.any(np.isnan(lam[i, :]))
+
+    assert np.sum(np.isnan(lam[keep])) == 0
+    return keep, lam[keep], *(arg[keep] for arg in args)
