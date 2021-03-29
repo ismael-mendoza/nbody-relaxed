@@ -1,3 +1,8 @@
 # nbody-relaxed
 
-![flowchart](images/flowchart.jpeg)
+## Instalation
+
+```
+conda install -c conda-forge poetry 
+poetry install
+```
