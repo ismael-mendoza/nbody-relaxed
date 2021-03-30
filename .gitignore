@@ -11,7 +11,6 @@
 relaxed.egg-info
 consistent-trees/
 !consistent-trees/read_tree/example.c
-data/
 packages/
 jupyter/exploratory/
 .vscode/
@@ -19,4 +18,5 @@ figures/
 !figures/code/
 temp/
 build/
-data
+data/
+*.DS_Store

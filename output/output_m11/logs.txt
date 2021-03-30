@@ -1,0 +1,78 @@
+0
+matches: 0
+10000
+matches: 294
+20000
+matches: 555
+30000
+matches: 788
+40000
+matches: 1024
+50000
+matches: 1306
+60000
+matches: 1560
+70000
+matches: 1844
+80000
+matches: 2073
+90000
+matches: 2316
+100000
+matches: 2573
+110000
+matches: 2836
+120000
+matches: 3087
+130000
+matches: 3330
+140000
+matches: 3606
+150000
+matches: 3883
+160000
+matches: 4137
+170000
+matches: 4395
+180000
+matches: 4662
+190000
+matches: 4917
+200000
+matches: 5187
+210000
+matches: 5449
+220000
+matches: 5734
+230000
+matches: 6013
+240000
+matches: 6292
+250000
+matches: 6527
+260000
+matches: 6760
+270000
+matches: 7013
+280000
+matches: 7291
+290000
+matches: 7567
+300000
+matches: 7828
+310000
+matches: 8097
+320000
+matches: 8346
+330000
+matches: 8616
+340000
+matches: 8865
+350000
+matches: 9135
+360000
+matches: 9421
+370000
+matches: 9666
+380000
+matches: 9936
