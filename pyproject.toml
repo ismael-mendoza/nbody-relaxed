@@ -21,6 +21,7 @@ astropy = "^4.2"
 click = "^7.1.2"
 matplotlib = "^3.3.3"
 numpy = "^1.18.5"
+pminh = {git = "https://github.com/ismael-mendoza/minnow", branch = "master"}
 python = "~3.8"
 scikit-image = "^0.18.0"
 scipy = "^1.4.1"
