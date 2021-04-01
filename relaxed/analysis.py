@@ -169,7 +169,7 @@ def get_am(name="m11", min_mass=0.1, path="../../temp"):
     return am, np.exp(mass_bins)
 
 
-def get_a2(cat, scales, indices):
+def get_a2_from_cat(cat, scales, indices):
     ma = get_ma(cat, indices)
 
     # obtain a_1/2 corresponding indices
@@ -179,20 +179,25 @@ def get_a2(cat, scales, indices):
     return scales[idx]
 
 
-def get_bins(values, n_bins=30):
-    return np.histogram(values, bins=n_bins)[1]
+def get_bins(values, bins=30, **hist_kwargs):
+    return np.histogram(values, bins=bins, **hist_kwargs)[1]
 
 
 def draw_histogram(
-    ax, values, n_bins=30, bins=None, vline="median", legend_label="", color="r", density=False
+    ax,
+    values,
+    n_bins=30,
+    bins=None,
+    vline="median",
+    color="r",
+    **hist_kwargs,
 ):
     ax.hist(
         values,
         bins=bins if bins is not None else n_bins,
         histtype="step",
-        label=legend_label,
         color=color,
-        density=density,
+        **hist_kwargs,
     )
 
     # add a vertical line.
@@ -200,7 +205,7 @@ def draw_histogram(
         ax.axvline(np.median(values), ls="--", color=color)
 
 
-def get_a2(am, mass_bins):
+def get_a2_from_am(am, mass_bins):
     idx = np.where((0.498 < mass_bins) & (mass_bins < 0.51))[0].item()
     return am[:, idx]
 
