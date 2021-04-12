@@ -1,0 +1,1 @@
+rsync -az nbody-relaxed greats:/home/imendoza/ --exclude '*.git'
