@@ -179,32 +179,6 @@ def get_a2_from_cat(cat, scales, indices):
     return scales[idx]
 
 
-def get_bins(values, bins=30, **hist_kwargs):
-    return np.histogram(values, bins=bins, **hist_kwargs)[1]
-
-
-def draw_histogram(
-    ax,
-    values,
-    n_bins=30,
-    bins=None,
-    vline="median",
-    color="r",
-    **hist_kwargs,
-):
-    ax.hist(
-        values,
-        bins=bins if bins is not None else n_bins,
-        histtype="step",
-        color=color,
-        **hist_kwargs,
-    )
-
-    # add a vertical line.
-    if vline == "median":
-        ax.axvline(np.median(values), ls="--", color=color)
-
-
 def get_a2_from_am(am, mass_bins):
     idx = np.where((0.498 < mass_bins) & (mass_bins < 0.51))[0].item()
     return am[:, idx]
@@ -271,7 +245,6 @@ def gaussian_conditional(x, lam, ind=False):
         return mu_cond.reshape(-1)
 
     sigma_cond = Sigma11 - Sigma12.dot(np.linalg.inv(Sigma22)).dot(Sigma12.T)
-
     return mu1, mu2, Sigma, rho, mu_cond, sigma_cond
 
 
