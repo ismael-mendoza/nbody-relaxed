@@ -21,7 +21,7 @@ See [here](https://paper.dropbox.com/doc/slurm--BItc4vwhUPkv~lWVk68u0R9sAg-BiRTZ
 
 # create symbolic link
 cd /home/imendoza
-ln -s /nfs/turbo/lsa-cavestru/imendoza /home/imendoza/data
+ln -s /nfs/turbo/lsa-cavestru/imendoza /home/imendoza/nbody-relaxed/data
 ```
 
 
