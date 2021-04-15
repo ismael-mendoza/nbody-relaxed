@@ -256,3 +256,128 @@ def get_lam(am, *args):
 
     assert np.sum(np.isnan(lam[keep])) == 0
     return keep, lam[keep], *(arg[keep] for arg in args)
+
+
+def training_suite(Y_train, am_train, mass_bins=None, suite=("MV-LLR", "LN-RS", "CAM")):
+    """
+
+    Y_train is raw variable to be predicted (e.g. cvir or xoff) without logs.
+
+    Legend:
+        - MG-FC: Multi-Variate Gaussian using full covariance matrix. (returns conditional mean)
+        - LN-RS: LogNormal random samples.
+        - CAM: Conditional Abundance Matching
+        - MG-A2: Bivariate Gaussian only usig a_{1/2} for conditional estimate.
+        - MV-LLR: Multi-Variate Linear Regression with logs
+        - MV-LR: Linear regressoin with no logs.
+        - MG-TFC: Multi-Gaussian after transforming (non-log) variables with quantile transformer.
+    """
+    assert set(suite).issubset({"MG-FC", "LN-RS", "CAM", "MG-A2", "MV-LLR", "MV-LR", "MG-TFC"})
+
+    lam_train = np.log(am_train)
+    assert np.isnan(lam_train).sum() == 0
+
+    trained_models = {}
+
+    if "MG-FC" in suite:
+
+        # multivariate prediction
+        mu1, mu2, Sigma, rho, mu_cond, sigma_cond = gaussian_conditional(np.log(Y_train), lam_train)
+
+        def multi_gauss(lam_test):
+            return np.exp(mu_cond(lam_test))
+
+        trained_models["MG-FC"] = multi_gauss
+
+    if "LN-RS" in suite:
+        mu, sigma = np.mean(np.log(Y_train)), np.std(np.log(Y_train))
+
+        def lognormal(lam_test):
+            n_test = len(lam_test)
+            log_cvir_pred = np.random.normal(mu, sigma, n_test)
+            return np.exp(log_cvir_pred)
+
+        trained_models["LN-RS"] = lognormal
+
+    if "CAM" in suite:
+        assert mass_bins is not None
+        from scipy.interpolate import interp1d
+
+        a2_train = get_a2_from_am(am_train, mass_bins)
+
+        Y_sort, a2_sort = -np.sort(-Y_train), np.sort(a2_train)
+        marks = np.arange(len(Y_sort)) / len(Y_sort)
+        marks += (marks[1] - marks[0]) / 2
+        a2_to_mark = interp1d(a2_sort, marks, fill_value=(0, 1), bounds_error=False)
+        mark_to_cvir = interp1d(
+            marks, Y_sort, fill_value=(Y_sort[0], Y_sort[-1]), bounds_error=False
+        )
+
+        def cam(lam_test):
+            _a2_test = get_a2_from_am(np.exp(lam_test), mass_bins)
+            return mark_to_cvir(a2_to_mark(_a2_test))
+
+        trained_models["CAM"] = cam
+
+    if "MG-A2" in suite:
+
+        # multi-normal but just using a_{1/2}
+        indx = np.where((0.498 < mass_bins) & (mass_bins < 0.51))[0].item()
+        _, _, _, _, mu_cond_a2, _ = gaussian_conditional(
+            np.log(Y_train), lam_train[:, indx].reshape(-1, 1)
+        )
+
+        def a2_gauss(lam_test):
+            return np.exp(mu_cond_a2(lam_test[:, indx].reshape(-1, 1)))
+
+        trained_models["MG-A2"] = a2_gauss
+
+    if "MV-LLR" in suite:
+        # linear regression with logs.
+        # requires shape (n_samples, n_features)
+        from sklearn.linear_model import LinearRegression
+
+        reg1 = LinearRegression().fit(lam_train, np.log(Y_train))
+
+        def linreg(lam_test):
+            return np.exp(reg1.predict(lam_test))
+
+        trained_models["MV-LLR"] = linreg
+
+    if "MV-LR" in suite:
+        # linear regression (no logs)
+
+        reg2 = LinearRegression().fit(am_train, Y_train)
+
+        def linreg_no_logs(lam_test):
+            return reg2.predict(np.exp(lam_test))
+
+        trained_models["MV-LR"] = linreg_no_logs
+
+    if "MG-TFC" in suite:
+
+        # gaussian remapping
+        from sklearn.preprocessing import QuantileTransformer
+
+        qt_cvir = QuantileTransformer(n_quantiles=len(Y_train), output_distribution="normal").fit(
+            Y_train.reshape(-1, 1)
+        )
+        qt_am = QuantileTransformer(n_quantiles=len(am_train), output_distribution="normal").fit(
+            am_train
+        )
+
+        cvir_trans_train = qt_cvir.transform(Y_train.reshape(-1, 1))
+        am_trans_train = qt_am.transform(am_train)
+        _, _, _, _, mu_cond_trans, _ = gaussian_conditional(
+            cvir_trans_train.reshape(-1), am_trans_train
+        )
+
+        def multi_gauss_trans(lam_test):
+            am_trans_test = qt_am.transform(np.exp(lam_test))
+            Y_trans_pred = mu_cond_trans(am_trans_test)
+            Y_pred = qt_cvir.inverse_transform(Y_trans_pred.reshape(-1, 1))
+            return Y_pred.reshape(-1)
+
+        trained_models["MG-TFC"] = multi_gauss_trans
+
+    return trained_models
