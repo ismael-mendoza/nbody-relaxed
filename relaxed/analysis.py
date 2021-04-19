@@ -5,9 +5,8 @@ import numpy as np
 from astropy.cosmology import LambdaCDM
 from scipy import stats
 from scipy.interpolate import interp1d
-from scipy.stats import spearmanr
 
-from . import halo_catalogs
+from relaxed import halo_catalogs
 
 
 def setup(name="m11", path="../../temp"):
@@ -24,15 +23,13 @@ def setup(name="m11", path="../../temp"):
     scales = np.array(list(scale_map.values()))
     keep = scales > 0.15
     indices = indices[keep]
+
     # we are removing from the end bc that's how scales are ordered.
     scales = scales[keep]
 
     # load catalog.
     hcat = halo_catalogs.HaloCatalog("Bolshoi", cat_file, label=name)
     hcat.load_cat_csv()
-
-    # remove weird ID
-    hcat.cat = hcat.cat[hcat.cat["mvir_a18"] > 0]
 
     return hcat, indices, scales
 
@@ -261,7 +258,7 @@ def get_lam(am, *args):
 def training_suite(Y_train, am_train, mass_bins=None, suite=("MV-LLR", "LN-RS", "CAM")):
     """
 
-    Y_train is raw variable to be predicted (e.g. cvir or xoff) without logs.
+    Y_train is raw variable to be predicted (e.g. cvir, xoff, or eta) without logs.
 
     Legend:
         - MG-FC: Multi-Variate Gaussian using full covariance matrix. (returns conditional mean)
@@ -282,7 +279,7 @@ def training_suite(Y_train, am_train, mass_bins=None, suite=("MV-LLR", "LN-RS", 
     if "MG-FC" in suite:
 
         # multivariate prediction
-        mu1, mu2, Sigma, rho, mu_cond, sigma_cond = gaussian_conditional(np.log(Y_train), lam_train)
+        _, _, _, _, mu_cond, _ = gaussian_conditional(np.log(Y_train), lam_train)
 
         def multi_gauss(lam_test):
             return np.exp(mu_cond(lam_test))
@@ -294,8 +291,8 @@ def training_suite(Y_train, am_train, mass_bins=None, suite=("MV-LLR", "LN-RS", 
 
         def lognormal(lam_test):
             n_test = len(lam_test)
-            log_cvir_pred = np.random.normal(mu, sigma, n_test)
-            return np.exp(log_cvir_pred)
+            log_Y_pred = np.random.normal(mu, sigma, n_test)
+            return np.exp(log_Y_pred)
 
         trained_models["LN-RS"] = lognormal
 
@@ -309,13 +306,11 @@ def training_suite(Y_train, am_train, mass_bins=None, suite=("MV-LLR", "LN-RS", 
         marks = np.arange(len(Y_sort)) / len(Y_sort)
         marks += (marks[1] - marks[0]) / 2
         a2_to_mark = interp1d(a2_sort, marks, fill_value=(0, 1), bounds_error=False)
-        mark_to_cvir = interp1d(
-            marks, Y_sort, fill_value=(Y_sort[0], Y_sort[-1]), bounds_error=False
-        )
+        mark_to_Y = interp1d(marks, Y_sort, fill_value=(Y_sort[0], Y_sort[-1]), bounds_error=False)
 
         def cam(lam_test):
             _a2_test = get_a2_from_am(np.exp(lam_test), mass_bins)
-            return mark_to_cvir(a2_to_mark(_a2_test))
+            return mark_to_Y(a2_to_mark(_a2_test))
 
         trained_models["CAM"] = cam
 
@@ -359,23 +354,23 @@ def training_suite(Y_train, am_train, mass_bins=None, suite=("MV-LLR", "LN-RS", 
         # gaussian remapping
         from sklearn.preprocessing import QuantileTransformer
 
-        qt_cvir = QuantileTransformer(n_quantiles=len(Y_train), output_distribution="normal").fit(
+        qt_Y = QuantileTransformer(n_quantiles=len(Y_train), output_distribution="normal").fit(
             Y_train.reshape(-1, 1)
         )
         qt_am = QuantileTransformer(n_quantiles=len(am_train), output_distribution="normal").fit(
             am_train
         )
 
-        cvir_trans_train = qt_cvir.transform(Y_train.reshape(-1, 1))
+        Y_trans_train = qt_Y.transform(Y_train.reshape(-1, 1))
         am_trans_train = qt_am.transform(am_train)
         _, _, _, _, mu_cond_trans, _ = gaussian_conditional(
-            cvir_trans_train.reshape(-1), am_trans_train
+            Y_trans_train.reshape(-1), am_trans_train
         )
 
         def multi_gauss_trans(lam_test):
             am_trans_test = qt_am.transform(np.exp(lam_test))
             Y_trans_pred = mu_cond_trans(am_trans_test)
-            Y_pred = qt_cvir.inverse_transform(Y_trans_pred.reshape(-1, 1))
+            Y_pred = qt_Y.inverse_transform(Y_trans_pred.reshape(-1, 1))
             return Y_pred.reshape(-1)
 
         trained_models["MG-TFC"] = multi_gauss_trans
