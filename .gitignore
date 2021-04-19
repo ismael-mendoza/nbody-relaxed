@@ -15,7 +15,7 @@ packages/
 .vscode/
 figures/
 !figures/code/
-temp/
+*temp/
 build/
 data/
 *.DS_Store
