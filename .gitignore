@@ -19,3 +19,4 @@ figures/
 build/
 data/
 *.DS_Store
+output/30k/
