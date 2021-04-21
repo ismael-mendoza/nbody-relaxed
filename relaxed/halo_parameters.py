@@ -233,6 +233,8 @@ class Vrms(HaloParam):
 
 
 class GammaTDyn(HaloParam):
+    r"""Defined as \log(\Delta M) / \delta z"""
+
     units = "Msun/h/yr"
 
     @property
