@@ -1,6 +1,5 @@
 import json
 from pathlib import Path
-from relaxed.halo_parameters import X
 
 import numpy as np
 from astropy.cosmology import LambdaCDM
@@ -56,17 +55,24 @@ def get_am(name="m11", min_mass=0.1, path="../../temp"):
     """
     Here are the steps that Phil outlined (in slack) to do this:
 
-    1. Inversion is only a well-defined process for monotonic functions, and m(a) for an individual halo isn't necessarily monotonic. To solve this, the standard redefinition of a(m0) is that it's the first a where m(a) > m0. (This is, for example, how Rockstar defines halfmass scales.)
+    1. Inversion is only a well-defined process for monotonic functions, and m(a) for an
+    individual halo isn't necessarily monotonic. To solve this, the standard redefinition of a(m0)
+    is that it's the first a where m(a) > m0. (This is, for example, how Rockstar defines halfmass
+    scales.)
 
-    2. Next, first pick your favorite set of mass bins that you'll evaluate it at. I think logarithmic bins spanning 0.01m(a=1) to 1m(a=1) is pretty reasonable, but you should probably choose this based on the mass ranges which are the most informative once you.
+    2. Next, first pick your favorite set of mass bins that you'll evaluate it at. I think
+    logarithmic bins spanning 0.01m(a=1) to 1m(a=1) is pretty reasonable, but you should probably
+    choose this based on the mass ranges which are the most informative once you.
 
     3. Now, for each halo with masses m(a_i), measure M(a_i) = max_j{ m(a_j) | j <= i}.
     Remove (a_i, M(a_i)) pairs where M(a_i) = M(a_{i-1}), since this will mess up the inversion.
 
     4. Use scipy.interpolate.interp1d to create a function, f(m), which evaluates a(m).
-    For stability, you'll want to run the interpolation on log(a_i) and log(M(a_i)), not a_i and M(a_i).
+    For stability, you'll want to run the interpolation on log(a_i) and log(M(a_i)), not a_i and M
+    (a_i).
 
-    5. Evaluate f(m) at the mass bins you decided that you liked in step 2. Now you can run your pipeline on this, just like you did for m(a).
+    5. Evaluate f(m) at the mass bins you decided that you liked in step 2. Now you can run your
+    pipeline on this, just like you did for m(a).
     """
     hcat, indices, scales = setup(name, path=path)
 
@@ -167,8 +173,9 @@ def get_fractional_tdyn(scale, tdyn, sim_name="Bolshoi"):
     return (cosmo.age(0).value - cosmo.age(z).value) / tdyn
 
 
-def get_a2_from_am(am, mass_bins):
-    idx = np.where((0.498 < mass_bins) & (mass_bins < 0.51))[0].item()
+def get_an_from_am(am, mass_bins, mrange=(0.498, 0.51)):
+    # default is a_{n} = a_{1/2}
+    idx = np.where((mrange[0] < mass_bins) & (mass_bins < mrange[1]))[0].item()
     return am[:, idx]
 
 
@@ -296,7 +303,7 @@ def training_suite(x, y, suite=("LN-RS",), extra_args: dict = None):
     if "LN-RS" in suite:
         mu, sigma = np.mean(np.log(y)), np.std(np.log(y))
 
-        def lognormal(x_test):
+        def lognormal(x_test, **kwargs):
             n_test = len(x_test)
             log_Y_pred = np.random.normal(mu, sigma, n_test)
             return np.exp(log_Y_pred)
@@ -306,19 +313,19 @@ def training_suite(x, y, suite=("LN-RS",), extra_args: dict = None):
     if "MG-LFC" in suite:
 
         # multivariate prediction
-        gcond = gaussian_conditional(np.log(x), np.log(y))
+        gcond_lfc = gaussian_conditional(np.log(x), np.log(y))
 
-        def multi_gauss(x_test):
-            return np.exp(gcond["mu_cond"](np.log(x_test)))
+        def multi_gauss(x_test, **kwargs):
+            return np.exp(gcond_lfc["mu_cond"](np.log(x_test)))
 
         trained_models["MG-LFC"] = multi_gauss
 
     if "MG-TFC" in suite:
-        gcond = gaussian_conditional(x_trans, y_trans)
+        gcond_tfc = gaussian_conditional(x_trans, y_trans)
 
-        def multi_gauss_trans(x_test):
-            x_trans_test = qt_am.transform(x_test)
-            y_trans_pred = gcond["mu_cond"](x_trans_test)
+        def multi_gauss_trans(x_test, **kwargs):
+            x_trans_test = qt_x.transform(x_test)
+            y_trans_pred = gcond_tfc["mu_cond"](x_trans_test)
             y_pred = qt_y.inverse_transform(y_trans_pred.reshape(-1, 1))
             return y_pred.reshape(-1)
 
@@ -331,7 +338,7 @@ def training_suite(x, y, suite=("LN-RS",), extra_args: dict = None):
 
         reg1 = LinearRegression().fit(np.log(x), np.log(y))
 
-        def linreg(x_test):
+        def linreg(x_test, **kwargs):
             return np.exp(reg1.predict(np.log(x_test)))
 
         trained_models["MV-LLR"] = linreg
@@ -341,7 +348,7 @@ def training_suite(x, y, suite=("LN-RS",), extra_args: dict = None):
 
         reg2 = LinearRegression().fit(x, y)
 
-        def linreg_no_logs(x_test):
+        def linreg_no_logs(x_test, **kwargs):
             return reg2.predict(x_test)
 
         trained_models["MV-LR"] = linreg_no_logs
@@ -351,7 +358,7 @@ def training_suite(x, y, suite=("LN-RS",), extra_args: dict = None):
 
         reg3 = LinearRegression().fit(x_trans, y_trans)
 
-        def linreg_trans(x_test):
+        def linreg_trans(x_test, **kwargs):
             x_trans_test = qt_x.transform(x_test)
             y_trans_pred = reg3.predict(x_trans_test)
             y_pred = qt_y.inverse_transform(y_trans_pred.reshape(-1, 1))
@@ -360,37 +367,45 @@ def training_suite(x, y, suite=("LN-RS",), extra_args: dict = None):
         trained_models["MV-TLR"] = linreg_trans
 
     if "CAM" in suite:
-        assert NotImplementedError()
         assert "mass_bins" in extra_args and "am_train" in extra_args
+        assert "cam_order" in extra_args and extra_args["cam_order"] in {-1, 1}
+        assert "mrange" in extra_args and isinstance(extra_args["mrange"], tuple)
         from scipy.interpolate import interp1d
 
-        mass_bins, am_train = extra_args["mass_bins"], extra_args["am_train"]
+        # cam_order: +1 or -1 depending on correlation of a_{n} with y
+        mass_bins, am_train, mrange, cam_order = (
+            extra_args["mass_bins"],
+            extra_args["am_train"],
+            extra_args["mrange"],
+            extra_args["cam_order"],
+        )
+        an_train = get_an_from_am(am_train, mass_bins, mrange=mrange)
 
-        a2_train = get_a2_from_am(am_train, mass_bins)
-
-        Y_sort, a2_sort = -np.sort(-y), np.sort(a2_train)
-        marks = np.arange(len(Y_sort)) / len(Y_sort)
+        y_sort, an_sort = cam_order * np.sort(cam_order * y), np.sort(an_train)
+        marks = np.arange(len(y_sort)) / len(y_sort)
         marks += (marks[1] - marks[0]) / 2
-        a2_to_mark = interp1d(a2_sort, marks, fill_value=(0, 1), bounds_error=False)
-        mark_to_Y = interp1d(marks, Y_sort, fill_value=(Y_sort[0], Y_sort[-1]), bounds_error=False)
+        an_to_mark = interp1d(an_sort, marks, fill_value=(0, 1), bounds_error=False)
+        mark_to_Y = interp1d(marks, y_sort, fill_value=(y_sort[0], y_sort[-1]), bounds_error=False)
 
-        def cam(lam_test):
-            _a2_test = get_a2_from_am(np.exp(lam_test), mass_bins)
-            return mark_to_Y(a2_to_mark(_a2_test))
+        def cam(x_test, am_test=None, **kwargs):
+            _an_test = get_an_from_am(am_test, mass_bins, mrange=extra_args["mrange"])
+            return mark_to_Y(an_to_mark(_an_test))
 
         trained_models["CAM"] = cam
 
     if "MG-A2" in suite:
-        assert NotImplementedError()
+        assert "mass_bins" in extra_args and "am_train" in extra_args
+        assert "mrange" in extra_args and isinstance(extra_args["mrange"], tuple)
 
-        # multi-normal but just using a_{1/2}
-        indx = np.where((0.498 < mass_bins) & (mass_bins < 0.51))[0].item()
-        _, _, _, _, mu_cond_a2, _ = gaussian_conditional(
-            np.log(Y_train), lam_train[:, indx].reshape(-1, 1)
-        )
+        m1, m2 = extra_args["mrange"]
 
-        def a2_gauss(lam_test):
-            return np.exp(mu_cond_a2(lam_test[:, indx].reshape(-1, 1)))
+        # multi-normal with logs but just using a_{1/n}
+        indx = np.where((m1 < mass_bins) & (mass_bins < m2))[0].item()
+        gcond_a2 = gaussian_conditional(np.log(x[:, indx]).reshape(-1, 1), np.log(y))
+
+        def a2_gauss(x_test):
+            mu_cond_a2 = gcond_a2["mu_cond"]
+            return np.exp(mu_cond_a2(x_test[:, indx].reshape(-1, 1)))
 
         trained_models["MG-A2"] = a2_gauss
 
