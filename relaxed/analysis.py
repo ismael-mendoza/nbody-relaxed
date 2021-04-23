@@ -398,14 +398,15 @@ def training_suite(x, y, suite=("LN-RS",), extra_args: dict = None):
         assert "mrange" in extra_args and isinstance(extra_args["mrange"], tuple)
 
         m1, m2 = extra_args["mrange"]
+        am_train = extra_args["am_train"]
 
         # multi-normal with logs but just using a_{1/n}
         indx = np.where((m1 < mass_bins) & (mass_bins < m2))[0].item()
-        gcond_a2 = gaussian_conditional(np.log(x[:, indx]).reshape(-1, 1), np.log(y))
+        gcond_a2 = gaussian_conditional(np.log(am_train[:, indx]).reshape(-1, 1), np.log(y))
 
-        def a2_gauss(x_test):
+        def a2_gauss(x_test, am_test=None, **kwargs):
             mu_cond_a2 = gcond_a2["mu_cond"]
-            return np.exp(mu_cond_a2(x_test[:, indx].reshape(-1, 1)))
+            return np.exp(mu_cond_a2(np.log(am_test[:, indx].reshape(-1, 1))))
 
         trained_models["MG-A2"] = a2_gauss
 
