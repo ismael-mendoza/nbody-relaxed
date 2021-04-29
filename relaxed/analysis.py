@@ -5,11 +5,12 @@ import numpy as np
 from astropy.cosmology import LambdaCDM
 from scipy import stats
 from scipy.interpolate import interp1d
+import findiff
 
 from relaxed import halo_catalogs
 
 
-def setup(name="m11", path="../../temp"):
+def setup(name="m11", path="../../output"):
     # get catalog, indices, and scales (redshift) from given catalog pipeline output name
     output = f"{path}/output_{name}/"
     cat_file = Path(output, "final_table.csv")
@@ -38,7 +39,7 @@ def get_ma(cat, indices):
     assert "mvir_a0" in cat.colnames
     assert "mvir_a160" in cat.colnames
     ma = np.zeros((len(cat), len(indices)))
-    for k in indices:
+    for i, k in enumerate(indices):
         k = int(k)
         colname = f"mvir_a{k}"
 
@@ -46,7 +47,7 @@ def get_ma(cat, indices):
         mvir = cat["mvir"]
         ms = cat[colname]
         ms = ms / mvir
-        ma[:, k] = ms
+        ma[:, i] = ms
 
     return ma
 
@@ -411,3 +412,38 @@ def training_suite(x, y, suite=("LN-RS",), extra_args: dict = None):
         trained_models["MG-A2"] = a2_gauss
 
     return trained_models
+
+
+def get_gradient(f, x, k=1, acc=2):
+    """
+    - f is an array with samples from a function with shape (n_samples, n_features)
+    - x is the points where f is evaluated, x is assumed to be a uniform grid (linear spacing)
+        Assumed to be the same for all n_samples.
+    - k controls the step size.
+    - acc is the accuracy at which to take the derivative.
+    """
+
+    assert f.shape[1] >= 2 * k
+    coeff_table = findiff.coefficients(deriv=1, acc=acc)
+    grad = []
+
+    for i in range(f.shape[1]):
+        if i - k * (acc // 2) < 0:
+            mode = "forward"
+            hx = x[i + 1] - x[i]  # accretion rate changes spacing a little bit at some scale.
+        elif i - k * (acc // 2) >= 0 and i + k * (acc // 2) < f.shape[1]:
+            mode = "center"
+            hx = x[i + 1] - x[i]
+        else:
+            mode = "backward"
+            hx = x[i] - x[i - 1]
+
+        coeffs = coeff_table[mode]["coefficients"]  # coefficients are indepenent of step size.
+        offsets = coeff_table[mode]["offsets"] * k + i
+
+        assert np.all((offsets < f.shape[1]) & (offsets >= 0))
+
+        deriv = np.sum(f[:, offsets] * coeffs.reshape(1, -1), axis=1) / (hx * k)
+        grad.append(deriv.reshape(-1, 1))
+
+    return np.hstack(grad)
