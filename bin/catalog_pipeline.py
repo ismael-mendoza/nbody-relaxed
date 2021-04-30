@@ -23,7 +23,7 @@ catname_map = {
 
 @click.group()
 @click.option("--root", default=the_root.as_posix(), type=str, show_default=True)
-@click.option("--outdir", type=str, required=True, help="wrt temp")
+@click.option("--outdir", type=str, required=True, help="wrt output")
 @click.option(
     "--minh-file",
     help="wrt to data",
@@ -35,7 +35,7 @@ catname_map = {
 @click.pass_context
 def pipeline(ctx, root, outdir, minh_file, catalog_name):
     ctx.ensure_object(dict)
-    output = Path(root).joinpath("temp", outdir)
+    output = Path(root).joinpath("output", outdir)
     ids_file = output.joinpath("ids.json")
     exist_ok = True if ids_file.exists() else False
     output.mkdir(exist_ok=exist_ok, parents=False)
@@ -43,7 +43,7 @@ def pipeline(ctx, root, outdir, minh_file, catalog_name):
     minh_file = data.joinpath(minh_file)
 
     catname = catname_map[catalog_name]
-    progenitor_file = Path(root).joinpath("temp", f"{catname}_progenitors.txt")
+    progenitor_file = Path(root).joinpath("output", f"{catname}_progenitors.txt")
     ctx.obj.update(
         dict(
             root=Path(root),

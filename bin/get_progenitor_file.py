@@ -3,7 +3,7 @@ from pathlib import Path
 
 import click
 
-from relaxed.halo_catalogs import all_props
+from relaxed.halo_catalogs import sims
 from relaxed.progenitors import io_progenitors
 
 the_root = Path(__file__).absolute().parent.parent
@@ -24,11 +24,11 @@ def make_progenitor_file(root, catalog_name, cpus):
     prog_name = f"{catname}_progenitors"
     root = Path(root)
     trees_dir = Path(root).joinpath("data", f"trees_{catname}")
-    progenitor_dir = root.joinpath("temp", prog_name)
-    progenitor_file = root.joinpath("temp", prog_name).with_suffix(".txt")
+    progenitor_dir = root.joinpath("output", prog_name)
+    progenitor_file = root.joinpath("output", prog_name).with_suffix(".txt")
     assert trees_dir.exists()
     progenitor_dir.mkdir(exist_ok=True)
-    particle_mass = all_props[catalog_name]["particle_mass"]
+    particle_mass = sims[catalog_name].particle_mass
     mcut = particle_mass * 1e3
 
     # prefix to be used to save the results of each of the tree files.
