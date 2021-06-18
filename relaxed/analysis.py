@@ -10,7 +10,7 @@ import findiff
 from relaxed import halo_catalogs
 
 
-def setup(name="m11", path="../../../output"):
+def setup(name="m11", path="../../output"):
     # get catalog, indices, and scales (redshift) from given catalog pipeline output name
     output = f"{path}/output_{name}/"
     cat_file = Path(output, "final_table.csv")
@@ -175,6 +175,7 @@ def get_fractional_tdyn(scale, tdyn, sim_name="Bolshoi"):
 
 
 def get_an_from_am(am, mass_bins, mrange=(0.498, 0.51)):
+    # mrange should be a narrow mass range containing only 1 mass bin.
     # default is a_{n} = a_{1/2}
     idx = np.where((mrange[0] < mass_bins) & (mass_bins < mrange[1]))[0].item()
     return am[:, idx]
@@ -381,6 +382,7 @@ def training_suite(x, y, suite=("LN-RS",), extra_args: dict = None):
             extra_args["cam_order"],
         )
         an_train = get_an_from_am(am_train, mass_bins, mrange=mrange)
+        assert an_train.shape == (an_train.shape[0], 1)
 
         y_sort, an_sort = cam_order * np.sort(cam_order * y), np.sort(an_train)
         marks = np.arange(len(y_sort)) / len(y_sort)
