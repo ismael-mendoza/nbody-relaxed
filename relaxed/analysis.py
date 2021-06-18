@@ -7,6 +7,10 @@ from scipy import stats
 from scipy.interpolate import interp1d
 import findiff
 
+from sklearn.feature_selection import SelectFromModel
+from sklearn.linear_model import LinearRegression, Lasso
+from sklearn.preprocessing import QuantileTransformer
+
 from relaxed import halo_catalogs
 
 
@@ -282,17 +286,16 @@ def training_suite(x, y, suite=("LN-RS",), extra_args: dict = None):
         - MV-TLR: Linear regression after transforming variables with a quantile transformer.
     """
     assert set(suite).issubset(
-        {"MG-LFC", "LN-RS", "CAM", "MG-A2", "MV-LLR", "MV-LR", "MG-TFC", "MV-TLR"}
+        {"MG-LFC", "LN-RS", "CAM", "MG-A2", "MV-LLR", "MV-LR", "MG-TFC", "MV-TLR", "MV-TLASSO"}
     )
-
     assert np.isnan(np.log(x)).sum() == 0
     assert np.isnan(np.log(y)).sum() == 0
 
     trained_models = {}
+    extra_info = {}
 
     # whether using suites that require using a gaussian remapping transformation.
     if "MV-TLR" in suite or "MG-TFC" in suite:
-        from sklearn.preprocessing import QuantileTransformer
 
         qt_y = QuantileTransformer(n_quantiles=len(y), output_distribution="normal").fit(
             y.reshape(-1, 1)
@@ -336,7 +339,6 @@ def training_suite(x, y, suite=("LN-RS",), extra_args: dict = None):
     if "MV-LLR" in suite:
         # linear regression with logs.
         # requires shape (n_samples, n_features)
-        from sklearn.linear_model import LinearRegression
 
         reg1 = LinearRegression().fit(np.log(x), np.log(y))
 
@@ -368,6 +370,22 @@ def training_suite(x, y, suite=("LN-RS",), extra_args: dict = None):
 
         trained_models["MV-TLR"] = linreg_trans
 
+    if "MV-TLASSO" in suite:
+        # use lasso linear regression.
+        assert "alpha" in extra_args
+        _model = Lasso(alpha=extra_args["alpha"])
+        selector = SelectFromModel(estimator=_model).fit(x_trans, y_trans)
+        reg_lasso = _model.fit(x_trans, y_trans)
+
+        def lasso_trans(x_test, **kwargs):
+            x_trans_test = qt_x.transform(x_test)
+            y_trans_pred = reg_lasso.predict(x_trans_test)
+            y_pred = qt_y.inverse_transform(y_trans_pred.reshape(-1, 1))
+            return y_pred.reshape(-1)
+
+        trained_models["MV-TLASSO"] = lasso_trans
+        extra_info["lasso_importance"] = selector.estimator.coef_
+
     if "CAM" in suite:
         assert "mass_bins" in extra_args and "am_train" in extra_args
         assert "cam_order" in extra_args and extra_args["cam_order"] in {-1, 1}
@@ -381,8 +399,8 @@ def training_suite(x, y, suite=("LN-RS",), extra_args: dict = None):
             extra_args["mrange"],
             extra_args["cam_order"],
         )
-        an_train = get_an_from_am(am_train, mass_bins, mrange=mrange)
-        assert an_train.shape == (an_train.shape[0], 1)
+        an_train = get_an_from_am(am_train, mass_bins, mrange=mrange).reshape(-1)
+        assert an_train.shape[0] == x.shape[0]
 
         y_sort, an_sort = cam_order * np.sort(cam_order * y), np.sort(an_train)
         marks = np.arange(len(y_sort)) / len(y_sort)
@@ -413,7 +431,7 @@ def training_suite(x, y, suite=("LN-RS",), extra_args: dict = None):
 
         trained_models["MG-A2"] = a2_gauss
 
-    return trained_models
+    return trained_models, extra_info
 
 
 def get_gradient(f, x, k=1, acc=2):
