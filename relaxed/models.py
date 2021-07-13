@@ -6,26 +6,24 @@ from sklearn.preprocessing import QuantileTransformer
 from sklearn.feature_selection import SelectFromModel
 from scipy.interpolate import interp1d
 
-from analysis import get_an_from_am
+from relaxed.analysis import get_an_from_am
 
 
 class PredictionModel(ABC):
-    name = "model"
-
-    def __init__(self, n_features) -> None:
-        self.name = __class__.name
+    def __init__(self, n_features: int) -> None:
+        assert isinstance(n_features, int) and n_features > 0
         self.n_features = n_features
         self.trained = False  # whether model has been trained yet.
 
     def predict(self, x):
         assert len(x.shape) == 2
         assert x.shape[1] == self.n_features
-        assert sum(np.isnan(x)) == 0
+        assert np.sum(np.isnan(x)) == 0
         assert self.trained
         return self._predict(x)
 
     def fit(self, x, y):
-        assert sum(np.isnan(x)) == sum(np.isnan(y)) == 0
+        assert np.sum(np.isnan(x)) == np.sum(np.isnan(y)) == 0
         assert x.shape[0] == y.shape[0]
         assert len(y.shape) == 1 or y.shape[1] == 1
         assert len(x.shape) == 2
@@ -45,9 +43,7 @@ class PredictionModel(ABC):
 class PredictionModelTransform(PredictionModel, ABC):
     """Enable possibility of transforming variables before fitting/prediction."""
 
-    name = "model_transformed"
-
-    def __init__(self, n_features, use_qt: bool = False, use_logs: bool = False) -> None:
+    def __init__(self, n_features: int, use_qt: bool = False, use_logs: bool = False) -> None:
         super().__init__(n_features)
         assert (use_logs + use_qt) <= 1
 
@@ -92,9 +88,7 @@ class PredictionModelTransform(PredictionModel, ABC):
 class LogNormalRandomSample(PredictionModel):
     """"Lognormal random samples."""
 
-    name = "lognormal"
-
-    def __init__(self, n_features) -> None:
+    def __init__(self, n_features: int) -> None:
         super().__init__(n_features)
 
         self.mu = None
@@ -112,10 +106,8 @@ class LogNormalRandomSample(PredictionModel):
 
 
 class LinearRegression(PredictionModelTransform):
-    name = "linear_reg"
-
-    def __init__(self, n_features) -> None:
-        super().__init__(n_features)
+    def __init__(self, n_features: int, use_qt: bool = False, use_logs: bool = False) -> None:
+        super().__init__(n_features, use_qt, use_logs)
         self.reg = None
 
     def _fit(self, x, y):
@@ -128,9 +120,9 @@ class LinearRegression(PredictionModelTransform):
 class LASSO(PredictionModelTransform):
     name = "lasso"
 
-    def __init__(self, n_features, alpha=0.1) -> None:
+    def __init__(self, n_features: int, alpha: float = 0.1, use_qt=False, use_logs=False) -> None:
         # alpha is the regularization parameter.
-        super().__init__(n_features)
+        super().__init__(n_features, use_qt, use_logs)
         self.alpha = alpha
 
         # attributes of fit
@@ -151,10 +143,8 @@ class LASSO(PredictionModelTransform):
 class MultiVariateGaussian(PredictionModelTransform):
     """Multi-Variate Gaussian using full covariance matrix (returns conditional mean)."""
 
-    name = "gaussian"
-
-    def __init__(self, n_features) -> None:
-        super().__init__(n_features)
+    def __init__(self, n_features: int, use_qt: bool = False, use_logs: bool = False) -> None:
+        super().__init__(n_features, use_qt, use_logs)
 
         self.mu1 = None
         self.mu2 = None
@@ -229,14 +219,16 @@ class MultiVariateGaussian(PredictionModelTransform):
 class CAM(PredictionModel):
     """Conditional Abundance Matching"""
 
-    name = "CAM"
-
-    def __init__(self, mass_bins, mrange, cam_order=-1) -> None:
+    def __init__(
+        self, n_features: int, mass_bins: np.ndarray, mrange: Iterable, cam_order: int = -1
+    ) -> None:
         # cam_order: +1 or -1 depending on correlation of a_{n} with y
-        super().__init__(len(mass_bins))
+        assert n_features == len(mass_bins)
+        super().__init__(n_features)
 
         assert cam_order in {-1, 1}
         assert isinstance(mrange, Iterable) and len(mrange) == 2
+        assert isinstance(mass_bins, np.ndarray)
         self.mrange = mrange
         self.cam_order = cam_order
         self.mass_bins = mass_bins
@@ -265,27 +257,42 @@ class CAM(PredictionModel):
 
 available_models = {
     "gaussian": MultiVariateGaussian,
-    "CAM": CAM,
-    "linear_reg": LinearRegression,
+    "cam": CAM,
+    "linear": LinearRegression,
     "lasso": LASSO,
     "lognormal": LogNormalRandomSample,
 }
 
 
-def training_suite(args, data, suite=("CAM",)):
-    """Returned models in `suite` initialized with `args` and trained with `data`.
+def training_suite(data: dict):
+    """Returned models specified in the data dictionary.
+
     Args:
-        args: Dictionary containing kwargs to initialize each model (as dict).
-        data:  Dictionary containing to train each model in format key:(x,y)
-        suite: Which models to train from `models.available_models`.
+        data:  Dictionary containing all the information required to train models. Using the format
+            `name:info` where `name` is an identifier for the model (can be anything)
+            and `info` is a dictionary with keys:
+                - 'xy': (x,y) tuple containing data to train model with.
+                - 'model': Which model from `available_models` to use.
+                - 'n_features': Number of features for this model.
+                - 'kwargs': Keyword argument dict to initialize the model.
     """
-    assert set(suite).issubset(set(available_models.keys()))
-    assert set(args.keys()) == set(data.keys()) == set(suite)
+    # check data dict is in the right format.
+    assert isinstance(data, dict)
+    for name in data:
+        assert isinstance(data[name]["xy"], tuple)
+        assert data[name]["model"] in available_models
+        assert isinstance(data[name]["n_features"], int)
+        assert isinstance(data[name]["kwargs"], dict)
+        assert data[name]["n_features"] == data[name]["xy"][0].shape[1]
 
     trained_models = {}
-    for m in suite:
-        model = available_models[m](**args[m])
-        model.fit(*data[m])
-        trained_models[m] = model
+    for name in data:
+        m = data[name]["model"]
+        kwargs = data[name]["kwargs"]
+        n_features = data[name]["n_features"]
+        x, y = data[name]["xy"]
+        model = available_models[m](n_features, **kwargs)
+        model.fit(x, y)
+        trained_models[name] = model
 
     return trained_models
