@@ -273,12 +273,11 @@ available_models = {
 
 
 def training_suite(args, data, suite=("CAM",)):
-    """
+    """Returned models in `suite` initialized with `args` and trained with `data`.
     Args:
         args: Dictionary containing kwargs to initialize each model (as dict).
         data:  Dictionary containing to train each model in format key:(x,y)
         suite: Which models to train from `models.available_models`.
-
     """
     assert set(suite).issubset(set(available_models.keys()))
     assert set(args.keys()) == set(data.keys()) == set(suite)
@@ -288,3 +287,5 @@ def training_suite(args, data, suite=("CAM",)):
         model = available_models[m](**args[m])
         model.fit(*data[m])
         trained_models[m] = model
+
+    return trained_models
