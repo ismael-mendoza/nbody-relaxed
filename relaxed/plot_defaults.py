@@ -58,3 +58,11 @@ def draw_histogram(
     # add a vertical line.
     if vline == "median":
         ax.axvline(np.median(values), ls="--", color=color)
+
+    elif isinstance(vline, float) or isinstance(vline, int):
+        ax.axvline(vline, ls="--", color=color)
+
+    else:
+        raise NotImplementedError(
+            f"vline type {type(vline)} is not compatible with current implementation."
+        )
