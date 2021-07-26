@@ -27,9 +27,6 @@ ln -s /nfs/turbo/lsa-cavestru/imendoza /home/imendoza/nbody-relaxed/data
 
 ## Variable descriptions (ROCKSTAR)
 
-### Bolshoi
-- Omega_M = 0.270000; Omega_L = 0.730000; h0 = 0.700000; Full box size = 250.000000 Mpc/h
-
 - `Scale`: Scale factor of halo.
 - `ID`: ID of halo (unique across entire simulation).
 - `Desc_Scale`: Scale of descendant halo, if applicable.
