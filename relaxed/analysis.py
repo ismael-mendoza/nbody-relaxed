@@ -5,6 +5,7 @@ import numpy as np
 from astropy.cosmology import LambdaCDM
 from scipy import stats
 from scipy.interpolate import interp1d
+from scipy.signal import savgol_filter
 import findiff
 
 
@@ -174,8 +175,8 @@ def vol_jacknife_values(f, cat, param, *args):
     n_boxes = int(np.max(cat["ibox"]) + 1)
     values = []
     for b in range(n_boxes):
-        _cat = cat[cat["ibox"] != b]
-        value = f(_cat, param, *args)
+        box_keep = cat["ibox"] != b
+        value = f(cat, param, box_keep, *args)
         values.append(value)
     return np.array(values)
 
@@ -236,3 +237,30 @@ def get_gradient(f, x, k=1, acc=2):
         grad.append(deriv.reshape(-1, 1))
 
     return np.hstack(grad)
+
+
+def get_savgol_grads(scales, ma, k=5, deriv=1, n_samples=200):
+    log_a = np.log(scales)
+    log_ma = np.log(ma)
+    assert np.sum(np.isnan(log_ma)) == 0
+    f_log_ma = interp1d(log_a, log_ma, bounds_error=False, fill_value=np.nan)
+    log_a_unif = np.linspace(log_a[0], log_a[-1], n_samples)
+    log_ma_unif = f_log_ma(log_a_unif)
+    d_log_a = abs(log_a_unif[-1] - log_a_unif[0]) / (len(log_a_unif) - 1)
+    gamma_unif = savgol_filter(
+        log_ma_unif, polyorder=4, window_length=k, deriv=deriv, delta=d_log_a
+    )
+    f_gamma = interp1d(log_a_unif, gamma_unif, bounds_error=False, fill_value=np.nan)
+    gamma_a = f_gamma(log_a)
+    return gamma_a
+
+
+def get_tt_indices(n_points, test_ratio=0.2):
+    test_size = int(np.ceil(test_ratio * n_points))
+    test_idx = np.random.choice(range(n_points), replace=False, size=test_size)
+    assert len(test_idx) == len(set(test_idx))
+    train_idx = np.array(list(set(range(n_points)) - set(test_idx)))
+    assert set(train_idx).intersection(set(test_idx)) == set()
+    assert max(max(test_idx), max(train_idx)) == n_points - 1
+    assert min(min(test_idx), min(train_idx)) == 0
+    return train_idx, test_idx
