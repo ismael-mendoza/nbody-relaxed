@@ -175,8 +175,8 @@ def vol_jacknife_values(f, cat, param, *args):
     n_boxes = int(np.max(cat["ibox"]) + 1)
     values = []
     for b in range(n_boxes):
-        _cat = cat[cat["ibox"] != b]
-        value = f(_cat, param, *args)
+        box_keep = cat["ibox"] != b
+        value = f(cat, param, box_keep, *args)
         values.append(value)
     return np.array(values)
 
