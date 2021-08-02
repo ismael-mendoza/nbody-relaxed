@@ -8,17 +8,25 @@ z_map_file = Path("/home/imendoza/nbody-relaxed/bin/bolshoi_z_map.json")
 data_dir = Path("/home/imendoza/nbody-relaxed/data/bolshoi_catalogs")
 with open(z_map_file, "r") as fp:
     z_map = json.load(fp)
-skeleton_url = "https://www.slac.stanford.edu/~behroozi/Bolshoi_Catalogs/hlist_{}.list.gz"
+
+hlist_template = "hlist_{}.list.gz"
+skeleton_url = "https://www.slac.stanford.edu/~behroozi/Bolshoi_Catalogs/{}"
 
 
 data_dir.mkdir(exist_ok=True, parents=False)
 downloads_file = data_dir.joinpath("downloads.txt")
 
-for k, v in z_map.items():
-    with open(downloads_file, "a") as f:
-        url = skeleton_url.format(v)
-        f.write(f"{url}\n")
+if downloads_file.exists():
+    raise IOError("Delete downloads.txt file to re-run this script.")
+
+with open(downloads_file, "a") as f:
+    for k, v in z_map.items():
+        hlist_filename = hlist_template.format(v)
+        hlist_file = data_dir.joinpath(hlist_filename)
+        if not hlist_file.exists():
+            url = skeleton_url.format(hlist_filename)
+            f.write(f"{url}\n")
 
 # then download the files using multiprocessing
 os.chdir(data_dir.as_posix())
-subprocess.run("cat downloads.txt | xargs -n 1 --max-procs 15 --verbose wget", shell=True)
+subprocess.run("cat downloads.txt | xargs -n 1 --max-procs 20 --verbose wget", shell=True)
