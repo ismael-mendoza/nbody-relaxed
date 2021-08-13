@@ -86,6 +86,16 @@ def n_sub(host_ids, sub_pids):
     return N_sub
 
 
+def m2_sub(host_ids, sub_mvir, sub_pids):
+    bins = bin_by_host(host_ids, sub_pids)
+    M_sub = m_sub(host_ids, sub_pids, sub_mvir)
+    m2 = np.zeros(len(bins))
+    for i in range(len(M_sub)):
+        sub_index = bins[i]
+        m2[i] = np.max(sub_mvir[sub_index])
+    return m2
+
+
 def mass_gap(host_mvir, host_ids, sub_mvir, sub_pids):
     bins = bin_by_host(host_ids, sub_pids)
     M_sub = m_sub(host_ids, sub_pids, sub_mvir)
