@@ -151,15 +151,19 @@ def get_ma_corrs(cat, param, indices):
     return np.array(corrs)
 
 
-def get_am_corrs(cat, param, am):
+def get_am_corrs(pvalues, am, box_keep=None):
+    if box_keep is None:
+        box_keep = np.ones(am.shape[0])
+
     corrs = []
     n_mass_bins = am.shape[1]
     for k in range(n_mass_bins):
-        corrs.append(stats.spearmanr(cat[param], am[:, k], nan_policy="omit")[0])
+        corrs.append(stats.spearmanr(pvalues[box_keep], am[:, k][box_keep], nan_policy="omit")[0])
     return np.array(corrs)
 
 
 def add_box_indices(cat, boxes=8, box_size=250):
+    # box_size is in Mpc
     # create a new row add it to the catalogu for which box it is in.
     assert int(boxes ** (1.0 / 3)) == boxes ** (1.0 / 3)
     box_per_dim = int(boxes ** (1.0 / 3))
@@ -170,15 +174,29 @@ def add_box_indices(cat, boxes=8, box_size=250):
             cat["ibox"] += 2 ** k * (d < cat[dim])
 
 
-def vol_jacknife_values(f, cat, param, *args):
+def vol_jacknife_err(fn, cat, *args, mode="dict"):
     # assumes cat has had its box indices added with the function above.
     n_boxes = int(np.max(cat["ibox"]) + 1)
     values = []
     for b in range(n_boxes):
         box_keep = cat["ibox"] != b
-        value = f(cat, param, box_keep, *args)
+        value = fn(*args, box_keep=box_keep)
         values.append(value)
-    return np.array(values)
+
+    if mode == "dict":
+        d = {}
+        for val in values:
+            for k, v in val.items():
+                d[k] = d[k] + [v] if d.get(k, None) is not None else [v]
+
+        d = {k: np.array(v) for k, v in d.items()}
+        return {k: np.sqrt(v.var(axis=0) * (n_boxes - 1)) for k, v in d.items()}
+
+    if mode == "array":
+        values = np.array(values)
+        return np.sqrt(values.var(axis=0) * (n_boxes - 1))
+
+    raise NotImplementedError()
 
 
 # create function that converts scale to fractional tdyn
