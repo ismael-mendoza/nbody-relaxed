@@ -6,6 +6,7 @@ import click
 import numpy as np
 from astropy import table
 from astropy.io import ascii
+from pminh import minh
 
 from relaxed import halo_filters
 from relaxed.halo_catalogs import HaloCatalog
@@ -14,7 +15,7 @@ from relaxed.progenitors import progenitor_lines
 from relaxed.subhaloes.catalog import create_subhalo_cat
 
 the_root = Path(__file__).absolute().parent.parent
-read_trees_dir = the_root.joinpath("packages", "consistent-trees", "read_tree")
+bolshoi_minh = "Bolshoi/minh/hlist_1.00035.minh"
 catname_map = {
     "Bolshoi": "bolshoi",
     "BolshoiP": "bolshoi_p",
@@ -24,16 +25,15 @@ catname_map = {
 @click.group()
 @click.option("--root", default=the_root.as_posix(), type=str, show_default=True)
 @click.option("--outdir", type=str, required=True, help="wrt output")
-@click.option(
-    "--minh-file",
-    help="wrt to data",
-    type=str,
-    default="Bolshoi/minh/hlist_1.00035.minh",
-    show_default=True,
-)
+@click.option("--minh-file", help="./data", type=str, default=bolshoi_minh, show_default=True)
 @click.option("--catalog-name", default="Bolshoi", type=str, show_default=True)
+@click.option(
+    "--all-minh", default="bolshoi_catalogs_minh", type=str, show_default=True, help="./data"
+)
 @click.pass_context
-def pipeline(ctx, root, outdir, minh_file, catalog_name):
+def pipeline(ctx, root, outdir, minh_file, catalog_name, all_minh):
+    catname = catname_map[catalog_name]
+
     ctx.ensure_object(dict)
     output = Path(root).joinpath("output", outdir)
     ids_file = output.joinpath("ids.json")
@@ -42,7 +42,6 @@ def pipeline(ctx, root, outdir, minh_file, catalog_name):
     data = Path(root).joinpath("data")
     minh_file = data.joinpath(minh_file)
 
-    catname = catname_map[catalog_name]
     progenitor_file = Path(root).joinpath("output", f"{catname}_progenitors.txt")
     ctx.obj.update(
         dict(
@@ -56,6 +55,8 @@ def pipeline(ctx, root, outdir, minh_file, catalog_name):
             subhaloes_file=output.joinpath("subhaloes.csv"),
             progenitor_file=progenitor_file,
             progenitor_table_file=output.joinpath("progenitor_table.csv"),
+            mm_subhalo_file=output.joinpath("mm_subhalo.csv"),
+            all_minh=data.joinpath(all_minh),
         )
     )
 
@@ -216,6 +217,68 @@ def make_progenitors(ctx):
     ascii.write(t, ctx.obj["progenitor_table_file"], format="csv")
     with open(z_map_file, "w") as fp:
         json.dump(z_map, fp)
+
+
+@pipeline.command()
+@click.pass_context
+def make_snapshot_subcat(ctx):
+    outfile = ctx["mm_subhalo_file"]
+    all_minh = Path(ctx["all_minh"])
+    z_map_file = ctx.obj["output"].joinpath("z_map.json")
+
+    # get host ids
+    with open(ctx.obj["ids_file"], "r") as fp:
+        host_ids = np.array(json.load(fp))
+
+    # first collect all scales from existing z_map
+    with open(z_map_file, "r") as fp:
+        z_map = dict(json.load(fp))
+
+    z_map_inv = {v: k for k, v in z_map.items()}
+
+    f_sub_names = [f"f_sub_a{i}" for i in z_map]
+    m2_names = [f"m2_a{i}" for i in z_map]
+    table_names = ["id", *f_sub_names, *m2_names]
+    data = np.zeros(len(host_ids), 1 + len(z_map) * 2)
+
+    fcat = table.Table(data=data, names=table_names)
+    fcat["id"] = host_ids
+
+    for minh_file in all_minh.iterdir():
+        if minh_file.suffix == ".minh":
+            fname = minh_file.stem
+            scale = float(fname.replace("hlist_", ""))
+
+            # first we intersect host_ids with tree_root_id of given minh catalog,
+            # also need to check if halo is mmp=1 and upid=-1
+            with minh.open(minh_file) as mcat:
+                assert len(mcat.blocks) == 1, "Only 1 block is supported for now."
+                for b in range(mcat.blocks):
+                    names = ["id", "tree_root_id", "mmp", "upid"]
+                    ids, root_ids, mmps, upids = mcat.block(b, names)
+
+                    # limit to only main line progenitors and host haloes
+                    # NOTE: Does upid == -1 necessary??
+                    keep = (mmps == 1) & (upids == -1)
+                    ids, root_ids = ids[keep], root_ids[keep]
+
+                    # at this point there should be no repeated root_ids
+                    # since there is only 1 main line progenitor per line.
+                    assert len(root_ids) == len(set(root_ids))
+                    sort_idx = np.argsort(root_ids)
+                    ids, root_ids = ids[sort_idx], root_ids[sort_idx]
+
+                    keep1 = halo_filters.intersect(root_ids, host_ids)
+                    keep2 = halo_filters.intersect(host_ids, root_ids)
+
+                    ids, root_ids = ids[keep1], root_ids[keep1]
+
+            subcat = create_subhalo_cat(root_ids, minh_file)
+            scale_idx = z_map_inv[scale]
+            fcat[keep2][f"f_sub_a{scale_idx}"] = subcat["f_sub"]
+            fcat[keep2][f"m2_a{scale_idx}"] = subcat["m2"]
+
+    ascii.write(fcat, output=outfile)
 
 
 @pipeline.command()
