@@ -268,15 +268,8 @@ def make_subhaloes(ctx):
     ascii.write(fcat, output=outfile)
 
 
-@pipeline.command()
-@click.pass_context
-def combine_all(ctx):
-    # load the 3 catalogs that we will be combining
-    dm_cat = ascii.read(ctx.obj["dm_file"], format="csv", fast_reader=True)
-    subhalo_cat = ascii.read(ctx.obj["subhaloes_file"], format="csv", fast_reader=True)
-    progenitor_cat = ascii.read(ctx.obj["progenitor_table_file"], format="csv", fast_reader=True)
-    subhalo_cat.sort("id")
-    progenitor_cat.sort("id")
+def _intersect_cats(dm_cat, subhalo_cat, progenitor_cat):
+    """check ids are all equal and sorted"""
 
     # check all are sorted.
     assert np.array_equal(np.sort(dm_cat["id"]), dm_cat["id"])
@@ -301,7 +294,22 @@ def combine_all(ctx):
     assert np.array_equal(dm_cat["mvir"], subhalo_cat["mvir"])
     assert np.array_equal(dm_cat["mvir"], progenitor_cat["mvir_a0"])
 
-    cat1 = table.join(dm_cat, subhalo_cat, keys=["id", "mvir"], join_type="inner")
+    return dm_cat, subhalo_cat, progenitor_cat
+
+
+@pipeline.command()
+@click.pass_context
+def combine_all(ctx):
+    # load the 3 catalogs that we will be combining
+    dm_cat = ascii.read(ctx.obj["dm_file"], format="csv", fast_reader=True)
+    subhalo_cat = ascii.read(ctx.obj["subhaloes_file"], format="csv", fast_reader=True)
+    progenitor_cat = ascii.read(ctx.obj["progenitor_table_file"], format="csv", fast_reader=True)
+    subhalo_cat.sort("id")
+    progenitor_cat.sort("id")
+
+    dm_cat, subhalo_cat, progenitor_cat = _intersect_cats(dm_cat, subhalo_cat, progenitor_cat)
+
+    cat1 = table.join(dm_cat, subhalo_cat, keys=["id"], join_type="inner")
     fcat = table.join(cat1, progenitor_cat, keys=["id"], join_type="inner")
 
     fcat_file = ctx.obj["output"].joinpath("final_table.csv")
