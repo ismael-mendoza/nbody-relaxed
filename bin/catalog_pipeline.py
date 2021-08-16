@@ -52,10 +52,9 @@ def pipeline(ctx, root, outdir, minh_file, catalog_name, all_minh):
             minh_file=minh_file,
             ids_file=ids_file,
             dm_file=output.joinpath("dm_cat.csv"),
-            subhaloes_file=output.joinpath("subhaloes.csv"),
             progenitor_file=progenitor_file,
             progenitor_table_file=output.joinpath("progenitor_table.csv"),
-            mm_subhalo_file=output.joinpath("mm_subhalo.csv"),
+            subhalo_file=output.joinpath("subhaloes.csv"),
             all_minh=data.joinpath(all_minh),
         )
     )
@@ -148,18 +147,6 @@ def make_dmcat(ctx):
 
 @pipeline.command()
 @click.pass_context
-def make_subhaloes(ctx):
-    # change function in subhaloes/catalog.py so that it only uses the host IDs to extract info.
-    # then use this function here after reading the ID json file.
-    with open(ctx.obj["ids_file"], "r") as fp:
-        host_ids = np.array(json.load(fp))
-    subcat = create_subhalo_cat(host_ids, ctx.obj["minh_file"])
-    ascii.write(subcat, ctx.obj["subhaloes_file"], format="csv")
-    assert np.all(subcat["id"] == host_ids)
-
-
-@pipeline.command()
-@click.pass_context
 def make_progenitors(ctx):
     # total in progenitor_file ~ 382477
     # takes like 2 hrs to run.
@@ -221,8 +208,9 @@ def make_progenitors(ctx):
 
 @pipeline.command()
 @click.pass_context
-def make_snapshot_subcat(ctx):
-    outfile = ctx["mm_subhalo_file"]
+def make_subhaloes(ctx):
+    # contains info for subhaloes at all snapshots (including present)
+    outfile = ctx["subhalo_file"]
     all_minh = Path(ctx["all_minh"])
     z_map_file = ctx.obj["output"].joinpath("z_map.json")
 
@@ -258,8 +246,7 @@ def make_snapshot_subcat(ctx):
                     ids, root_ids, mmps, upids = mcat.block(b, names)
 
                     # limit to only main line progenitors and host haloes
-                    # NOTE: Does upid == -1 necessary??
-                    keep = (mmps == 1) & (upids == -1)
+                    keep = mmps == 1
                     ids, root_ids = ids[keep], root_ids[keep]
 
                     # at this point there should be no repeated root_ids
@@ -273,7 +260,7 @@ def make_snapshot_subcat(ctx):
 
                     ids, root_ids = ids[keep1], root_ids[keep1]
 
-            subcat = create_subhalo_cat(root_ids, minh_file)
+            subcat = create_subhalo_cat(ids, minh_file)
             scale_idx = z_map_inv[scale]
             fcat[keep2][f"f_sub_a{scale_idx}"] = subcat["f_sub"]
             fcat[keep2][f"m2_a{scale_idx}"] = subcat["m2"]
@@ -288,6 +275,7 @@ def combine_all(ctx):
     dm_cat = ascii.read(ctx.obj["dm_file"], format="csv", fast_reader=True)
     subhalo_cat = ascii.read(ctx.obj["subhaloes_file"], format="csv", fast_reader=True)
     progenitor_cat = ascii.read(ctx.obj["progenitor_table_file"], format="csv", fast_reader=True)
+    subhalo_cat.sort("id")
     progenitor_cat.sort("id")
 
     # check all are sorted.
@@ -307,7 +295,7 @@ def combine_all(ctx):
     subhalo_cat = subhalo_cat[keep1]
     progenitor_cat = progenitor_cat[keep2]
 
-    # one last check on all IDs.
+    # one last check on all IDs and masses.
     assert np.array_equal(dm_cat["id"], subhalo_cat["id"])
     assert np.array_equal(dm_cat["id"], progenitor_cat["id"])
     assert np.array_equal(dm_cat["mvir"], subhalo_cat["mvir"])
