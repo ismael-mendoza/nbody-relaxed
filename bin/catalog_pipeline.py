@@ -217,8 +217,8 @@ def make_progenitors(ctx):
 @click.pass_context
 def make_subhaloes(ctx, threshold):
     # contains info for subhaloes at all snapshots (including present)
-    outfile = ctx["subhalo_file"]
-    all_minh = Path(ctx["all_minh"])
+    outfile = ctx.obj["subhalo_file"]
+    all_minh = Path(ctx.obj["all_minh"])
     z_map_file = ctx.obj["output"].joinpath("z_map.json")
 
     # get host ids
@@ -234,20 +234,24 @@ def make_subhaloes(ctx, threshold):
     f_sub_names = [f"f_sub_a{i}" for i in z_map]
     m2_names = [f"m2_a{i}" for i in z_map]
     table_names = ["id", *f_sub_names, *m2_names]
-    data = np.zeros(len(host_ids), 1 + len(z_map) * 2)
+    data = np.zeros((len(host_ids), 1 + len(z_map) * 2))
 
     fcat = table.Table(data=data, names=table_names)
     fcat["id"] = host_ids
 
+    count = 0
     for minh_file in all_minh.iterdir():
         if minh_file.suffix == ".minh":
             fname = minh_file.stem
+            print(fname)
             scale = float(fname.replace("hlist_", ""))
 
             # first we intersect host_ids with tree_root_id of given minh catalog,
             # also need to check if halo is mmp=1 and upid=-1
             with minh.open(minh_file) as mcat:
-                assert len(mcat.blocks) == 1, "Only 1 block is supported for now."
+                print(mcat.blocks)
+
+                assert mcat.blocks == 1, "Only 1 block is supported for now."
                 b = 0
                 names = ["id", "tree_root_id", "mmp", "upid"]
                 ids, root_ids, mmps, _ = mcat.block(b, names)
@@ -271,6 +275,8 @@ def make_subhaloes(ctx, threshold):
             scale_idx = z_map_inv[scale]
             fcat[keep2][f"f_sub_a{scale_idx}"] = subcat["f_sub"]
             fcat[keep2][f"m2_a{scale_idx}"] = subcat["m2"]
+            count += 1
+    assert count == len(z_map)
 
     ascii.write(fcat, output=outfile)
 
