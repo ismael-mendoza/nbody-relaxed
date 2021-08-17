@@ -9,16 +9,15 @@ from relaxed.subhaloes import quantities
 def create_subhalo_cat(host_ids, minh_file):
     # mcat is complete and must be read by blocks.
     # host_ids correspond only host haloes w/ upid == -1
-    # now we also want to add subhalo fraction and we follow Phil's lead
+    # f_sub = ratio of sum of all subhaloes to mass of host halo
+    # m2 = ratio of most massive subhalo mass to host mass.
 
     assert isinstance(host_ids, np.ndarray)
     assert np.all(np.sort(host_ids) == host_ids)
 
     # will fill out as we read the blocks.
-    f_sub = np.zeros(len(host_ids))
-    host_mvir = np.zeros(len(host_ids))
-    fnames = ["id", "mvir", "f_sub"]
-    fdata = [host_ids, host_mvir, f_sub]
+    fnames = ["id", "mvir", "f_sub", "m2"]
+    fdata = [host_ids, np.zeros(len(host_ids)), np.zeros(len(host_ids)), np.zeros(len(host_ids))]
     subcat = Table(names=fnames, data=fdata)
     subcat.sort("id")
 
@@ -38,7 +37,9 @@ def create_subhalo_cat(host_ids, minh_file):
             sub_pids = upid[upid != -1]
             sub_mvir = mvir[upid != -1]
             subcat["f_sub"] += quantities.m_sub(host_ids, sub_pids, sub_mvir)
+            subcat["m2"] = quantities.m2_sub(host_ids, sub_pids, sub_mvir)
 
     assert np.all(subcat["mvir"] > 0)
     subcat["f_sub"] = subcat["f_sub"] / subcat["mvir"]
+    subcat["m2"] = subcat["m2"] / subcat["mvir"]
     return subcat

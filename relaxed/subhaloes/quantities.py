@@ -76,6 +76,17 @@ def m_sub(host_ids, sub_pids, sub_mvir):
     return M_sub
 
 
+def m2_sub(host_ids, sub_pids, sub_mvir):
+    """Returns mass of most massive subhalo."""
+    bins = bin_by_host(host_ids, sub_pids)
+    m2 = np.zeros(len(bins))
+    for i in range(len(bins)):
+        sub_mvir_i = sub_mvir[bins[i]]
+        m2[i] = np.max(sub_mvir_i)
+
+    return m2
+
+
 def n_sub(host_ids, sub_pids):
     """How many subhaloes does each halo have?"""
     bins = bin_by_host(host_ids, sub_pids)
