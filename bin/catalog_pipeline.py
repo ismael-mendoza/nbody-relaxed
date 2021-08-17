@@ -207,8 +207,15 @@ def make_progenitors(ctx):
 
 
 @pipeline.command()
+@click.option(
+    "--threshold",
+    default=1.0 / 100,
+    type=float,
+    help="Subhalo mass threshold fraction relative to snapshot host halo mass",
+    show_default=True,
+)
 @click.pass_context
-def make_subhaloes(ctx):
+def make_subhaloes(ctx, threshold):
     # contains info for subhaloes at all snapshots (including present)
     outfile = ctx["subhalo_file"]
     all_minh = Path(ctx["all_minh"])
@@ -241,26 +248,26 @@ def make_subhaloes(ctx):
             # also need to check if halo is mmp=1 and upid=-1
             with minh.open(minh_file) as mcat:
                 assert len(mcat.blocks) == 1, "Only 1 block is supported for now."
-                for b in range(mcat.blocks):
-                    names = ["id", "tree_root_id", "mmp", "upid"]
-                    ids, root_ids, mmps, upids = mcat.block(b, names)
+                b = 0
+                names = ["id", "tree_root_id", "mmp", "upid"]
+                ids, root_ids, mmps, _ = mcat.block(b, names)
 
-                    # limit to only main line progenitors and host haloes
-                    keep = mmps == 1
-                    ids, root_ids = ids[keep], root_ids[keep]
+                # limit to only main line progenitors
+                keep = mmps == 1
+                ids, root_ids = ids[keep], root_ids[keep]
 
-                    # at this point there should be no repeated root_ids
-                    # since there is only 1 main line progenitor per line.
-                    assert len(root_ids) == len(set(root_ids))
-                    sort_idx = np.argsort(root_ids)
-                    ids, root_ids = ids[sort_idx], root_ids[sort_idx]
+                # at this point there should be no repeated root_ids
+                # since there is only 1 main line progenitor per line.
+                assert len(root_ids) == len(set(root_ids))
+                sort_idx = np.argsort(root_ids)
+                ids, root_ids = ids[sort_idx], root_ids[sort_idx]
 
-                    keep1 = halo_filters.intersect(root_ids, host_ids)
-                    keep2 = halo_filters.intersect(host_ids, root_ids)
+                keep1 = halo_filters.intersect(root_ids, host_ids)
+                keep2 = halo_filters.intersect(host_ids, root_ids)
 
-                    ids, root_ids = ids[keep1], root_ids[keep1]
+                ids, root_ids = ids[keep1], root_ids[keep1]
 
-            subcat = create_subhalo_cat(ids, minh_file)
+            subcat = create_subhalo_cat(ids, minh_file, threshold=threshold)
             scale_idx = z_map_inv[scale]
             fcat[keep2][f"f_sub_a{scale_idx}"] = subcat["f_sub"]
             fcat[keep2][f"m2_a{scale_idx}"] = subcat["m2"]
