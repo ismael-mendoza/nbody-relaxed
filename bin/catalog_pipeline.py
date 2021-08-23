@@ -172,7 +172,7 @@ def make_progenitors(ctx):
     # iterate through the progenitor generator, obtaining the haloes that match IDs
     # as well as all available scales (will be nan's if not available for a given line)
     with open(progenitor_file, "r") as pf:
-        for id in tqdm(ids, desc="Progress on extracting lines:"):
+        for id in tqdm(ids, desc="Progress on extracting lines"):
             if id in lookup:  # only extract lines in lookup.
                 pos = lookup[id]
                 pf.seek(pos, os.SEEK_SET)
@@ -273,7 +273,7 @@ def make_subhaloes(ctx, threshold):
             minh_scales.add(scale)
     assert len(minh_scales.intersection(z_map_inv.keys())) == len(z_map_inv), "Inconsistent scales"
 
-    for minh_file in tqdm(all_minh.iterdir(), total=len(z_map), desc="Progress on .minh files:"):
+    for minh_file in tqdm(all_minh.iterdir(), total=len(z_map), desc="Progress on .minh files"):
         if minh_file.suffix == ".minh":
             fname = minh_file.stem
             scale = float(fname.replace("hlist_", ""))
