@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
+import json
 from pathlib import Path
+import re
 
 import click
 
@@ -26,6 +28,7 @@ def make_progenitor_file(root, catalog_name, cpus):
     trees_dir = Path(root).joinpath("data", f"trees_{catname}")
     progenitor_dir = root.joinpath("output", prog_name)
     progenitor_file = root.joinpath("output", prog_name).with_suffix(".txt")
+    lookup_file = root.joinpath("output", "lookup_prog.json")
     assert trees_dir.exists()
     progenitor_dir.mkdir(exist_ok=True)
     particle_mass = sims[catalog_name].particle_mass
@@ -39,6 +42,23 @@ def make_progenitor_file(root, catalog_name, cpus):
 
     # then merge all of these into a single file
     io_progenitors.merge_progenitors(progenitor_dir, progenitor_file)
+
+    # create a lookup table mapping line -> tree_root_id
+    with open(progenitor_file, "r") as fp:
+        prev = 0
+        lookup = {}
+        line = fp.readline()
+        while line:
+            line = line.rstrip()  # remove trailing whitespace
+            tree_root_match = re.match(r"# tree root id: (\d+) #", line)
+            if tree_root_match:
+                root_id = tree_root_match.groups()[0]
+                lookup[int(root_id)] = prev
+            prev = fp.tell()
+            line = fp.readline()
+
+    with open(lookup_file, "w") as fp:
+        json.dump(lookup, fp)
 
 
 if __name__ == "__main__":

@@ -67,7 +67,6 @@ def bin_by_host(host_ids, sub_pids):
 def m_sub(host_ids, host_mvir, sub_pids, sub_mvir, threshold=1.0 / 100):
     """M_sub returns the sum of the mass of all subhaloes of each host."""
     bins = bin_by_host(host_ids, sub_pids)
-
     M_sub = np.zeros(len(bins))
     for i in range(len(bins)):
         sub_mvir_i = sub_mvir[bins[i]]
@@ -83,7 +82,7 @@ def m2_sub(host_ids, sub_pids, sub_mvir):
     m2 = np.zeros(len(bins))
     for i in range(len(bins)):
         sub_mvir_i = sub_mvir[bins[i]]
-        m2[i] = np.max(sub_mvir_i)
+        m2[i] = np.max(sub_mvir_i) if len(sub_mvir_i) > 0 else 0.0
 
     return m2
 
@@ -98,6 +97,7 @@ def n_sub(host_ids, sub_pids):
     return N_sub
 
 
+# FIXME: max fails if empty.
 def mass_gap(host_mvir, host_ids, sub_mvir, sub_pids):
     bins = bin_by_host(host_ids, sub_pids)
     M_sub = m_sub(host_ids, sub_pids, sub_mvir)

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 import json
 from pathlib import Path
 
@@ -6,12 +7,11 @@ import click
 import numpy as np
 from astropy import table
 from astropy.io import ascii
-from pminh import minh
 
 from relaxed import halo_filters
 from relaxed.halo_catalogs import HaloCatalog
 from relaxed.halo_catalogs import sims
-from relaxed.progenitors import progenitor_lines
+from relaxed.progenitors.progenitor_lines import get_next_progenitor
 from relaxed.subhaloes.catalog import create_subhalo_cat
 
 the_root = Path(__file__).absolute().parent.parent
@@ -28,10 +28,10 @@ catname_map = {
 @click.option("--minh-file", help="./data", type=str, default=bolshoi_minh, show_default=True)
 @click.option("--catalog-name", default="Bolshoi", type=str, show_default=True)
 @click.option(
-    "--all-minh", default="bolshoi_catalogs_minh", type=str, show_default=True, help="./data"
+    "--all-minh-files", default="bolshoi_catalogs_minh", type=str, show_default=True, help="./data"
 )
 @click.pass_context
-def pipeline(ctx, root, outdir, minh_file, catalog_name, all_minh):
+def pipeline(ctx, root, outdir, minh_file, catalog_name, all_minh_files):
     catname = catname_map[catalog_name]
 
     ctx.ensure_object(dict)
@@ -43,6 +43,7 @@ def pipeline(ctx, root, outdir, minh_file, catalog_name, all_minh):
     minh_file = data.joinpath(minh_file)
 
     progenitor_file = Path(root).joinpath("output", f"{catname}_progenitors.txt")
+    lookup_file = Path(root).joinpath("output", f"lookup_{catname}.json")
     ctx.obj.update(
         dict(
             root=Path(root),
@@ -53,9 +54,11 @@ def pipeline(ctx, root, outdir, minh_file, catalog_name, all_minh):
             ids_file=ids_file,
             dm_file=output.joinpath("dm_cat.csv"),
             progenitor_file=progenitor_file,
+            lookup_file=lookup_file,
             progenitor_table_file=output.joinpath("progenitor_table.csv"),
             subhalo_file=output.joinpath("subhaloes.csv"),
-            all_minh=data.joinpath(all_minh),
+            all_minh=data.joinpath(all_minh_files),
+            lookup_index=output.joinpath("lookup.csv"),
         )
     )
 
@@ -150,58 +153,70 @@ def make_dmcat(ctx):
 def make_progenitors(ctx):
     # total in progenitor_file ~ 382477
     # takes like 2 hrs to run.
-    assert ctx.obj["progenitor_file"].exists()
+    progenitor_file = ctx.obj["progenitor_file"]
+    lookup_file = ctx.obj["lookup_file"]
+    assert progenitor_file.exists()
+    assert lookup_file.exists()
     with open(ctx.obj["ids_file"], "r") as fp:
-        ids = set(json.load(fp))
+        ids = np.array(json.load(fp)).astype(int)
+
+    with open(lookup_file, "r") as jp:
+        lookup = json.load(jp)
+        lookup = {int(k): int(v) for k, v in lookup.items()}
 
     prog_lines = []
 
-    # now read the progenitor file using generators.
-    prog_generator = progenitor_lines.get_prog_lines_generator(ctx.obj["progenitor_file"])
-
     # first obtain all scales available + save lines that we want to use.
-    matches = 0
     scales = set()
-    logs_file = ctx.obj["output"].joinpath("logs.txt")
 
     # iterate through the progenitor generator, obtaining the haloes that match IDs
-    # as wel as all available scales (will be nan's if not available for a given line)
-    with open(logs_file, "w") as fp:
-        for i, prog_line in enumerate(prog_generator):
-            if i % 10000 == 0:
-                print(i, file=fp)
-                print("matches:", matches, file=fp, flush=True)
-            if prog_line.root_id in ids:
-                scales = scales.union(set(prog_line.cat["scale"]))
+    # as well as all available scales (will be nan's if not available for a given line)
+    with open(progenitor_file, "r") as pf:
+        for id in ids:
+            if id in lookup:
+                pos = lookup[id]
+                pf.seek(pos, os.SEEK_SET)
+                prog_line = get_next_progenitor(pf)
                 prog_lines.append(prog_line)
-                matches += 1
+                scales = scales.union(set(prog_line.cat["scale"]))
 
     scales = sorted(list(scales), reverse=True)
     z_map = {i: scale for i, scale in enumerate(scales)}
 
     mvir_names = [f"mvir_a{i}" for i in range(len(scales))]
     # merger ratio (m2 / m1) where m2 is second most massive progenitor.
-    mratio_names = [f"mratio_a{i}" for i in range(len(scales))]
-    names = ("id", *mvir_names, *mratio_names)
+    cpgr_names = [f"cpgratio_a{i}" for i in range(len(scales))]
+    names = ("id", *mvir_names, *cpgr_names)
     values = np.zeros((len(prog_lines), len(names)))
     values[values == 0] = np.nan
 
-    for i, prog_line in enumerate(prog_lines):
-        n_scales = len(prog_line.cat["mvir"])
-        values[i, 0] = prog_line.root_id
-        values[i, 1 : n_scales + 1] = prog_line.cat["mvir"]
-        m2_vir = np.array(prog_line.cat["coprog_mvirs"])
-        m2_vir[m2_vir < 0] = 0  # missing values with -1 -> 0
-        values[i, len(mvir_names) + 1 : len(mvir_names) + n_scales + 1] = m2_vir / np.array(
-            prog_line.cat["mvir"]
-        )
+    # create an astropy table for a mainline progenitor 'lookup'
+    lookup_names = [f"id_a{i}" for i in range(len(scales))]
+    lookup_index = np.zeros((len(prog_lines), len(scales)))
+    lookup_index[lookup_index == 0] = -1  # np.nan forces us to use floats when saving.
 
-    t = table.Table(names=names, data=values)
-    t.sort("id")
+    for i, prog_line in enumerate(prog_lines):
+        n_scales = len(prog_line.cat)
+        for s in range(n_scales):
+            assert scales[s] == prog_line.cat["scale"][s], "Progenitor was skipped!?"
+            mvir = prog_line.cat["mvir"][s]
+            values[i, 0] = prog_line.root_id
+            values[i, 1 + s] = mvir
+            cpg_mvir = prog_line.cat["coprog_mvir"][s]
+            cpg_mvir = 0 if cpg_mvir < 0 else cpg_mvir  # missing values with -1 -> 0
+            values[i, 1 + len(scales) + s] = cpg_mvir / mvir
+            lookup_index[i, s] = prog_line.cat["halo_id"][s]
+
+    prog_table = table.Table(names=names, data=values)
+    prog_table.sort("id")
+    prog_table["id"] = prog_table["id"].astype(int)
+    lookup_index = table.Table(names=lookup_names, data=lookup_index.astype(int))
+    lookup_index.sort("id_a0")
     z_map_file = ctx.obj["output"].joinpath("z_map.json")
 
     # save final table and json file mapping index to scale
-    ascii.write(t, ctx.obj["progenitor_table_file"], format="csv")
+    ascii.write(prog_table, ctx.obj["progenitor_table_file"], format="csv")
+    ascii.write(lookup_index, ctx.obj["lookup_index"], format="csv")
     with open(z_map_file, "w") as fp:
         json.dump(z_map, fp)
 
@@ -221,62 +236,57 @@ def make_subhaloes(ctx, threshold):
     all_minh = Path(ctx.obj["all_minh"])
     z_map_file = ctx.obj["output"].joinpath("z_map.json")
 
+    assert all_minh.exists()
+    assert z_map_file.exists()
+
     # get host ids
     with open(ctx.obj["ids_file"], "r") as fp:
-        host_ids = np.array(json.load(fp))
+        sample_ids = np.array(json.load(fp)).astype(int)
 
     # first collect all scales from existing z_map
     with open(z_map_file, "r") as fp:
         z_map = dict(json.load(fp))
-
+        z_map = {int(k): float(v) for k, v in z_map.items()}
     z_map_inv = {v: k for k, v in z_map.items()}
+
+    # load lookup index
+    lookup_index = ascii.read(ctx.obj["lookup_index"], format="csv")
 
     f_sub_names = [f"f_sub_a{i}" for i in z_map]
     m2_names = [f"m2_a{i}" for i in z_map]
     table_names = ["id", *f_sub_names, *m2_names]
-    data = np.zeros((len(host_ids), 1 + len(z_map) * 2))
+    data = np.zeros((len(sample_ids), 1 + len(z_map) * 2))
 
     fcat = table.Table(data=data, names=table_names)
-    fcat["id"] = host_ids
+    fcat["id"] = sample_ids
 
-    count = 0
+    assert np.all(fcat["id"] == lookup_index["id_a0"])
+
+    # check all scales from files are in z_map and viceversa
+    minh_scales = set()
+    for minh_file in all_minh.iterdir():
+        if minh_file.suffix == ".minh":
+            fname = minh_file.stem
+            scale = float(fname.replace("hlist_", ""))
+            minh_scales.add(scale)
+    assert len(minh_scales.intersection(z_map_inv.keys())) == len(z_map_inv), "Inconsistent scales"
+
     for minh_file in all_minh.iterdir():
         if minh_file.suffix == ".minh":
             fname = minh_file.stem
             print(fname)
             scale = float(fname.replace("hlist_", ""))
-
-            # first we intersect host_ids with tree_root_id of given minh catalog,
-            # also need to check if halo is mmp=1 and upid=-1
-            with minh.open(minh_file) as mcat:
-                print(mcat.blocks)
-
-                assert mcat.blocks == 1, "Only 1 block is supported for now."
-                b = 0
-                names = ["id", "tree_root_id", "mmp", "upid"]
-                ids, root_ids, mmps, _ = mcat.block(b, names)
-
-                # limit to only main line progenitors
-                keep = mmps == 1
-                ids, root_ids = ids[keep], root_ids[keep]
-
-                # at this point there should be no repeated root_ids
-                # since there is only 1 main line progenitor per line.
-                assert len(root_ids) == len(set(root_ids))
-                sort_idx = np.argsort(root_ids)
-                ids, root_ids = ids[sort_idx], root_ids[sort_idx]
-
-                keep1 = halo_filters.intersect(root_ids, host_ids)
-                keep2 = halo_filters.intersect(host_ids, root_ids)
-
-                ids, root_ids = ids[keep1], root_ids[keep1]
-
-            subcat = create_subhalo_cat(ids, minh_file, threshold=threshold)
             scale_idx = z_map_inv[scale]
-            fcat[keep2][f"f_sub_a{scale_idx}"] = subcat["f_sub"]
-            fcat[keep2][f"m2_a{scale_idx}"] = subcat["m2"]
-            count += 1
-    assert count == len(z_map)
+
+            # from the look up index we have the ids at the snapshot that we need to extract.
+            host_ids = lookup_index[f"id_a{scale_idx}"]
+            keep = host_ids > 0  # remove -1s
+
+            # extract subhalo information for each halo in `ids`.
+            subcat = create_subhalo_cat(host_ids[keep], minh_file, threshold=threshold)
+            assert np.all(host_ids[keep] == subcat["id"])
+            fcat[keep][f"f_sub_a{scale_idx}"] = subcat["f_sub"]
+            fcat[keep][f"m2_a{scale_idx}"] = subcat["m2"]
 
     ascii.write(fcat, output=outfile)
 
@@ -304,7 +314,6 @@ def _intersect_cats(dm_cat, subhalo_cat, progenitor_cat):
     # one last check on all IDs and masses.
     assert np.array_equal(dm_cat["id"], subhalo_cat["id"])
     assert np.array_equal(dm_cat["id"], progenitor_cat["id"])
-    assert np.array_equal(dm_cat["mvir"], subhalo_cat["mvir"])
     assert np.array_equal(dm_cat["mvir"], progenitor_cat["mvir_a0"])
 
     return dm_cat, subhalo_cat, progenitor_cat
@@ -315,8 +324,9 @@ def _intersect_cats(dm_cat, subhalo_cat, progenitor_cat):
 def combine_all(ctx):
     # load the 3 catalogs that we will be combining
     dm_cat = ascii.read(ctx.obj["dm_file"], format="csv", fast_reader=True)
-    subhalo_cat = ascii.read(ctx.obj["subhaloes_file"], format="csv", fast_reader=True)
+    subhalo_cat = ascii.read(ctx.obj["subhalo_file"], format="csv", fast_reader=True)
     progenitor_cat = ascii.read(ctx.obj["progenitor_table_file"], format="csv", fast_reader=True)
+    dm_cat.sort("id")
     subhalo_cat.sort("id")
     progenitor_cat.sort("id")
 

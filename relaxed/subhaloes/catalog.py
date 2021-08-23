@@ -1,6 +1,7 @@
 import numpy as np
 from astropy.table import Table
 from pminh import minh
+import warnings
 
 from relaxed.halo_filters import intersect
 from relaxed.subhaloes import quantities
@@ -25,43 +26,60 @@ def create_subhalo_cat(host_ids, minh_file, threshold=1.0 / 100):
     assert np.all(np.sort(host_ids) == host_ids)
 
     # will fill out as we read the blocks.
-    subcat_names = ["id", "mvir", "f_sub", "m2"]
-    subcat_data = [host_ids, *[np.zeros(len(host_ids)) for _ in range(len(subcat_names) - 1)]]
-    subcat = Table(names=subcat_names, data=subcat_data)
-    subcat.sort("id")
+    fnames = ["id", "mvir", "f_sub", "m2"]
+    fdata = [host_ids, *[np.zeros(len(host_ids)) for _ in range(len(fnames) - 1)]]
+    host_cat = Table(names=fnames, data=fdata)
+    host_cat.sort("id")
 
+    # first we fill out all host masses to avoid confusion later.
     with minh.open(minh_file) as mcat:
-        assert mcat.blocks == 1, "Only 1 block supported"
-        b = 0
-        names = ["id", "upid", "mvir"]
-        ids, upid, mvir = mcat.block(b, names)
-        table = Table(names=names, data=[ids, upid, mvir])
-        table.sort("id")
+        for b in range(mcat.blocks):
+            names = ["id", "mvir"]
+            ids, mvir = mcat.block(b, names)
+            cat = Table(names=names, data=[ids, mvir])
+            cat.sort("id")
 
-        # first we calculate host_mvir
-        keep = intersect(np.array(table["id"]), host_ids)
-        indx_ok = intersect(host_ids, np.array(table[keep]["id"]))
-        subcat["mvir"][indx_ok] = table[keep]["mvir"]
-        # FIXME: Assertion only true if 1 block, code above is general.
-        assert np.all(subcat["mvir"] > 0)
+            # intersect so we only fill out info for host haloes contained in this block.
+            # not all host_cat ids are contained in block, not all block ids are in host_cat
+            keep = intersect(np.array(cat["id"]), np.array(host_cat["id"]))
+            indx_ok = intersect(np.array(host_cat["id"]), np.array(cat[keep]["id"]))
 
-        # need to contain only ids of host_ids for it to work.
-        sub_pids = upid[upid != -1]
-        sub_mvir = mvir[upid != -1]
+            host_cat["mvir"][indx_ok] = cat[keep]["mvir"]
 
-        # first calculate total subhalo mass
-        # FIXME: For >1 block need to replace `host_ids` below.
-        subcat["f_sub"] += quantities.m_sub(
-            host_ids, subcat["mvir"], sub_pids, sub_mvir, threshold=threshold
+    unfilled = host_cat["mvir"] == 0
+    if sum(unfilled) > 0:
+        warnings.warn(
+            f"{sum(unfilled)} host IDs out of {len(host_cat)} are not contained in minh catalog"
+            f"loaded from file {minh_file}."
         )
+    host_cat["mvir"][unfilled] = np.nan  # avoid division-by-zero warning below.
 
-        # and most massive subhalo mass
-        m2_curr = quantities.m2_sub(host_ids, sub_pids, sub_mvir).reshape(-1, 1)
-        m2_prev = np.array(subcat["m2"]).reshape(-1, 1)
-        m2 = np.hstack([m2_curr, m2_prev]).max(axis=1)
-        subcat["m2"] = m2
+    # now calculate subhalo quantities
+    with minh.open(minh_file) as mcat:
+        for b in range(mcat.blocks):
+            names = ["id", "upid", "mvir"]
+            ids, upid, mvir = mcat.block(b, names)
+            sub_cat = Table(names=names, data=[ids, upid, mvir])
+            sub_cat.sort("id")
 
-    # finally ratio
-    subcat["f_sub"] = subcat["f_sub"] / subcat["mvir"]
-    subcat["m2"] = subcat["m2"] / subcat["mvir"]
-    return subcat
+            # extract all subhalo masses and parent ids in this block.
+            # NOTE: `keep` is NOT used because that will filter out subhalo IDs not in `host_ids`.
+            sub_pids = upid[upid != -1]
+            sub_mvir = mvir[upid != -1]
+
+            # first calculate total subhalo mass
+            # NOTE: If ID in host_cat but not in sub_pids then 0 is returned.
+            host_cat["f_sub"] += quantities.m_sub(
+                host_cat["id"], host_cat["mvir"], sub_pids, sub_mvir, threshold=threshold
+            )
+
+            # and most massive subhalo mass
+            m2_curr = quantities.m2_sub(host_cat["id"], sub_pids, sub_mvir).reshape(-1, 1)
+            m2_prev = np.array(host_cat["m2"]).reshape(-1, 1)
+            m2 = np.hstack([m2_curr, m2_prev]).max(axis=1)
+            host_cat["m2"] = m2
+
+    # finally calculate ratios.
+    host_cat["f_sub"] = host_cat["f_sub"] / host_cat["mvir"]
+    host_cat["m2"] = host_cat["m2"] / host_cat["mvir"]
+    return host_cat
