@@ -299,9 +299,6 @@ def combine_all(ctx):
     dm_cat = ascii.read(ctx.obj["dm_file"], format="csv", fast_reader=True)
     subhalo_cat = ascii.read(ctx.obj["subhalo_file"], format="csv", fast_reader=True)
     progenitor_cat = ascii.read(ctx.obj["progenitor_table_file"], format="csv", fast_reader=True)
-    dm_cat.sort("id")
-    subhalo_cat.sort("id")
-    progenitor_cat.sort("id")
 
     # check all are sorted.
     assert np.array_equal(np.sort(dm_cat["id"]), dm_cat["id"])
