@@ -64,7 +64,7 @@ def bin_by_host(host_ids, sub_pids):
 # Provided as an example of how to use bin_by_host:
 
 
-def m_sub(host_ids, host_mvir, sub_pids, sub_mvir, threshold=1.0 / 100):
+def m_sub(host_ids, host_mvir, sub_pids, sub_mvir, threshold=1.0 / 1000):
     """M_sub returns the sum of the mass of all subhaloes of each host."""
     bins = bin_by_host(host_ids, sub_pids)
     M_sub = np.zeros(len(bins))
@@ -81,8 +81,8 @@ def m2_sub(host_ids, sub_pids, sub_mvir):
     bins = bin_by_host(host_ids, sub_pids)
     m2 = np.zeros(len(bins))
     for i in range(len(bins)):
-        sub_mvir_i = sub_mvir[bins[i]]
-        m2[i] = np.max(sub_mvir_i) if len(sub_mvir_i) > 0 else 0.0
+        sub_mvir_i = sub_mvir[bins[i]].reshape(-1)
+        m2[i] = sub_mvir_i.max() if len(sub_mvir_i) > 0 else 0.0
 
     return m2
 
