@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import json
+from tqdm import tqdm
 from pathlib import Path
 
 import click
@@ -164,16 +165,15 @@ def make_progenitors(ctx):
         lookup = json.load(jp)
         lookup = {int(k): int(v) for k, v in lookup.items()}
 
-    prog_lines = []
-
     # first obtain all scales available + save lines that we want to use.
+    prog_lines = []
     scales = set()
 
     # iterate through the progenitor generator, obtaining the haloes that match IDs
     # as well as all available scales (will be nan's if not available for a given line)
     with open(progenitor_file, "r") as pf:
-        for id in ids:
-            if id in lookup:
+        for id in tqdm(ids, desc="Progress on extracting lines:"):
+            if id in lookup:  # only extract lines in lookup.
                 pos = lookup[id]
                 pf.seek(pos, os.SEEK_SET)
                 prog_line = get_next_progenitor(pf)
@@ -184,28 +184,30 @@ def make_progenitors(ctx):
     z_map = {i: scale for i, scale in enumerate(scales)}
 
     mvir_names = [f"mvir_a{i}" for i in range(len(scales))]
-    # merger ratio (m2 / m1) where m2 is second most massive progenitor.
+    # ratio (m2 / m1) where m2 is second most massive co-progenitor.
     cpgr_names = [f"cpgratio_a{i}" for i in range(len(scales))]
     names = ("id", *mvir_names, *cpgr_names)
-    values = np.zeros((len(prog_lines), len(names)))
+    values = np.zeros((len(ids), len(names)))
+    values[:, 0] = ids
     values[values == 0] = np.nan
 
     # create an astropy table for a mainline progenitor 'lookup'
     lookup_names = [f"id_a{i}" for i in range(len(scales))]
-    lookup_index = np.zeros((len(prog_lines), len(scales)))
+    lookup_index = np.zeros((len(ids), len(scales)))
+    lookup_index[:, 0] = ids
     lookup_index[lookup_index == 0] = -1  # np.nan forces us to use floats when saving.
 
-    for i, prog_line in enumerate(prog_lines):
+    for prog_line in prog_lines:
         n_scales = len(prog_line.cat)
+        idx = np.where(ids == prog_line.root_id)[0].item()  # where should I insert this line?
         for s in range(n_scales):
             assert scales[s] == prog_line.cat["scale"][s], "Progenitor was skipped!?"
             mvir = prog_line.cat["mvir"][s]
-            values[i, 0] = prog_line.root_id
-            values[i, 1 + s] = mvir
+            values[idx, 1 + s] = mvir
             cpg_mvir = prog_line.cat["coprog_mvir"][s]
             cpg_mvir = 0 if cpg_mvir < 0 else cpg_mvir  # missing values with -1 -> 0
-            values[i, 1 + len(scales) + s] = cpg_mvir / mvir
-            lookup_index[i, s] = prog_line.cat["halo_id"][s]
+            values[idx, 1 + len(scales) + s] = cpg_mvir / mvir
+            lookup_index[idx, s] = prog_line.cat["halo_id"][s]
 
     prog_table = table.Table(names=names, data=values)
     prog_table.sort("id")
@@ -224,7 +226,7 @@ def make_progenitors(ctx):
 @pipeline.command()
 @click.option(
     "--threshold",
-    default=1.0 / 100,
+    default=1.0 / 1000,
     type=float,
     help="Subhalo mass threshold fraction relative to snapshot host halo mass",
     show_default=True,
@@ -271,10 +273,9 @@ def make_subhaloes(ctx, threshold):
             minh_scales.add(scale)
     assert len(minh_scales.intersection(z_map_inv.keys())) == len(z_map_inv), "Inconsistent scales"
 
-    for minh_file in all_minh.iterdir():
+    for minh_file in tqdm(all_minh.iterdir(), total=len(z_map), desc="Progress on .minh files:"):
         if minh_file.suffix == ".minh":
             fname = minh_file.stem
-            print(fname)
             scale = float(fname.replace("hlist_", ""))
             scale_idx = z_map_inv[scale]
 
@@ -291,34 +292,6 @@ def make_subhaloes(ctx, threshold):
     ascii.write(fcat, output=outfile)
 
 
-def _intersect_cats(dm_cat, subhalo_cat, progenitor_cat):
-    """check ids are all equal and sorted"""
-
-    # check all are sorted.
-    assert np.array_equal(np.sort(dm_cat["id"]), dm_cat["id"])
-    assert np.array_equal(np.sort(subhalo_cat["id"]), subhalo_cat["id"])
-    assert np.array_equal(np.sort(progenitor_cat["id"]), progenitor_cat["id"])
-
-    # make sure all 3 catalog have exactly the same IDs.
-    assert np.array_equal(dm_cat["id"], subhalo_cat["id"])
-    common_ids = set(dm_cat["id"]).intersection(set(progenitor_cat["id"]))
-    common_ids = np.array(sorted(list(common_ids)))
-    ids1 = np.array(dm_cat["id"])
-    ids2 = np.array(progenitor_cat["id"])
-    keep1 = halo_filters.intersect(ids1, common_ids)
-    keep2 = halo_filters.intersect(ids2, common_ids)
-    dm_cat = dm_cat[keep1]
-    subhalo_cat = subhalo_cat[keep1]
-    progenitor_cat = progenitor_cat[keep2]
-
-    # one last check on all IDs and masses.
-    assert np.array_equal(dm_cat["id"], subhalo_cat["id"])
-    assert np.array_equal(dm_cat["id"], progenitor_cat["id"])
-    assert np.array_equal(dm_cat["mvir"], progenitor_cat["mvir_a0"])
-
-    return dm_cat, subhalo_cat, progenitor_cat
-
-
 @pipeline.command()
 @click.pass_context
 def combine_all(ctx):
@@ -330,7 +303,14 @@ def combine_all(ctx):
     subhalo_cat.sort("id")
     progenitor_cat.sort("id")
 
-    dm_cat, subhalo_cat, progenitor_cat = _intersect_cats(dm_cat, subhalo_cat, progenitor_cat)
+    # check all are sorted.
+    assert np.array_equal(np.sort(dm_cat["id"]), dm_cat["id"])
+    assert np.array_equal(np.sort(subhalo_cat["id"]), subhalo_cat["id"])
+    assert np.array_equal(np.sort(progenitor_cat["id"]), progenitor_cat["id"])
+
+    # make sure all 3 catalog have exactly the same IDs.
+    assert np.array_equal(dm_cat["id"], subhalo_cat["id"])
+    assert np.array_equal(dm_cat["id"], progenitor_cat["id"])
 
     cat1 = table.join(dm_cat, subhalo_cat, keys=["id"], join_type="inner")
     fcat = table.join(cat1, progenitor_cat, keys=["id"], join_type="inner")
