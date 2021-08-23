@@ -57,15 +57,15 @@ def create_subhalo_cat(host_ids, minh_file, threshold=1.0 / 1000):
     # now calculate subhalo quantities
     with minh.open(minh_file) as mcat:
         for b in range(mcat.blocks):
-            names = ["id", "upid", "mvir"]
-            ids, upid, mvir = mcat.block(b, names)
-            sub_cat = Table(names=names, data=[ids, upid, mvir])
+            names = ["id", "pid", "mvir"]
+            ids, pid, mvir = mcat.block(b, names)
+            sub_cat = Table(names=names, data=[ids, pid, mvir])
             sub_cat.sort("id")
 
             # extract all subhalo masses and parent ids in this block.
             # NOTE: `keep` is NOT used because that will filter out subhalo IDs not in `host_ids`.
-            sub_pids = upid[upid != -1]
-            sub_mvir = mvir[upid != -1]
+            sub_pids = pid[pid != -1]
+            sub_mvir = mvir[pid != -1]
 
             # first calculate total subhalo mass
             # NOTE: If ID in host_cat but not in sub_pids then 0 is returned.
