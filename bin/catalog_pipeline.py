@@ -289,7 +289,7 @@ def make_subhaloes(ctx, threshold):
             fcat[f"f_sub_a{scale_idx}"][keep] = subcat["f_sub"]
             fcat[f"m2_a{scale_idx}"][keep] = subcat["m2"]
 
-    ascii.write(fcat, output=outfile)
+    ascii.write(fcat, output=outfile, format="csv")
 
 
 @pipeline.command()
