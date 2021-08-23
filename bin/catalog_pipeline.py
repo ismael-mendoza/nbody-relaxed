@@ -286,8 +286,8 @@ def make_subhaloes(ctx, threshold):
             # extract subhalo information for each halo in `ids`.
             subcat = create_subhalo_cat(host_ids[keep], minh_file, threshold=threshold)
             assert np.all(host_ids[keep] == subcat["id"])
-            fcat[keep][f"f_sub_a{scale_idx}"] = subcat["f_sub"]
-            fcat[keep][f"m2_a{scale_idx}"] = subcat["m2"]
+            fcat[f"f_sub_a{scale_idx}"][keep] = subcat["f_sub"]
+            fcat[f"m2_a{scale_idx}"][keep] = subcat["m2"]
 
     ascii.write(fcat, output=outfile)
 
