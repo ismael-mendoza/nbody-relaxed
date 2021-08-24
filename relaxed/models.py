@@ -205,6 +205,9 @@ class MultiVariateGaussian(PredictionModelTransform):
         self.mu1 = mu1
         self.mu2 = mu2
         self.Sigma = Sigma
+        self.Sigma11 = Sigma11
+        self.Sigma12 = Sigma12
+        self.Sigma22 = Sigma22
         self.rho = rho
         self.sigma_cond = sigma_cond
 
