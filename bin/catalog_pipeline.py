@@ -258,13 +258,14 @@ def make_subhaloes(ctx, threshold):
     m2_names = [f"m2_a{i}" for i in z_map]
     table_names = ["id", *f_sub_names, *m2_names]
     data = np.zeros((len(sample_ids), 1 + len(z_map) * 2))
+    data[:, 0] = sample_ids
+    data[data == 0] = np.nan
 
     fcat = table.Table(data=data, names=table_names)
-    fcat["id"] = sample_ids
 
     assert np.all(fcat["id"] == lookup_index["id_a0"])
 
-    # check all scales from files are in z_map and viceversa
+    # check all scales from files are in z_map and viceversa (it's easier to handle this way)
     minh_scales = set()
     for minh_file in all_minh.iterdir():
         if minh_file.suffix == ".minh":
