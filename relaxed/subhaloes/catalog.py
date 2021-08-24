@@ -7,7 +7,7 @@ from relaxed.halo_filters import intersect
 from relaxed.subhaloes import quantities
 
 
-def create_subhalo_cat(host_ids, minh_file, threshold=1.0 / 1000):
+def create_subhalo_cat(host_ids, minh_file, threshold=1.0 / 1000, log=None):
     """
 
     Args:
@@ -48,10 +48,14 @@ def create_subhalo_cat(host_ids, minh_file, threshold=1.0 / 1000):
 
     unfilled = host_cat["mvir"] == 0
     if sum(unfilled) > 0:
-        warnings.warn(
+        msg = (
             f"{sum(unfilled)} host IDs out of {len(host_cat)} are not contained in minh catalog "
             f"loaded from file {minh_file.stem}."
         )
+        if log:
+            print(msg, file=open(log, "a"))
+        else:
+            warnings.warn(msg)
     host_cat["mvir"][unfilled] = np.nan  # avoid division-by-zero warning below.
 
     # now calculate subhalo quantities

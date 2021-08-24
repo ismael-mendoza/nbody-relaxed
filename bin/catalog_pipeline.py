@@ -235,6 +235,7 @@ def make_progenitors(ctx):
 def make_subhaloes(ctx, threshold):
     # contains info for subhaloes at all snapshots (including present)
     outfile = ctx.obj["subhalo_file"]
+    log_file = ctx.obj["output"].joinpath("subhalo_log.txt")
     all_minh = Path(ctx.obj["all_minh"])
     z_map_file = ctx.obj["output"].joinpath("z_map.json")
 
@@ -285,7 +286,9 @@ def make_subhaloes(ctx, threshold):
             keep = host_ids > 0  # remove -1s
 
             # extract subhalo information for each halo in `ids`.
-            subcat = create_subhalo_cat(host_ids[keep], minh_file, threshold=threshold)
+            subcat = create_subhalo_cat(
+                host_ids[keep], minh_file, threshold=threshold, log=log_file
+            )
             assert np.all(host_ids[keep] == subcat["id"])
             fcat[f"f_sub_a{scale_idx}"][keep] = subcat["f_sub"]
             fcat[f"m2_a{scale_idx}"][keep] = subcat["m2"]
