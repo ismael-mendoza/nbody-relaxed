@@ -54,7 +54,7 @@ def setup(
     ma = ma.T[keep_cutoff].T
 
     # get am too
-    am, mass_bins = get_am(scales, ma, min_mass=min_mass_bin)
+    am, mass_bins = get_am(ma, scales, min_mass=min_mass_bin)
 
     return hcat, ma, am, scales, indices, mass_bins
 
@@ -82,7 +82,7 @@ def get_ma(cat, indices):
     return ma, keep
 
 
-def get_am(scales, ma, min_mass=0.1):
+def get_am(ma, scales, min_mass=0.1):
     """
     1. Inversion is only a well-defined process for monotonic functions, and m(a) for an
     individual halo isn't necessarily monotonic. To solve this, the standard redefinition of a(m0)
