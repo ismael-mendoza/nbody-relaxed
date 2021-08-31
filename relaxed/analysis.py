@@ -273,10 +273,10 @@ def get_fractional_tdyn(scale, tdyn, sim_name="Bolshoi"):
     return (cosmo.age(0).value - cosmo.age(z).value) / tdyn
 
 
-def get_an_from_am(am, mass_bins, mrange=(0.498, 0.51)):
-    # mrange should be a narrow mass range containing only 1 mass bin.
-    # default is a_{n} = a_{1/2}
-    idx = np.where((mrange[0] < mass_bins) & (mass_bins < mrange[1]))[0].item()
+def get_an_from_am(am, mass_bins, mbin=0.498):
+    # `mbin` is the bin you want to get from am, returns first bin bigger than `mbin`
+    # default is `a_{n} = a_{1/2}`
+    idx = np.where(mass_bins > mbin)[0][0]
     return am[:, idx]
 
 
