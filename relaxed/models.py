@@ -252,7 +252,7 @@ class CAM(PredictionModel):
         )
 
     def _predict(self, am):
-        an = get_an_from_am(am, self.mass_bins, mrange=self.mrange)
+        an = get_an_from_am(am, self.mass_bins, mbin=self.mbin)
         return self.mark_to_Y(self.an_to_mark(an))
 
 
