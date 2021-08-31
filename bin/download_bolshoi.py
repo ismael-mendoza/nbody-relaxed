@@ -4,7 +4,7 @@ import json
 import os
 import subprocess
 
-z_map_file = Path("/home/imendoza/nbody-relaxed/bin/bolshoi_z_map.json")
+z_map_file = Path("/home/imendoza/nbody-relaxed/output/bolshoi_z_map.json")
 data_dir = Path("/home/imendoza/nbody-relaxed/data/bolshoi_catalogs")
 with open(z_map_file, "r") as fp:
     z_map = json.load(fp)

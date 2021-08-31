@@ -12,35 +12,108 @@ import findiff
 from relaxed import halo_catalogs
 
 
-def setup(name="m11", path="../../output"):
-    # get catalog, indices, and scales (redshift) from given catalog pipeline output name
+def setup(
+    name="m11",
+    path="../../output",
+    cutoff_missing=0.01,
+    cutoff_particle=0.1,
+    particle_mass=1.35e8,
+    particle_res=50,
+    min_mass_bin=0.1,
+    n_bins=100,
+):
+    """ "Get catalog, indices, scales from given catalog pipeline output name.m
+
+    Args:
+        * cutoff_particle: is the percentage of haloes at a given scale that we tolerate
+            with < particle_res particles,
+
+        * cutoff_missing: the percentage of haloes with no progenitors we are OK discarding.
+            NOTE: Phil suggested to make this smallso that we don't bias our samples
+            (late-forming haloes are more likely to have nan's at the end.)
+
+    """
     output = f"{path}/output_{name}/"
     cat_file = Path(output, "final_table.csv")
     z_map_file = Path(output, "z_map.json")
 
+    # load all available scales and indices.
     with open(z_map_file, "r") as fp:
         scale_map = json.load(fp)  # map from i -> scale
-
-    # only keep stable scales.
     indices = np.array(list(scale_map.keys()))
     scales = np.array(list(scale_map.values()))
-    keep = scales > 0.15
-    indices = indices[keep]
-
-    # we are removing from the end bc that's how scales are ordered.
-    scales = scales[keep]
+    sort_idx = np.argsort(scales)  # want order: early -> late.
+    indices = indices[sort_idx]
+    scales = scales[sort_idx]
 
     # load catalog.
     hcat = halo_catalogs.HaloCatalog("Bolshoi", cat_file, label=name)
     hcat.load_cat_csv()
+    cat = hcat.cat
 
-    return hcat, indices, scales
+    # extract MAH
+    ma = get_ma(cat, indices)
+
+    # NOTE: Assumes that order is early -> late.
+    # determine scales we should cutoff based on percentage of NaN progenitors.
+    n_nan = np.sum(np.isnan(ma), axis=0) / len(ma)
+    min_idx = np.where(n_nan > cutoff_missing)[0][-1] + 1
+    keep_missing = scales > scales[min_idx]
+
+    # NOTE: Assumes that order is early -> late.
+    # NOTE: These two cuts are different because ROCKSTAR does not limit to ~50 particles.
+    # determine scale we should cutoff based on num. of particles.
+    avg_mass = np.nanmean(hcat.cat["mvir"])  # should be a narrow mass bin anyway.
+    min_mass = particle_res * particle_mass
+    avg_min_m = min_mass / avg_mass
+    m_cutoff = np.nanquantile(ma, cutoff_particle, axis=0)  # note, it is monotonically decreasing
+    keep_cutoff = m_cutoff > avg_min_m  # over scales NOT data points.
+
+    # combine both cutoffs
+    keep_scale = keep_missing & keep_cutoff
+
+    # filter scales and indices
+    indices = indices[keep_scale]
+    scales = scales[keep_scale]
+    ma = ma.T[keep_scale].T
+
+    # replace nan's leftover in `ma` with `particle_mass`.
+    ma[np.isnan(ma)] = particle_mass / avg_mass
+    assert np.sum(np.isnan(ma)) == 0
+
+    # FIXME: We are removing haloes with large # of particles for now, but we should check if
+    # these haloes have pid > 0 when they start at z -> infty.
+    keep_ma = ma[:, 0] < 0.95
+    ma = ma[keep_ma]
+    cat = cat[keep_ma]
+
+    # get am too
+    am, mass_bins = get_am(ma, scales, min_mass=min_mass_bin, n_bins=n_bins)
+
+    # FIXME: Need to filter some f_subs
+    # and f_sub(a)
+    f_sub = np.array([cat[f"f_sub_a{i}"].data for i in indices]).T
+
+    # remove haloes with np.nan in a(m)
+    keep_am = ~np.isnan(np.sum(am, axis=1))
+    cat = cat[keep_am]
+    ma = ma[keep_am]
+    am = am[keep_am]
+
+    return {
+        "cat": cat,
+        "ma": ma,
+        "am": am,
+        "f_sub": f_sub,
+        "scales": scales,
+        "indices": indices,
+        "mass_bins": mass_bins,
+    }
 
 
 def get_ma(cat, indices):
     assert "mvir_a0" in cat.colnames
     assert "mvir_a160" in cat.colnames
-    keep = []
     ma = np.zeros((len(cat), len(indices)))
     for i, k in enumerate(indices):
         k = int(k)
@@ -52,18 +125,11 @@ def get_ma(cat, indices):
         ms = ms / mvir
         ma[:, i] = ms
 
-    keep = np.ones(len(ma), dtype=bool)
-    for i in range(len(ma)):
-        keep[i] = ~np.any(np.isnan(ma[i, :]))
-    assert np.sum(np.isnan(ma[keep])) == 0
-
-    return ma, keep
+    return ma
 
 
-def get_am(name="m11", min_mass=0.1, path="../../temp"):
+def get_am(ma, scales, min_mass=0.1, n_bins=100):
     """
-    Here are the steps that Phil outlined (in slack) to do this:
-
     1. Inversion is only a well-defined process for monotonic functions, and m(a) for an
     individual halo isn't necessarily monotonic. To solve this, the standard redefinition of a(m0)
     is that it's the first a where m(a) > m0. (This is, for example, how Rockstar defines halfmass
@@ -71,62 +137,58 @@ def get_am(name="m11", min_mass=0.1, path="../../temp"):
 
     2. Next, first pick your favorite set of mass bins that you'll evaluate it at. I think
     logarithmic bins spanning 0.01m(a=1) to 1m(a=1) is pretty reasonable, but you should probably
-    choose this based on the mass ranges which are the most informative once you.
+    choose this based on the mass ranges which are the most informative.
 
-    3. Now, for each halo with masses m(a_i), measure M(a_i) = max_j{ m(a_j) | j <= i}.
-    Remove (a_i, M(a_i)) pairs where M(a_i) = M(a_{i-1}), since this will mess up the inversion.
+    3. Now, for each halo with masses m(a_i), measure M_peak(a_i) = max_j{ m(a_j) | j <= i}.
 
-    4. Use scipy.interpolate.interp1d to create a function, f(m), which evaluates a(m).
+    4. Remove (a_i, M_peak(a_i)) pairs where M_peak(a_i) = M_peak(a_{i-1}), since this will mess
+    up the inversion.
+
+    5. Use scipy.interpolate.interp1d to create a function, f(m), which evaluates a(m).
     For stability, you'll want to run the interpolation on log(a_i) and log(M(a_i)), not a_i and M
     (a_i).
 
-    5. Evaluate f(m) at the mass bins you decided that you liked in step 2. Now you can run your
+    6. Evaluate f(m) at the mass bins you decided that you liked in step 2. Now you can run your
     pipeline on this, just like you did for m(a).
     """
-    hcat, indices, scales = setup(name, path=path)
 
-    # 2.
-    mass_bins = np.linspace(np.log(min_mass), np.log(1.0), 100)
+    # 1. + 2.
+    mass_bins = np.linspace(np.log(min_mass), np.log(1.0), n_bins)
 
-    # 3.
-    ma, _ = get_ma(hcat.cat, indices)
-    Ma = np.zeros_like(ma)
+    # 3. NOTE: Make function monotonic. We assume start is a -> early.
+    M_peak = np.zeros_like(ma)
     for i in range(len(ma)):
-        _min = ma[i][0]
+        M_peak_i = ma[i][0]
         for j in range(len(ma[i])):
-            if ma[i][j] < _min:
-                _min = ma[i][j]
-            Ma[i][j] = _min
+            if M_peak_i < ma[i][j]:
+                M_peak_i = ma[i][j]
+            M_peak[i][j] = M_peak_i
 
     # 4. + 5.
-    # We will get the interpolation for each halo separately
     fs = []
-    for i in range(len(Ma)):
-        pairs = [(scales[0], Ma[i][0])]
+    for i in range(len(M_peak)):
+        pairs = [(scales[0], M_peak[i][0])]
         count = 0
-        for j in range(1, len(Ma[i])):
+        for j in range(1, len(M_peak[i])):
             # keep only pairs that do NOT satisfy (a_{j-1}, Ma_{j-1}) = (a_j, Ma_j)
-            if pairs[count][1] != Ma[i][j]:
-                pairs.append((scales[j], Ma[i][j]))
+            if pairs[count][1] != M_peak[i][j]:
+                pairs.append((scales[j], M_peak[i][j]))
                 count += 1
+
+        if len(pairs) == 1:
+            raise AssertionError(
+                "Only 1 pair was added, so max was reached at z -> infty which is impossible."
+            )
+
         _scales = np.array([pair[0] for pair in pairs])
-        _Mas = np.array([pair[1] for pair in pairs])
-        fs.append(interp1d(np.log(_Mas), np.log(_scales), bounds_error=False, fill_value=np.nan))
+        _M_peaks = np.array([pair[1] for pair in pairs])
+        fs.append(
+            interp1d(np.log(_M_peaks), np.log(_scales), bounds_error=False, fill_value=np.nan)
+        )
 
     # 6.
     am = np.array([np.exp(f(mass_bins)) for f in fs])
     return am, np.exp(mass_bins)
-
-
-def get_lam(am):
-    # log(a(m)) whilst removing nan's if present.
-    # the mask is applied to each of the extra arguments in `args` for convenience.
-    lam = np.log(am)
-    keep = np.ones(len(lam), dtype=bool)
-    for i in range(len(lam)):
-        keep[i] = ~np.any(np.isnan(lam[i, :]))
-    assert np.sum(np.isnan(lam[keep])) == 0
-    return lam, keep
 
 
 def get_ma_corrs(cat, param, indices):
@@ -211,10 +273,10 @@ def get_fractional_tdyn(scale, tdyn, sim_name="Bolshoi"):
     return (cosmo.age(0).value - cosmo.age(z).value) / tdyn
 
 
-def get_an_from_am(am, mass_bins, mrange=(0.498, 0.51)):
-    # mrange should be a narrow mass range containing only 1 mass bin.
-    # default is a_{n} = a_{1/2}
-    idx = np.where((mrange[0] < mass_bins) & (mass_bins < mrange[1]))[0].item()
+def get_an_from_am(am, mass_bins, mbin=0.498):
+    # `mbin` is the bin you want to get from am, returns first bin bigger than `mbin`
+    # default is `a_{n} = a_{1/2}`
+    idx = np.where(mass_bins > mbin)[0][0]
     return am[:, idx]
 
 

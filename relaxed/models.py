@@ -1,5 +1,4 @@
 from abc import abstractmethod, ABC
-from typing import Iterable
 import numpy as np
 from sklearn import linear_model
 from sklearn.preprocessing import QuantileTransformer
@@ -205,6 +204,9 @@ class MultiVariateGaussian(PredictionModelTransform):
         self.mu1 = mu1
         self.mu2 = mu2
         self.Sigma = Sigma
+        self.Sigma11 = Sigma11
+        self.Sigma12 = Sigma12
+        self.Sigma22 = Sigma22
         self.rho = rho
         self.sigma_cond = sigma_cond
 
@@ -220,16 +222,15 @@ class CAM(PredictionModel):
     """Conditional Abundance Matching"""
 
     def __init__(
-        self, n_features: int, mass_bins: np.ndarray, mrange: Iterable, cam_order: int = -1
+        self, n_features: int, mass_bins: np.ndarray, mbin: float, cam_order: int = -1
     ) -> None:
         # cam_order: +1 or -1 depending on correlation of a_{n} with y
         assert n_features == len(mass_bins)
         super().__init__(n_features)
 
         assert cam_order in {-1, 1}
-        assert isinstance(mrange, Iterable) and len(mrange) == 2
         assert isinstance(mass_bins, np.ndarray)
-        self.mrange = mrange
+        self.mbin = mbin
         self.cam_order = cam_order
         self.mass_bins = mass_bins
 
@@ -239,7 +240,7 @@ class CAM(PredictionModel):
 
     def _fit(self, am, y):
 
-        an_train = get_an_from_am(am, self.mass_bins, mrange=self.mrange).reshape(-1)
+        an_train = get_an_from_am(am, self.mass_bins, mbin=self.mbin).reshape(-1)
         assert an_train.shape[0] == am.shape[0]
 
         y_sort, an_sort = self.cam_order * np.sort(self.cam_order * y), np.sort(an_train)
@@ -251,7 +252,7 @@ class CAM(PredictionModel):
         )
 
     def _predict(self, am):
-        an = get_an_from_am(am, self.mass_bins, mrange=self.mrange)
+        an = get_an_from_am(am, self.mass_bins, mbin=self.mbin)
         return self.mark_to_Y(self.an_to_mark(an))
 
 
