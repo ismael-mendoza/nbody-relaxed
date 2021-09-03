@@ -62,6 +62,9 @@ def draw_histogram(
     elif isinstance(vline, float) or isinstance(vline, int):
         ax.axvline(vline, ls="--", color=color)
 
+    elif vline is None:
+        pass
+
     else:
         raise NotImplementedError(
             f"vline type {type(vline)} is not compatible with current implementation."
