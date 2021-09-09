@@ -17,7 +17,7 @@ def setup(
     path="../../output",
     cutoff_missing=0.01,
     cutoff_particle=0.1,
-    particle_mass=1.35e8,
+    particle_mass=1.35e8,  # Bolshoi
     particle_res=50,
     min_mass_bin=0.1,
     n_bins=100,
@@ -29,7 +29,7 @@ def setup(
             with < particle_res particles,
 
         * cutoff_missing: the percentage of haloes with no progenitors we are OK discarding.
-            NOTE: Phil suggested to make this smallso that we don't bias our samples
+            NOTE: Phil suggested to make this small so that we don't bias our samples
             (late-forming haloes are more likely to have nan's at the end.)
 
     """
@@ -50,9 +50,11 @@ def setup(
     hcat = halo_catalogs.HaloCatalog("Bolshoi", cat_file, label=name)
     hcat.load_cat_csv()
     cat = hcat.cat
+    cat_raw = cat.copy()
 
     # extract MAH
     ma = get_ma(cat, indices)
+    ma_raw = ma.copy()
 
     # NOTE: Assumes that order is early -> late.
     # determine scales we should cutoff based on percentage of NaN progenitors.
@@ -63,7 +65,7 @@ def setup(
     # NOTE: Assumes that order is early -> late.
     # NOTE: These two cuts are different because ROCKSTAR does not limit to ~50 particles.
     # determine scale we should cutoff based on num. of particles.
-    avg_mass = np.nanmean(hcat.cat["mvir"])  # should be a narrow mass bin anyway.
+    avg_mass = np.nanmean(cat["mvir"])  # should be a narrow mass bin anyway.
     min_mass = particle_res * particle_mass
     avg_min_m = min_mass / avg_mass
     m_cutoff = np.nanquantile(ma, cutoff_particle, axis=0)  # note, it is monotonically decreasing
@@ -81,8 +83,8 @@ def setup(
     ma[np.isnan(ma)] = particle_mass / avg_mass
     assert np.sum(np.isnan(ma)) == 0
 
-    # FIXME: We are removing haloes with large # of particles for now, but we should check if
-    # these haloes have pid > 0 when they start at z -> infty.
+    # FIXME: We are removing haloes with large # of particles at early times for now ,
+    # but we should check if these haloes have pid > 0 when they start at z -> infty.
     keep_ma = ma[:, 0] < 0.95
     ma = ma[keep_ma]
     cat = cat[keep_ma]
@@ -108,6 +110,9 @@ def setup(
         "scales": scales,
         "indices": indices,
         "mass_bins": mass_bins,
+        "ma_raw": ma_raw,
+        "keep_scale": keep_scale,
+        "cat_raw": cat_raw,
     }
 
 
