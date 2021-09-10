@@ -42,7 +42,7 @@ def setup(
         scale_map = json.load(fp)  # map from i -> scale
     indices = np.array(list(scale_map.keys()))
     scales = np.array(list(scale_map.values()))
-    sort_idx = np.argsort(scales)  # want order: early -> late.
+    sort_idx = np.argsort(scales)  # want order: early -> late. Low scales -> high scales (1.0)
     indices = indices[sort_idx].astype(int)  # easier to handle.
     scales = scales[sort_idx]
 
