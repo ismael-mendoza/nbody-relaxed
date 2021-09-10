@@ -43,7 +43,7 @@ def setup(
     indices = np.array(list(scale_map.keys()))
     scales = np.array(list(scale_map.values()))
     sort_idx = np.argsort(scales)  # want order: early -> late.
-    indices = indices[sort_idx]
+    indices = indices[sort_idx].astype(int)  # easier to handle.
     scales = scales[sort_idx]
 
     # load catalog.
@@ -115,9 +115,8 @@ def get_ma(cat, indices):
     assert "mvir_a0" in cat.colnames
     assert "mvir_a160" in cat.colnames
     ma = np.zeros((len(cat), len(indices)))
-    for i, k in enumerate(indices):
-        k = int(k)
-        colname = f"mvir_a{k}"
+    for i, idx in enumerate(indices):
+        colname = f"mvir_a{idx}"
 
         # get mass fraction at this scale
         mvir = cat["mvir"]
@@ -194,7 +193,6 @@ def get_am(ma, scales, min_mass=0.1, n_bins=100):
 def get_ma_corrs(cat, param, indices):
     corrs = []
     for k in indices:
-        k = int(k)
         colname = f"mvir_a{k}"
         keep = (~np.isnan(cat[colname])) & (cat[colname] > 0)
 
