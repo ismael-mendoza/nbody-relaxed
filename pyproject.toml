@@ -28,6 +28,7 @@ python = "~3.8"
 scikit-image = "^0.18.0"
 scikit-learn = "^0.24.1"
 scipy = "^1.4.1"
+ipywidgets = "^7.6.4"
 
 [tool.poetry.dev-dependencies]
 Cython = "^0.29.21"
