@@ -1,9 +1,11 @@
-from abc import abstractmethod, ABC
+from abc import ABC
+from abc import abstractmethod
+
 import numpy as np
-from sklearn import linear_model
-from sklearn.preprocessing import QuantileTransformer
-from sklearn.feature_selection import SelectFromModel
 from scipy.interpolate import interp1d
+from sklearn import linear_model
+from sklearn.feature_selection import SelectFromModel
+from sklearn.preprocessing import QuantileTransformer
 
 from relaxed.analysis import get_an_from_am
 

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-import os
 import json
-from tqdm import tqdm
+import os
 from pathlib import Path
 
 import click
 import numpy as np
 from astropy import table
 from astropy.io import ascii
+from tqdm import tqdm
 
 from relaxed import halo_filters
 from relaxed.halo_catalogs import HaloCatalog

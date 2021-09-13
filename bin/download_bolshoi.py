@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-from pathlib import Path
 import json
 import os
 import subprocess
+from pathlib import Path
+
 
 z_map_file = Path("/home/imendoza/nbody-relaxed/output/bolshoi_z_map.json")
 data_dir = Path("/home/imendoza/nbody-relaxed/data/bolshoi_catalogs")

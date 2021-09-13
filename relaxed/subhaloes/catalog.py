@@ -1,7 +1,8 @@
+import warnings
+
 import numpy as np
 from astropy.table import Table
 from pminh import minh
-import warnings
 
 from relaxed.halo_filters import intersect
 from relaxed.subhaloes import quantities

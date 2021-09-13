@@ -19,6 +19,8 @@ version = "0.0.1-alpha.1"
 [tool.poetry.dependencies]
 astropy = "^4.2"
 click = "^7.1.2"
+findiff = "^0.8.9"
+kllr = "^1.0.0"
 matplotlib = "^3.3.3"
 numpy = "^1.18.5"
 pminh = {git = "https://github.com/ismael-mendoza/minnow", branch = "master"}
@@ -26,8 +28,7 @@ python = "~3.8"
 scikit-image = "^0.18.0"
 scikit-learn = "^0.24.1"
 scipy = "^1.4.1"
-kllr = "^1.0.0"
-findiff = "^0.8.9"
+ipywidgets = "^7.6.4"
 
 [tool.poetry.dev-dependencies]
 Cython = "^0.29.21"
@@ -45,6 +46,8 @@ reorder-python-imports = "^2.4.0"
 sphinx = "^3.3"
 sphinx-rtd-theme = "^0.4.3"
 wheel = "^0.36.2"
+widgetsnbextension = "^3.5.1"
+jupyter-contrib-nbextensions = "^0.5.1"
 
 [tool.poetry.urls]
 "Bug Tracker" = "https://github.com/ismael-mendoza/nbody-relaxed/issues"
