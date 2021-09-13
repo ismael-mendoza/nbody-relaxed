@@ -46,6 +46,8 @@ reorder-python-imports = "^2.4.0"
 sphinx = "^3.3"
 sphinx-rtd-theme = "^0.4.3"
 wheel = "^0.36.2"
+widgetsnbextension = "^3.5.1"
+jupyter-contrib-nbextensions = "^0.5.1"
 
 [tool.poetry.urls]
 "Bug Tracker" = "https://github.com/ismael-mendoza/nbody-relaxed/issues"
