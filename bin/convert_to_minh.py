@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
+import multiprocessing as mp
 import subprocess
 from pathlib import Path
-import multiprocessing as mp
 
 # NOTE: Need to check that *.config file has correct path to `name_index` and `type_index`
 repo = Path("/home/imendoza/nbody-relaxed/")
