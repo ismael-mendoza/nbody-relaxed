@@ -56,7 +56,7 @@ def determine_cutoffs(
     # 99% haloes have a progenitor at that mass bin and (2) minimum mass bin m0 such that
     # 90% of haloes have their earliest a0 s.t. m(a0) > m0 satisfy m(a0) * Mvir(a=1)/ 1.35e8 > 50
     min_mass_bin1 = np.nanquantile(np.nanmin(Mvir, axis=1) / Mvir[:, -1], cutoff_missing)
-    min_mass_bin2 = np.nanquantile(min_mass / Mvir[:, -1], cutoff_particle)
+    min_mass_bin2 = np.nanquantile(min_mass / Mvir[:, -1], 1 - cutoff_particle)
     assert isinstance(min_mass_bin1, float)
     assert isinstance(min_mass_bin2, float)
     min_mass_bin = max(min_mass_bin1, min_mass_bin2)
