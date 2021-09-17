@@ -60,6 +60,7 @@ def pipeline(ctx, root, outdir, minh_file, catalog_name, all_minh_files):
             subhalo_file=output.joinpath("subhaloes.csv"),
             all_minh=data.joinpath(all_minh_files),
             lookup_index=output.joinpath("lookup.csv"),
+            z_map=Path(root).joinpath(f"output/{catname}_z_map.json"),
         )
     )
 
@@ -165,9 +166,16 @@ def make_progenitors(ctx):
         lookup = json.load(jp)
         lookup = {int(k): int(v) for k, v in lookup.items()}
 
+    z_map_file = ctx.obj["z_map"]
+    assert z_map_file.exists()
+
+    # first collect all scales from existing z_map
+    with open(z_map_file, "r") as fp:
+        z_map = dict(json.load(fp))
+        z_map = {int(k): float(v) for k, v in z_map.items()}
+
     # first obtain all scales available + save lines that we want to use.
     prog_lines = []
-    scales = set()
 
     # iterate through the progenitor generator, obtaining the haloes that match IDs
     # as well as all available scales (will be nan's if not available for a given line)
@@ -178,10 +186,8 @@ def make_progenitors(ctx):
                 pf.seek(pos, os.SEEK_SET)
                 prog_line = get_next_progenitor(pf)
                 prog_lines.append(prog_line)
-                scales = scales.union(set(prog_line.cat["scale"]))
 
-    scales = sorted(list(scales), reverse=True)
-    z_map = {i: scale for i, scale in enumerate(scales)}
+    scales = sorted(list(z_map.values()), reverse=True)
 
     mvir_names = [f"mvir_a{i}" for i in range(len(scales))]
     # ratio (m2 / m1) where m2 is second most massive co-progenitor.
@@ -214,13 +220,10 @@ def make_progenitors(ctx):
     prog_table["id"] = prog_table["id"].astype(int)
     lookup_index = table.Table(names=lookup_names, data=lookup_index.astype(int))
     lookup_index.sort("id_a0")
-    z_map_file = ctx.obj["output"].joinpath("z_map.json")
 
     # save final table and json file mapping index to scale
     ascii.write(prog_table, ctx.obj["progenitor_table_file"], format="csv")
     ascii.write(lookup_index, ctx.obj["lookup_index"], format="csv")
-    with open(z_map_file, "w") as fp:
-        json.dump(z_map, fp)
 
 
 @pipeline.command()
@@ -237,7 +240,7 @@ def make_subhaloes(ctx, threshold):
     outfile = ctx.obj["subhalo_file"]
     log_file = ctx.obj["output"].joinpath("subhalo_log.txt")
     all_minh = Path(ctx.obj["all_minh"])
-    z_map_file = ctx.obj["output"].joinpath("z_map.json")
+    z_map_file = ctx.obj["z_map"]
 
     assert all_minh.exists()
     assert z_map_file.exists()
