@@ -94,12 +94,12 @@ def make_ids(ctx, m_low, m_high, n_haloes):
     assert m_low > particle_mass * 1e3, f"particle mass: {particle_mass:.3g}"
     the_filters = {
         "mvir": lambda x: (x > m_low) & (x < m_high),
-        "upid": lambda x: x == -1,
+        "pid": lambda x: x == -1,
     }
     hfilter = halo_filters.HaloFilter(the_filters, name=ctx.obj["catalog_name"])
 
     # we only need the params that appear in the filter. (including 'id' and 'mvir')
-    minh_params = ["id", "mvir", "upid"]
+    minh_params = ["id", "mvir", "pid"]
 
     # create catalog
     hcat = HaloCatalog(
@@ -116,7 +116,7 @@ def make_ids(ctx, m_low, m_high, n_haloes):
     hcat.cat = hcat.cat[keep]
 
     # double check only host haloes are allowed.
-    assert np.all(hcat.cat["upid"] == -1)
+    assert np.all(hcat.cat["pid"] == -1)
 
     # extract ids into a json file, first convert to int's.
     ids = sorted([int(x) for x in hcat.cat["id"]])
@@ -143,7 +143,7 @@ def make_dmcat(ctx):
 
     assert np.all(hcat.cat["id"] == ids)
     assert len(hcat) == len(ids)
-    assert np.all(hcat.cat["upid"] == -1)
+    assert np.all(hcat.cat["pid"] == -1)
 
     # save as CSV to be loaded later.
     hcat.save_cat(ctx.obj["dm_file"])

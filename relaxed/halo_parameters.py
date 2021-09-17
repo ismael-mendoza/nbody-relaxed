@@ -486,6 +486,14 @@ class UPID(HaloParam):
         return "upid"
 
 
+class PID(HaloParam):
+    units = ""
+
+    @property
+    def name(self):
+        return "pid"
+
+
 class Fsub(HaloParam):
     units = ""
 
