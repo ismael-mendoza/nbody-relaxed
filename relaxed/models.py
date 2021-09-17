@@ -82,6 +82,7 @@ class PredictionModelTransform(PredictionModel, ABC):
 
         elif self.use_logs:
             return np.exp(super().predict(np.log(x)))
+
         else:
             return super().predict(x)
 
@@ -144,7 +145,13 @@ class LASSO(PredictionModelTransform):
 class MultiVariateGaussian(PredictionModelTransform):
     """Multi-Variate Gaussian using full covariance matrix (returns conditional mean)."""
 
-    def __init__(self, n_features: int, use_qt: bool = False, use_logs: bool = False) -> None:
+    def __init__(
+        self,
+        n_features: int,
+        use_qt: bool = False,
+        use_logs: bool = False,
+        do_sample: bool = True,  # wheter to sample from x1|x2 or return E[x1 | x2] for predictions
+    ) -> None:
         super().__init__(n_features, use_qt, use_logs)
 
         self.mu1 = None
@@ -152,6 +159,7 @@ class MultiVariateGaussian(PredictionModelTransform):
         self.Sigma = None
         self.rho = None
         self.sigma_cond = None
+        self.do_sample = do_sample
 
     def _fit(self, x, y):
         """
@@ -200,7 +208,7 @@ class MultiVariateGaussian(PredictionModelTransform):
         Sigma11 = Sigma[0, 0].reshape(1, 1)
         Sigma12 = Sigma[0, 1:].reshape(1, n_features)
         Sigma22 = Sigma[1:, 1:].reshape(n_features, n_features)
-        sigma_cond = Sigma11 - Sigma12.dot(np.linalg.inv(Sigma22)).dot(Sigma12.T)
+        sigma_bar = Sigma11 - Sigma12.dot(np.linalg.inv(Sigma22)).dot(Sigma12.T)
 
         # update prediction attributes
         self.mu1 = mu1
@@ -210,14 +218,20 @@ class MultiVariateGaussian(PredictionModelTransform):
         self.Sigma12 = Sigma12
         self.Sigma22 = Sigma22
         self.rho = rho
-        self.sigma_cond = sigma_cond
+        self.sigma_bar = sigma_bar.item()
 
     def _predict(self, x):
         # returns mu_cond evaluated given x.
         assert np.sum(np.isnan(x)) == 0
+        n_points = x.shape[0]
         x = x.reshape(-1, self.n_features).T
         mu_cond = self.mu1 + self.Sigma12.dot(np.linalg.inv(self.Sigma22)).dot(x - self.mu2)
-        return mu_cond.reshape(-1)
+
+        if self.do_sample:
+            return mu_cond.reshape(-1) + np.sqrt(self.sigma_bar) * np.random.randn(n_points)
+
+        else:
+            return mu_cond.reshape(-1)
 
 
 class CAM(PredictionModel):
