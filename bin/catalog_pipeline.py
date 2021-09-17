@@ -204,8 +204,8 @@ def make_progenitors(ctx):
     lookup_index[lookup_index == 0] = -1  # np.nan forces us to use floats when saving.
 
     for prog_line in prog_lines:
-        n_scales = len(prog_line.cat)
         idx = np.where(ids == prog_line.root_id)[0].item()  # where should I insert this line?
+        n_scales = min(len(scales), len(prog_line.cat))
         for s in range(n_scales):
             assert scales[s] == prog_line.cat["scale"][s], "Progenitor was skipped!?"
             mvir = prog_line.cat["mvir"][s]
