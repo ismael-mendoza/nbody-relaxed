@@ -55,6 +55,7 @@ def determine_cutoffs(
     # NOTE: The explanation is that we want (1) minimum mass bin m0 such that at least
     # 99% haloes have a progenitor at that mass bin and (2) minimum mass bin m0 such that
     # 90% of haloes have their earliest a0 s.t. m(a0) > m0 satisfy m(a0) * Mvir(a=1)/ 1.35e8 > 50
+    # NOTE: (Maybe) Not count progenitors that have < 50 particles
     min_mass_bin1 = np.nanquantile(np.nanmin(Mvir, axis=1) / Mvir[:, -1], cutoff_missing)
     min_mass_bin2 = np.nanquantile(min_mass / Mvir[:, -1], 1 - cutoff_particle)
     assert isinstance(min_mass_bin1, float)
@@ -71,7 +72,7 @@ def get_mah(
     cutoff_particle=0.1,
     particle_mass=1.35e8,  # Bolshoi
     particle_res=50,
-    n_bins=100,
+    n_mass_bins=100,
     m_version="vir",
 ):
     """Get catalog, indices, scales from given catalog pipeline output name."""
@@ -107,7 +108,7 @@ def get_mah(
     ma[np.isnan(ma)] = particle_mass / avg_mass
 
     # obtain a(m) and corresponding mass_bins
-    am, mass_bins = get_am(ma, scales, min_mass_bin, n_bins)
+    am, mass_bins = get_am(ma, scales, min_mass_bin, n_mass_bins)
 
     # filter scales, indices, m(a) based on `min_scale`.
     keep_scale = scales > min_scale
