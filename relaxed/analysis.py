@@ -14,8 +14,8 @@ from relaxed import halo_catalogs
 def determine_cutoffs(
     Mvir,
     scales,
-    cutoff_missing=0.01,
-    cutoff_particle=0.1,
+    cutoff_missing=0.05,
+    cutoff_particle=0.05,
     particle_mass=1.35e8,
     particle_res=50,
 ):
@@ -55,8 +55,8 @@ def determine_cutoffs(
     # NOTE: The explanation is that we want (1) minimum mass bin m0 such that at least
     # 99% haloes have a progenitor at that mass bin and (2) minimum mass bin m0 such that
     # 90% of haloes have their earliest a0 s.t. m(a0) > m0 satisfy m(a0) * Mvir(a=1)/ 1.35e8 > 50
-    # NOTE: (Maybe) Not count progenitors that have < 50 particles
-    min_mass_bin1 = np.nanquantile(np.nanmin(Mvir, axis=1) / Mvir[:, -1], cutoff_missing)
+    # NOTE: (1) is exactly Phil's suggestin.
+    min_mass_bin1 = np.nanquantile(np.nanmin(Mvir, axis=1) / Mvir[:, -1], 1 - cutoff_missing)
     min_mass_bin2 = np.nanquantile(min_mass / Mvir[:, -1], 1 - cutoff_particle)
     assert isinstance(min_mass_bin1, float)
     assert isinstance(min_mass_bin2, float)
@@ -68,8 +68,8 @@ def determine_cutoffs(
 def get_mah(
     name="m11",
     path="../../output",
-    cutoff_missing=0.01,
-    cutoff_particle=0.1,
+    cutoff_missing=0.05,
+    cutoff_particle=0.05,
     particle_mass=1.35e8,  # Bolshoi
     particle_res=50,
     n_mass_bins=100,
