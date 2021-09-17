@@ -127,6 +127,21 @@ class Rs(HaloParam):
         }
 
 
+class Rs_Klypin(HaloParam):
+    units = "kpc/h"
+
+    @property
+    def name(self):
+        return "rs_klypin"
+
+    @property
+    def latex(self):
+        return {
+            "units": "h^{-1} \\, \\rm kpc",
+            "form": "R_{s, \\rm Klypin}",
+        }
+
+
 class Xoff(HaloParam):
     units = "kpc/h"
 
