@@ -13,7 +13,7 @@ def create_subhalo_cat(host_ids, minh_file, threshold=1.0 / 1000, log=None):
 
     Args:
         * minh_file: complete minh catalog and must be read in blocks
-        * host_ids corresponds only to host haloes w/ upid == -1
+        * host_ids corresponds only to host haloes w/ pid == -1
         * threshold: min mass of subhalo considered in `f_sub` calculation relative to
             host halo mass.
 

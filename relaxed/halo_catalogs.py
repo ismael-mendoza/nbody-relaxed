@@ -9,8 +9,8 @@ from astropy.table import Table
 from astropy.table import vstack
 from pminh import minh
 
-from . import halo_filters
-from . import halo_parameters
+from relaxed import halo_filters
+from relaxed import halo_parameters
 
 Sim = namedtuple(
     "Simulation",
@@ -102,9 +102,9 @@ class HaloCatalog(object):
 
     @staticmethod
     def get_default_params():
-        params = ["id", "upid", "mvir", "rvir", "rs", "xoff", "voff", "x", "y", "z"]
+        params = ["id", "pid", "mvir", "rvir", "rs", "xoff", "voff", "x", "y", "z"]
         params += ["x0", "v0", "cvir", "spin", "q", "vvir", "t/|u|", "eta", "phi_l"]
-        params += ["gamma_tdyn", "tdyn", "scale_of_last_mm"]
+        params += ["gamma_tdyn", "tdyn", "scale_of_last_mm", "rs_klypin"]
         return params
 
     def get_default_hfilter(self):

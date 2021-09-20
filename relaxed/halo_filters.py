@@ -8,7 +8,7 @@ from copy import deepcopy
 
 import numpy as np
 
-from . import halo_parameters
+from relaxed import halo_parameters
 
 
 def intersect(ids1, ids2):
@@ -106,15 +106,14 @@ def get_default_filters(particle_mass, subhalos):
 
     * x in the lambda functions represents the values of the keys.
 
-    * upid >=0 indicates a subhalo, upid=-1 indicates a distinct halo. Phil's comment: "This is -1
-    for distinct halos and a halo ID for subhalos."
+    * pid >=0 indicates a subhalo, pid=-1 indicates a distinct halo.
 
-    >> cat_distinct = cat[cat['upid'] == -1]
-    >> cat_sub = cat[cat['upid'] >= 0]
+    >> cat_distinct = cat[cat['pid'] == -1]
+    >> cat_sub = cat[cat['pid'] >= 0]
     """
     return {
         **particle_mass_filter(particle_mass, subhalos),
-        "upid": lambda x: (x == -1 if not subhalos else x >= 0),
+        "pid": lambda x: (x == -1 if not subhalos else x >= 0),
     }
 
 

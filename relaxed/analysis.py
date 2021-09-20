@@ -66,7 +66,7 @@ def determine_cutoffs(
 
 
 def get_mah(
-    name="m11",
+    name="m12",
     path="../../output",
     cutoff_missing=0.05,
     cutoff_particle=0.05,
