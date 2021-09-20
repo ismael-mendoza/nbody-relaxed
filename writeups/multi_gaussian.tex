@@ -1,0 +1,203 @@
+\documentclass[a4paper]{article}
+
+%%packages
+\usepackage{xargs}                      % Use more than one optional parameter in a new commands
+\usepackage[pdftex,dvipsnames]{xcolor}  % Coloured text etc.
+
+% Language and font encodings
+\usepackage[english]{babel}
+\usepackage[utf8x]{inputenc}
+\usepackage[T1]{fontenc}
+
+% math packages
+\usepackage{bm}
+\usepackage{amsthm}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{bbm}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+
+% Sets page size and margins
+\usepackage[a4paper,top=3cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+\setlength\parindent{0pt}
+
+
+\newcommand{\eqnref}[1]{eq.~(\ref{#1})}
+\newcommand{\figref}[1]{Fig.~\ref{#1}}
+\newcommand{\tabref}[1]{Table~\ref{#1}}
+
+% colors 
+\newcommand{\blue}[1]{{\color{blue}#1}} %emphasis?
+\newcommand{\red}[1]{{\color{red}#1}} % Still draft, need to revise.
+\newcommand{\green}[1]{{\color{ForestGreen}#1}} % ready for review
+\newcommand{\orange}[1]{{\color{Orange}#1}} % questions or comments.
+
+% brackets 
+\newcommand{\pth}[1]{\left(#1\right)}
+\newcommand{\brk}[1]{\left[#1\right]}
+\newcommand{\cov}[1]{\text{Cov}\brk{#1}}
+\newcommand{\cvir}[0]{c_{\rm vir}}
+\renewcommand{\vec}[1]{\boldsymbol{#1}}
+\newcommand{\xv}[0]{\vec{x}}
+
+% packages, misc.
+\newcommand{\galsim}[0]{\texttt{GalSim}}
+
+\title{Scatter of predicted and true distribution} 
+\author{Ismael Mendoza}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+
+%%%%%%%%%%%%%%%%%%%%%%%
+\section{Summary}
+%%%%%%%%%%%%%%%%%%%%%%%
+
+In this brief note, I explain why our original predictions for the distribution of concentration $c_{\rm vir}$ based on the Multivariate Gaussian method had lower scatter than the true distribution of concentrations. 
+
+%%%%%%%%%%%%%%%%%%%%%%%
+\section{Procedure}
+%%%%%%%%%%%%%%%%%%%%%%%
+
+In what follows, let $\xv = \{a(m_{i})\}_{i=1}^{B} \equiv \vec{a}(m)$ where $B$ is the total number of mass bins and $y = \cvir$. The argument holds for any features $\vec{x}$ and predictor variable $y$ though. We also assume we have access to $N$ samples from the simulation: $\{\left(\vec{x}_{i}, y_{i}\right)\}_{i=1}^{N}$ (which we split into train/testing sets). 
+\\ \\
+The Multivariate Gaussian approach consisted of the following steps: 
+
+\begin{itemize}
+	\item Assume that $x,y$ are jointly gaussian distributed so that: 
+	%
+	\[
+		\begin{bmatrix}
+			y \\ 
+			\vec{x}
+		\end{bmatrix} \sim \mathcal{N}(\mu, \Sigma) = \mathcal{N}\pth{
+		\begin{bmatrix}
+			\mu_y \\ 
+			\vec{\mu}_{x}
+		\end{bmatrix}, 	
+		\begin{bmatrix}
+		   	\Sigma_{yy} & \Sigma_{yx} \\
+			\Sigma_{xy} & \Sigma_{xx}
+	 	\end{bmatrix}
+	 }
+	\]
+	%
+	where we separated $\mu$ and $\sigma$ into corresponding blocks for each variable. Note that we assume $y$ is a one-dimensional random variable so that $\Sigma_{yy}$ is a single number and $\Sigma_{xy}, \Sigma_{yx}$ are vectors, and $\Sigma_{xx}$ is an actual matrix.
+
+
+	\item Empirically compute estimates for the mean $\mu$ and the covariance matrix $\Sigma$ using the training set $\{\left(x_{i}, y_{i}\right)\}_{i=1}^{N_{\rm train}}$. For example: 
+	%
+	\[
+		\pth{\hat{\Sigma}_{xx}}_{k\ell} = \sum_{i=1}^{N_{\rm train}} \frac{\pth{x_{ik} - \bar{x}_{k}}\pth{x_{i\ell} - \bar{x}_{\ell}}}{N-1}
+	\]
+	%
+
+
+	\item To make a predictions of e.g. concentration given the accretion history we are interested in looking at the conditional distribution $P(y | x) = P(\cvir \vert \vec{a}(m))$. 
+
+	From statistics we know that the conditional distribution of two or more jointly normal distributed variables is also normal, in particular: 
+	%
+	\[
+		y \vert \vec{x} \sim \mathcal{N}\pth{\bar{\mu}, \bar{\Sigma}}
+	\]
+	%
+	where 
+	%
+	\begin{align}
+		\bar{\mu} \pth{x_{0}} = \mu_{y} + \Sigma_{yx} \Sigma_{xx}^{-1} \pth{\xv_{0} - \mu_{x}} \label{eq:mu_bar} \\
+		\bar{\sigma} = \Sigma_{yy} - \Sigma_{yx} \Sigma_{xx}^{-1} \Sigma_{xy}
+	\end{align}
+	%
+	Note that to calculate this quantities we would replace $\mu$ and $\Sigma$ witht their corresponding empirical estimates $\hat{\mu}, \hat{\Sigma}$. 
+
+	\textbf{Importantly} $\bar{\mu}$ depends on a particular test point $\xv_{0}$ but $\bar{\sigma}$ does not (the latter only depends on $\hat{\Sigma}$ estimated from the training set). Thinking about $\bar{\mu}(x_{0})$ as a prediction for $y$ is reasonable: "Given a test point $x_{0}$, what is the most likely $\hat{y}$ given that their corresponding random variables are jointly Gaussian distributed." In fact, in Section 4 we show that this approach is equivalent to Linear Regression.
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%
+\section{The Problem}
+%%%%%%%%%%%%%%%%%%%%%%%
+
+If we have a testing set $D_{\rm test} \equiv \{\left(\xv_{i}, y_{i}\right)\}_{i=1}^{N_{\rm test}}$ there is no reason that predicting $\bar{\mu}\pth{\xv_{i}}$ for each $\xv_{i} \in D_{\rm test}$ will give us the correct marginal distribution of $y$. The previous procedure does not tell us anything about the distribution of $\bar{\mu}$!
+
+What we do know is the distribution of $y \vert \xv$, and we can actually sample from (approximately) $P\pth{y \vert \xv}$ for each $\xv_{i} \in D_{\rm test}$: 
+
+\[
+	\hat{y}_{i} \sim \mathcal{N} \left(\bar{\mu}\pth{\xv_{i}}, \bar{\sigma} \right)
+\]
+
+for each $\xv_{i}$ we can sample a prediction of $y_{i}$ by sampling from the above normal distribution. We can show that this collection $\{\hat{y}_{i}\}$ will (approximately) have the correct marginal distribution:
+
+\[
+	P(\hat{y}) = \int P(\hat{y} \vert \xv) P(\xv) d\xv \approx \int P(y \vert \xv) P(\xv) d\xv = P(y)
+\]
+
+where the middle approximation comes from the fact that we sampled each $\hat{y}_{i}$ from the empirical approximation to the distribution of $P(y|\xv)$ given by $\mathcal{N} \left(\bar{\mu}\pth{\xv_{i}}, \bar{\sigma} \right)$.
+
+
+%===============================
+\subsection{More Intuition}
+%===============================
+
+Another way of showing that $\bar{\mu}$ cannot have the correct scatter is by explicitly writing out what sampling from $\hat{y}_{i} \sim \mathcal{N} \left(\bar{\mu}\pth{\xv_{i}}, \bar{\Sigma} \right)$ means: 
+
+\[
+\hat{y}_{i} = \bar{\mu} \pth{\xv_{i}}  + \bar{\sigma} * z 
+\]
+
+where $z \sim \mathcal{N}\pth{0,1}$. Looking at this equation, we can conclude that $\hat{y}$ can only have scatter \textbf{larger} than $\bar{\sigma}$ since the first term $\bar{\mu} \pth{\xv_{i}}$ necessarily adds some scatter as $\xv_{i}$ is not fixed.
+
+\textbf{Takeaway:} Unfortunately the second term in the equation above also introduces scatter in the predictions which makes the residuals less accurate.
+
+%%%%%%%%%%%%%%%%%%%%%%%
+\section{Multivariate Gaussian equals Linear Regression}
+%%%%%%%%%%%%%%%%%%%%%%%
+
+I won't prove the assumptions in Multivariate Gaussian are the same as Linear Regression, but mathematically I will prove that predicting Eq.\ref{eq:mu_bar} is the same as using Linear Regression for prediction. Let us work in the situation where $\vec{\mu}_{x} = 0$ and $\mu_{y} = 0$ (mean-centered data). From Wikipedia, linear regression predicts:
+
+\[
+	\hat{y} = \vec{x}^{T} \pth{X^{T} X}^{-1} X^{T} Y
+\]
+
+where $\xv$ is a test point and $X, Y$ come from the training set and are: 
+
+\begin{align*}
+	X = \begin{bmatrix}
+			\xv_{1}^{T} \\ 
+			\xv_{2}^{T} \\ 
+			\vdots \\ 
+			\xv_{n}^{T}
+		\end{bmatrix}, 	\\
+	Y = \begin{bmatrix} 
+		y_{1} \\ 
+		y_{2} \\ 
+		\vdots \\
+		y_{n}
+	\end{bmatrix}
+\end{align*}
+
+What is the matrix $X^{T}X$ ? Given that $X_{ij} = x_{ij}$ we have: 
+
+\[
+	\pth{X^{T} X}_{ij} = \sum_{k} x_{ik} x_{jk} = \pth{\hat{\Sigma}_{xx}}_{ij} (N-1)
+\]
+
+where the last equality only holds in the case when $\vec{\mu}_{x} = 0$. Similarly $X^{T} Y = \hat{\Sigma}_{xy} (N-1)$ so that: 
+
+\[
+	\hat{y} = \xv^{T}  \hat{\Sigma}_{xx}^{-1} (N-1)^{-1} \hat{\Sigma}_{xy} (N-1) = \xv^{T} \Sigma^{-1}_{xx} \hat{\Sigma}_{xy} = \pth{\xv^{T} \Sigma^{-1}_{xx} \hat{\Sigma}_{xy}}^{T} = \hat{\Sigma}_{yx} \hat{\Sigma}_{xx}^{-1} \xv
+\]
+
+where this equation is the same as Eq. \ref{eq:mu_bar} in the mean-centered case.
+
+
+
+
+
+
+
+
+\end{document}
