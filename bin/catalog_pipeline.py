@@ -2,6 +2,7 @@
 import json
 import os
 from pathlib import Path
+from shutil import copyfile
 
 import click
 import numpy as np
@@ -45,6 +46,13 @@ def pipeline(ctx, root, outdir, minh_file, catalog_name, all_minh_files):
 
     progenitor_file = Path(root).joinpath("output", f"{catname}_progenitors.txt")
     lookup_file = Path(root).joinpath("output", f"lookup_{catname}.json")
+    z_map_file_global = Path(root).joinpath(f"output/{catname}_z_map.json")
+    z_map_file = output.joinpath("z_map.json").exists()
+
+    # write z_map file to output if not already there.
+    if not z_map_file.exists():
+        copyfile(z_map_file_global, z_map_file)
+
     ctx.obj.update(
         dict(
             root=Path(root),
@@ -60,7 +68,7 @@ def pipeline(ctx, root, outdir, minh_file, catalog_name, all_minh_files):
             subhalo_file=output.joinpath("subhaloes.csv"),
             all_minh=data.joinpath(all_minh_files),
             lookup_index=output.joinpath("lookup.csv"),
-            z_map=Path(root).joinpath(f"output/{catname}_z_map.json"),
+            z_map=z_map_file,
         )
     )
 
