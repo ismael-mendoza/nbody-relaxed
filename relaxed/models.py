@@ -44,12 +44,21 @@ class PredictionModel(ABC):
 class PredictionModelTransform(PredictionModel, ABC):
     """Enable possibility of transforming variables before fitting/prediction."""
 
-    def __init__(self, n_features: int, use_qt: bool = False, use_logs: bool = False) -> None:
+    def __init__(
+        self,
+        n_features: int,
+        use_qt: bool = False,
+        use_logs: bool = False,
+        use_multicam: bool = False,
+    ) -> None:
         super().__init__(n_features)
-        assert (use_logs + use_qt) <= 1
+        assert (
+            use_logs + use_qt + use_multicam
+        ) <= 1, "Only 1 transformation can be applied at a time."
 
-        self.use_qt = use_qt  # whether to transform data to be gaussian using quantiles.
+        self.use_qt = use_qt  # whether to transform data to be (marginally) gaussian.
         self.use_logs = use_logs  # whether to convert quantities to log space.
+        self.use_multicam = use_multicam  # whether map pred. quantiles to train data quantiles.
 
         # fit attributes
         self.qt_x = None
@@ -58,15 +67,21 @@ class PredictionModelTransform(PredictionModel, ABC):
     def fit(self, x, y):
 
         if self.use_qt:
+
+            self.qt_x = QuantileTransformer(n_quantiles=len(x), output_distribution="normal").fit(x)
             self.qt_y = QuantileTransformer(n_quantiles=len(y), output_distribution="normal").fit(
                 y.reshape(-1, 1)
             )
-            self.qt_x = QuantileTransformer(n_quantiles=len(x), output_distribution="normal").fit(x)
-
             x_trans = self.qt_x.transform(x)
             y_trans = self.qt_y.transform(y.reshape(-1, 1)).reshape(-1)
 
             super().fit(x_trans, y_trans)
+
+        elif self.use_multicam:
+            self.qt_y = QuantileTransformer(n_quantiles=len(y), output_distribution="normal").fit(
+                y.reshape(-1, 1)
+            )
+            super().fit(x, y)
 
         elif self.use_logs:
             super().fit(np.log(x), np.log(y))
@@ -79,6 +94,14 @@ class PredictionModelTransform(PredictionModel, ABC):
             x_trans = self.qt_x.transform(x)
             y_trans = super().predict(x_trans)
             return self.qt_y.inverse_transform(y_trans.reshape(-1, 1)).reshape(-1)
+
+        if self.use_multicam:
+            y_pred = super().predict(x).reshape(-1, 1)
+            qt_pred = QuantileTransformer(
+                n_quantiles=len(y_pred), output_distribution="normal"
+            ).fit(y_pred)
+
+            return self.qt_y.inverse_transform(qt_pred.transform(y_pred)).reshape(-1)
 
         elif self.use_logs:
             return np.exp(super().predict(np.log(x)))
@@ -108,8 +131,14 @@ class LogNormalRandomSample(PredictionModel):
 
 
 class LinearRegression(PredictionModelTransform):
-    def __init__(self, n_features: int, use_qt: bool = False, use_logs: bool = False) -> None:
-        super().__init__(n_features, use_qt, use_logs)
+    def __init__(
+        self,
+        n_features: int,
+        use_qt: bool = False,
+        use_logs: bool = False,
+        use_multicam: bool = False,
+    ) -> None:
+        super().__init__(n_features, use_qt, use_logs, use_multicam)
         self.reg = None
 
     def _fit(self, x, y):
@@ -122,9 +151,16 @@ class LinearRegression(PredictionModelTransform):
 class LASSO(PredictionModelTransform):
     name = "lasso"
 
-    def __init__(self, n_features: int, alpha: float = 0.1, use_qt=False, use_logs=False) -> None:
+    def __init__(
+        self,
+        n_features: int,
+        alpha: float = 0.1,
+        use_qt: bool = False,
+        use_logs: bool = False,
+        use_multicam: bool = False,
+    ) -> None:
         # alpha is the regularization parameter.
-        super().__init__(n_features, use_qt, use_logs)
+        super().__init__(n_features, use_qt, use_logs, use_multicam)
         self.alpha = alpha
 
         # attributes of fit
@@ -150,9 +186,10 @@ class MultiVariateGaussian(PredictionModelTransform):
         n_features: int,
         use_qt: bool = False,
         use_logs: bool = False,
+        use_multicam: bool = False,
         do_sample: bool = True,  # wheter to sample from x1|x2 or return E[x1 | x2] for predictions
     ) -> None:
-        super().__init__(n_features, use_qt, use_logs)
+        super().__init__(n_features, use_qt, use_logs, use_multicam)
 
         self.mu1 = None
         self.mu2 = None
