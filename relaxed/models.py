@@ -42,46 +42,41 @@ class PredictionModel(ABC):
 
 
 class PredictionModelTransform(PredictionModel, ABC):
-    """Enable possibility of transforming variables before fitting/prediction."""
+    """Enable possibility of transforming variables at fitting/prediction time."""
 
     def __init__(
         self,
         n_features: int,
-        use_qt: bool = False,
-        use_logs: bool = False,
+        to_marginal_normal: bool = False,
+        to_log: bool = False,
         use_multicam: bool = False,
     ) -> None:
         super().__init__(n_features)
-        assert (
-            use_logs + use_qt + use_multicam
-        ) <= 1, "Only 1 transformation can be applied at a time."
+        assert (to_log + to_marginal_normal) <= 1, "Only 1 transformation at a time."
 
-        self.use_qt = use_qt  # whether to transform data to be (marginally) gaussian.
-        self.use_logs = use_logs  # whether to convert quantities to log space.
-        self.use_multicam = use_multicam  # whether map pred. quantiles to train data quantiles.
+        self.to_marginal_normal = to_marginal_normal  # transform data to be (marginally) gaussian
+        self.to_log = to_log  # transform to log space.
+        self.use_multicam = use_multicam  # map predictions to trained data quantiles.
 
-        # fit attributes
+        # attributes to be fitted.
         self.qt_x = None
         self.qt_y = None
 
     def fit(self, x, y):
 
-        if self.use_qt:
+        if self.use_multi_cam or self.to_marginal_normal:
+            self.qt_y = QuantileTransformer(n_quantiles=len(y), output_distribution="normal")
+            self.qt_y = self.qt_y.fit(y.reshape(-1, 1))
 
-            self.qt_x = QuantileTransformer(n_quantiles=len(x), output_distribution="normal").fit(x)
-            self.qt_y = QuantileTransformer(n_quantiles=len(y), output_distribution="normal").fit(
-                y.reshape(-1, 1)
-            )
+        if self.to_marginal_normal:
+            self.qt_x = QuantileTransformer(n_quantiles=len(x), output_distribution="normal")
+            self.qt_x = self.qt_x.fit(x)
+
+            # transform
             x_trans = self.qt_x.transform(x)
             y_trans = self.qt_y.transform(y.reshape(-1, 1)).reshape(-1)
 
             super().fit(x_trans, y_trans)
-
-        elif self.use_multicam:
-            self.qt_y = QuantileTransformer(n_quantiles=len(y), output_distribution="normal").fit(
-                y.reshape(-1, 1)
-            )
-            super().fit(x, y)
 
         elif self.use_logs:
             super().fit(np.log(x), np.log(y))
@@ -90,24 +85,24 @@ class PredictionModelTransform(PredictionModel, ABC):
             super().fit(x, y)
 
     def predict(self, x):
-        if self.use_qt:
+        if self.to_marginal_normal:
             x_trans = self.qt_x.transform(x)
             y_trans = super().predict(x_trans)
-            return self.qt_y.inverse_transform(y_trans.reshape(-1, 1)).reshape(-1)
+            y_pred = self.qt_y.inverse_transform(y_trans.reshape(-1, 1)).reshape(-1)
 
-        if self.use_multicam:
-            y_pred = super().predict(x).reshape(-1, 1)
-            qt_pred = QuantileTransformer(
-                n_quantiles=len(y_pred), output_distribution="normal"
-            ).fit(y_pred)
-
-            return self.qt_y.inverse_transform(qt_pred.transform(y_pred)).reshape(-1)
-
-        elif self.use_logs:
-            return np.exp(super().predict(np.log(x)))
+        elif self.to_log:
+            y_pred = np.exp(super().predict(np.log(x)))
 
         else:
-            return super().predict(x)
+            y_pred = super().predict(x)
+
+        # optionally map prediction to correct quantiles from trained distribution.
+        if self.use_multicam:
+            y_pred = y_pred.reshape(-1, 1)
+            qt_pred = QuantileTransformer(n_quantiles=len(y_pred), output_distribution="normal")
+            qt_pred = qt_pred.fit(y_pred)
+
+            return self.qt_y.inverse_transform(qt_pred.transform(y_pred)).reshape(-1)
 
 
 class LogNormalRandomSample(PredictionModel):
@@ -131,14 +126,8 @@ class LogNormalRandomSample(PredictionModel):
 
 
 class LinearRegression(PredictionModelTransform):
-    def __init__(
-        self,
-        n_features: int,
-        use_qt: bool = False,
-        use_logs: bool = False,
-        use_multicam: bool = False,
-    ) -> None:
-        super().__init__(n_features, use_qt, use_logs, use_multicam)
+    def __init__(self, n_features: int, **transform_kwargs) -> None:
+        super().__init__(n_features, **transform_kwargs)
         self.reg = None
 
     def _fit(self, x, y):
@@ -151,16 +140,9 @@ class LinearRegression(PredictionModelTransform):
 class LASSO(PredictionModelTransform):
     name = "lasso"
 
-    def __init__(
-        self,
-        n_features: int,
-        alpha: float = 0.1,
-        use_qt: bool = False,
-        use_logs: bool = False,
-        use_multicam: bool = False,
-    ) -> None:
+    def __init__(self, n_features: int, alpha: float = 0.1, **transform_kwargs) -> None:
         # alpha is the regularization parameter.
-        super().__init__(n_features, use_qt, use_logs, use_multicam)
+        super().__init__(n_features, **transform_kwargs)
         self.alpha = alpha
 
         # attributes of fit
@@ -181,15 +163,9 @@ class LASSO(PredictionModelTransform):
 class MultiVariateGaussian(PredictionModelTransform):
     """Multi-Variate Gaussian using full covariance matrix (returns conditional mean)."""
 
-    def __init__(
-        self,
-        n_features: int,
-        use_qt: bool = False,
-        use_logs: bool = False,
-        use_multicam: bool = False,
-        do_sample: bool = True,  # wheter to sample from x1|x2 or return E[x1 | x2] for predictions
-    ) -> None:
-        super().__init__(n_features, use_qt, use_logs, use_multicam)
+    def __init__(self, n_features: int, do_sample: bool = True, **transform_kwargs) -> None:
+        # do_sample: wheter to sample from x1|x2 or return E[x1 | x2] for predictions
+        super().__init__(n_features, **transform_kwargs)
 
         self.mu1 = None
         self.mu2 = None
