@@ -78,7 +78,7 @@ class PredictionModelTransform(PredictionModel, ABC):
 
             super().fit(x_trans, y_trans)
 
-        elif self.use_logs:
+        elif self.to_log:
             super().fit(np.log(x), np.log(y))
 
         else:
