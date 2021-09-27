@@ -102,7 +102,9 @@ class PredictionModelTransform(PredictionModel, ABC):
             qt_pred = QuantileTransformer(n_quantiles=len(y_pred), output_distribution="normal")
             qt_pred = qt_pred.fit(y_pred)
 
-            return self.qt_y.inverse_transform(qt_pred.transform(y_pred)).reshape(-1)
+            y_pred = self.qt_y.inverse_transform(qt_pred.transform(y_pred)).reshape(-1)
+
+        return y_pred
 
 
 class LogNormalRandomSample(PredictionModel):
