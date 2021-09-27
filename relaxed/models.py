@@ -64,7 +64,7 @@ class PredictionModelTransform(PredictionModel, ABC):
 
     def fit(self, x, y):
 
-        if self.use_multi_cam or self.to_marginal_normal:
+        if self.use_multicam or self.to_marginal_normal:
             self.qt_y = QuantileTransformer(n_quantiles=len(y), output_distribution="normal")
             self.qt_y = self.qt_y.fit(y.reshape(-1, 1))
 
