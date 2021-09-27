@@ -373,6 +373,28 @@ class Cvir(HaloParam):
         return {"func": lambda cat: cat["rvir"] / cat["rs"], "requires": ("rvir", "rs")}
 
 
+class Cvir_Klypin(HaloParam):
+    units = ""
+
+    @property
+    def name(self):
+        return "cvir_klypin"
+
+    @property
+    def latex(self):
+        return {
+            "units": "",
+            "form": "c_{\\rm vir}",
+        }
+
+    @property
+    def derive(self):
+        return {
+            "func": lambda cat: cat["rvir"] / cat["rs_klypin"],
+            "requires": ("rvir", "rs_klypin"),
+        }
+
+
 class Eta(HaloParam):
     units = ""
 
