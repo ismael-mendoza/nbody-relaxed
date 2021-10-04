@@ -128,6 +128,21 @@ class LogNormalRandomSample(PredictionModel):
         return np.exp(np.random.normal(self.mu, self.sigma, n_test))
 
 
+class InverseCDFRandomSamples(PredictionModel):
+    """Use Quantile Transformer to get random samples from a 1D Distribution."""
+
+    def __init__(self, n_features: int) -> None:
+        super().__init__(n_features)
+
+    def _fit(self, x, y):
+        self.qt_y = QuantileTransformer(n_quantiles=len(y), output_distribution="uniform")
+        self.qt_y = self.qt_y.fit(y)
+
+    def _predict(self, x):
+        u = np.random.random(size=(len(x)))
+        return self.qt_y.inverse_transform(u)
+
+
 class LinearRegression(PredictionModelTransform):
     def __init__(self, n_features: int, **transform_kwargs) -> None:
         super().__init__(n_features, **transform_kwargs)
