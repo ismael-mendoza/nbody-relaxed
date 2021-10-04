@@ -47,7 +47,7 @@ def pipeline(ctx, root, outdir, minh_file, catalog_name, all_minh_files):
     progenitor_file = Path(root).joinpath("output", f"{catname}_progenitors.txt")
     lookup_file = Path(root).joinpath("output", f"lookup_{catname}.json")
     z_map_file_global = Path(root).joinpath(f"output/{catname}_z_map.json")
-    z_map_file = output.joinpath("z_map.json").exists()
+    z_map_file = output.joinpath("z_map.json")
 
     # write z_map file to output if not already there.
     if not z_map_file.exists():
@@ -120,7 +120,7 @@ def make_ids(ctx, m_low, m_high, n_haloes):
 
     # do we have enough haloes?
     # keep only N of them
-    assert len(hcat) >= n_haloes
+    assert len(hcat) >= n_haloes, f"There are only {len(hcat)} haloes satisfying filter."
     keep = np.random.choice(np.arange(len(hcat)), size=n_haloes, replace=False)
     hcat.cat = hcat.cat[keep]
 
