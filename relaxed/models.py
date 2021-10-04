@@ -1,3 +1,4 @@
+import warnings
 from abc import ABC
 from abc import abstractmethod
 
@@ -175,6 +176,12 @@ class MultiVariateGaussian(PredictionModelTransform):
         self.rho = None
         self.sigma_cond = None
         self.do_sample = do_sample
+
+        if not self.to_marginal_normal:
+            warnings.warn(
+                "You initialized the `MultivariateGaussian` model with `to_marginal_normal`"
+                "set to False. However, this model usually requires this data preprocessing step."
+            )
 
     def _fit(self, x, y):
         """
