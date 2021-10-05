@@ -48,9 +48,9 @@ class PredictionModelTransform(PredictionModel, ABC):
     def __init__(
         self,
         n_features: int,
-        to_marginal_normal: bool = False,
+        to_marginal_normal: bool = True,
         to_log: bool = False,
-        use_multicam: bool = False,
+        use_multicam: bool = True,
     ) -> None:
         super().__init__(n_features)
         assert (to_log + to_marginal_normal) <= 1, "Only 1 transformation at a time."
