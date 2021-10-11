@@ -12,26 +12,25 @@ from relaxed.analysis import get_an_from_am
 
 
 class PredictionModel(ABC):
-    def __init__(self, n_features: int) -> None:
+    def __init__(self, n_features: int, n_targets: int) -> None:
         assert isinstance(n_features, int) and n_features > 0
         self.n_features = n_features
+        self.n_targets = n_targets
         self.trained = False  # whether model has been trained yet.
+
+    def fit(self, x, y):
+        assert np.sum(np.isnan(x)) == np.sum(np.isnan(y)) == 0
+        assert x.shape == (y.shape[0], self.n_features)
+        y = y.reshape(x.shape[0], self.n_targets)
+        self._fit(x, y)
+        self.trained = True
 
     def predict(self, x):
         assert len(x.shape) == 2
         assert x.shape[1] == self.n_features
         assert np.sum(np.isnan(x)) == 0
         assert self.trained
-        return self._predict(x)
-
-    def fit(self, x, y):
-        assert np.sum(np.isnan(x)) == np.sum(np.isnan(y)) == 0
-        assert x.shape[0] == y.shape[0]
-        assert len(y.shape) == 1 or y.shape[1] == 1
-        assert len(x.shape) == 2
-        assert x.shape[1] == self.n_features
-        self._fit(x, y)
-        self.trained = True
+        return self._predict(x).reshape(x.shape[0], self.n_targets)
 
     @abstractmethod
     def _fit(self, x, y):
@@ -48,11 +47,12 @@ class PredictionModelTransform(PredictionModel, ABC):
     def __init__(
         self,
         n_features: int,
+        n_targets: int,
         to_marginal_normal: bool = True,
         to_log: bool = False,
         use_multicam: bool = True,
     ) -> None:
-        super().__init__(n_features)
+        super().__init__(n_features, n_targets)
         assert (to_log + to_marginal_normal) <= 1, "Only 1 transformation at a time."
 
         self.to_marginal_normal = to_marginal_normal  # transform data to be (marginally) gaussian
@@ -64,10 +64,11 @@ class PredictionModelTransform(PredictionModel, ABC):
         self.qt_y = None
 
     def fit(self, x, y):
+        y = y.reshape(x.shape[0], self.n_targets)
 
         if self.use_multicam or self.to_marginal_normal:
             self.qt_y = QuantileTransformer(n_quantiles=len(y), output_distribution="normal")
-            self.qt_y = self.qt_y.fit(y.reshape(-1, 1))
+            self.qt_y = self.qt_y.fit(y)
 
         if self.to_marginal_normal:
             self.qt_x = QuantileTransformer(n_quantiles=len(x), output_distribution="normal")
@@ -75,7 +76,7 @@ class PredictionModelTransform(PredictionModel, ABC):
 
             # transform
             x_trans = self.qt_x.transform(x)
-            y_trans = self.qt_y.transform(y.reshape(-1, 1)).reshape(-1)
+            y_trans = self.qt_y.transform(y)
 
             super().fit(x_trans, y_trans)
 
@@ -89,7 +90,7 @@ class PredictionModelTransform(PredictionModel, ABC):
         if self.to_marginal_normal:
             x_trans = self.qt_x.transform(x)
             y_trans = super().predict(x_trans)
-            y_pred = self.qt_y.inverse_transform(y_trans.reshape(-1, 1)).reshape(-1)
+            y_pred = self.qt_y.inverse_transform(y_trans)
 
         elif self.to_log:
             y_pred = np.exp(super().predict(np.log(x)))
@@ -99,11 +100,9 @@ class PredictionModelTransform(PredictionModel, ABC):
 
         # optionally map prediction to correct quantiles from trained distribution.
         if self.use_multicam:
-            y_pred = y_pred.reshape(-1, 1)
             qt_pred = QuantileTransformer(n_quantiles=len(y_pred), output_distribution="normal")
             qt_pred = qt_pred.fit(y_pred)
-
-            y_pred = self.qt_y.inverse_transform(qt_pred.transform(y_pred)).reshape(-1)
+            y_pred = self.qt_y.inverse_transform(qt_pred.transform(y_pred))
 
         return y_pred
 
@@ -111,41 +110,41 @@ class PredictionModelTransform(PredictionModel, ABC):
 class LogNormalRandomSample(PredictionModel):
     """"Lognormal random samples."""
 
-    def __init__(self, n_features: int) -> None:
-        super().__init__(n_features)
+    def __init__(self, n_features: int, n_targets: int) -> None:
+        super().__init__(n_features, n_targets)
 
         self.mu = None
         self.sigma = None
 
     def _fit(self, x, y):
         assert np.all(y > 0)
-        mu, sigma = np.mean(np.log(y)), np.std(np.log(y))
+        mu, sigma = np.mean(np.log(y), axis=0), np.std(np.log(y), axis=0)
         self.mu = mu
         self.sigma = sigma
 
     def _predict(self, x):
         n_test = len(x)
-        return np.exp(np.random.normal(self.mu, self.sigma, n_test))
+        return np.exp(np.random.normal(self.mu, self.sigma, (n_test, self.n_targets)))
 
 
 class InverseCDFRandomSamples(PredictionModel):
     """Use Quantile Transformer to get random samples from a 1D Distribution."""
 
-    def __init__(self, n_features: int) -> None:
-        super().__init__(n_features)
+    def __init__(self, n_features: int, n_targets: int) -> None:
+        super().__init__(n_features, n_targets)
 
     def _fit(self, x, y):
         self.qt_y = QuantileTransformer(n_quantiles=len(y), output_distribution="uniform")
         self.qt_y = self.qt_y.fit(y)
 
     def _predict(self, x):
-        u = np.random.random(size=(len(x)))
+        u = np.random.random(size=(len(x), self.n_targets))
         return self.qt_y.inverse_transform(u)
 
 
 class LinearRegression(PredictionModelTransform):
-    def __init__(self, n_features: int, **transform_kwargs) -> None:
-        super().__init__(n_features, **transform_kwargs)
+    def __init__(self, n_features: int, n_targets: int, **transform_kwargs) -> None:
+        super().__init__(n_features, n_targets, **transform_kwargs)
         self.reg = None
 
     def _fit(self, x, y):
@@ -158,9 +157,11 @@ class LinearRegression(PredictionModelTransform):
 class LASSO(PredictionModelTransform):
     name = "lasso"
 
-    def __init__(self, n_features: int, alpha: float = 0.1, **transform_kwargs) -> None:
+    def __init__(
+        self, n_features: int, n_targets: int, alpha: float = 0.1, **transform_kwargs
+    ) -> None:
         # alpha is the regularization parameter.
-        super().__init__(n_features, **transform_kwargs)
+        super().__init__(n_features, n_targets, **transform_kwargs)
         self.alpha = alpha
 
         # attributes of fit
@@ -181,9 +182,11 @@ class LASSO(PredictionModelTransform):
 class MultiVariateGaussian(PredictionModelTransform):
     """Multi-Variate Gaussian using full covariance matrix (returns conditional mean)."""
 
-    def __init__(self, n_features: int, do_sample: bool = True, **transform_kwargs) -> None:
+    def __init__(
+        self, n_features: int, n_targets, do_sample: bool = True, **transform_kwargs
+    ) -> None:
         # do_sample: wheter to sample from x1|x2 or return E[x1 | x2] for predictions
-        super().__init__(n_features, **transform_kwargs)
+        super().__init__(n_features, n_targets, **transform_kwargs)
 
         self.mu1 = None
         self.mu2 = None
@@ -209,21 +212,23 @@ class MultiVariateGaussian(PredictionModelTransform):
         * x are the features used for prediction, should have shape (y.shape[0], n_features)
         """
         n_features = self.n_features
+        n_targets = self.n_targets
 
         # calculate sigma/correlation matrix bewteen all quantities
-        z = np.vstack([y.reshape(1, -1), x.T]).T
+        z = np.hstack([y.reshape(-1, n_targets), x])
 
         # some sanity checks
-        assert z.shape == (y.shape[0], n_features + 1)
-        np.testing.assert_equal(y, z[:, 0])
-        np.testing.assert_equal(x[:, 0], z[:, 1])  # ignore mutual nan's
+        assert z.shape == (y.shape[0], n_targets + n_features)
+        np.testing.assert_equal(y, z[:, :n_targets])
+        np.testing.assert_equal(x[:, 0], z[:, n_targets])  # ignore mutual nan's
         np.testing.assert_equal(x[:, -1], z[:, -1])
 
         # calculate covariances
-        Sigma = np.zeros((1 + n_features, 1 + n_features))
-        rho = np.zeros((1 + n_features, 1 + n_features))
-        for i in range(n_features + 1):
-            for j in range(n_features + 1):
+        total_features = n_targets + n_features
+        Sigma = np.zeros((total_features, total_features))
+        rho = np.zeros((total_features, total_features))
+        for i in range(total_features):
+            for j in range(total_features):
                 if i <= j:
                     # calculate correlation coefficient keeping only non-nan values
                     z1, z2 = z[:, i], z[:, j]
@@ -236,15 +241,15 @@ class MultiVariateGaussian(PredictionModelTransform):
                     rho[i, j] = rho[j, i]
                     Sigma[i, j] = Sigma[j, i]
 
-        # more sanity
+        # more sanity checks.
         assert np.all(~np.isnan(Sigma))
         assert np.all(~np.isnan(rho))
 
-        mu1 = np.nanmean(y).reshape(1, 1)
+        mu1 = np.nanmean(y, axis=0).reshape(n_targets, 1)
         mu2 = np.nanmean(x, axis=0).reshape(n_features, 1)
-        Sigma11 = Sigma[0, 0].reshape(1, 1)
-        Sigma12 = Sigma[0, 1:].reshape(1, n_features)
-        Sigma22 = Sigma[1:, 1:].reshape(n_features, n_features)
+        Sigma11 = Sigma[:n_targets, :n_targets].reshape(n_targets, n_targets)
+        Sigma12 = Sigma[:n_targets, n_targets:].reshape(n_targets, n_features)
+        Sigma22 = Sigma[n_targets:, n_targets:].reshape(n_features, n_features)
         sigma_bar = Sigma11 - Sigma12.dot(np.linalg.inv(Sigma22)).dot(Sigma12.T)
 
         # update prediction attributes
@@ -255,31 +260,41 @@ class MultiVariateGaussian(PredictionModelTransform):
         self.Sigma12 = Sigma12
         self.Sigma22 = Sigma22
         self.rho = rho
-        self.sigma_bar = sigma_bar.item()
+        self.sigma_bar = sigma_bar.reshape(n_targets, n_targets)
 
     def _predict(self, x):
         # returns mu_cond evaluated given x.
         assert np.sum(np.isnan(x)) == 0
         n_points = x.shape[0]
-        x = x.reshape(-1, self.n_features).T
+        x = x.reshape(n_points, self.n_features).T
         mu_cond = self.mu1 + self.Sigma12.dot(np.linalg.inv(self.Sigma22)).dot(x - self.mu2)
+        mu_cond = mu_cond.T.reshape(n_points, self.n_targets)
 
         if self.do_sample:
-            return mu_cond.reshape(-1) + np.sqrt(self.sigma_bar) * np.random.randn(n_points)
-
+            y_pred = np.zeros((n_points, self.n_targets))
+            for i in range(n_points):
+                y_pred_i = np.random.multivariate_normal(mu_cond[i, :], self.sigma_bar)
+                y_pred[i, :] = y_pred_i
+            return y_pred
         else:
-            return mu_cond.reshape(-1)
+            return mu_cond
 
 
 class CAM(PredictionModel):
     """Conditional Abundance Matching"""
 
     def __init__(
-        self, n_features: int, mass_bins: np.ndarray, mbin: float, cam_order: int = -1
+        self,
+        n_features: int,
+        n_targets: int,
+        mass_bins: np.ndarray,
+        mbin: float,
+        cam_order: int = -1,
     ) -> None:
         # cam_order: +1 or -1 depending on correlation of a_{n} with y
         assert n_features == len(mass_bins)
-        super().__init__(n_features)
+        assert n_targets == 1
+        super().__init__(n_features, n_targets)
 
         assert cam_order in {-1, 1}
         assert isinstance(mass_bins, np.ndarray)
@@ -293,6 +308,7 @@ class CAM(PredictionModel):
 
     def _fit(self, am, y):
 
+        y = y.reshape(-1)
         an_train = get_an_from_am(am, self.mass_bins, mbin=self.mbin).reshape(-1)
         assert an_train.shape[0] == am.shape[0]
 
@@ -336,6 +352,7 @@ def training_suite(data: dict):
         assert isinstance(data[name]["xy"], tuple)
         assert data[name]["model"] in available_models
         assert isinstance(data[name]["n_features"], int)
+        assert isinstance(data[name]["n_targets"], int)
         assert isinstance(data[name]["kwargs"], dict)
         assert data[name]["n_features"] == data[name]["xy"][0].shape[1]
 
@@ -344,8 +361,9 @@ def training_suite(data: dict):
         m = data[name]["model"]
         kwargs = data[name]["kwargs"]
         n_features = data[name]["n_features"]
+        n_targets = data[name]["n_targets"]
         x, y = data[name]["xy"]
-        model = available_models[m](n_features, **kwargs)
+        model = available_models[m](n_features, n_targets, **kwargs)
         model.fit(x, y)
         trained_models[name] = model
 
