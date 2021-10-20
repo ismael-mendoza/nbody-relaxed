@@ -48,8 +48,8 @@ class PredictionModelTransform(PredictionModel, ABC):
         self,
         n_features: int,
         n_targets: int,
-        to_marginal_normal: bool = True,
         to_log: bool = False,
+        to_marginal_normal: bool = True,
         use_multicam: bool = True,
     ) -> None:
         super().__init__(n_features, n_targets)
