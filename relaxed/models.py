@@ -62,6 +62,7 @@ class PredictionModelTransform(PredictionModel, ABC):
         # attributes to be fitted.
         self.qt_x = None
         self.qt_y = None
+        self.qt_pred = None
 
     def fit(self, x, y):
         y = y.reshape(x.shape[0], self.n_targets)
@@ -100,9 +101,11 @@ class PredictionModelTransform(PredictionModel, ABC):
 
         # optionally map prediction to correct quantiles from trained distribution.
         if self.use_multicam:
-            qt_pred = QuantileTransformer(n_quantiles=len(y_pred), output_distribution="normal")
-            qt_pred = qt_pred.fit(y_pred)
-            y_pred = self.qt_y.inverse_transform(qt_pred.transform(y_pred))
+            self.qt_pred = QuantileTransformer(
+                n_quantiles=len(y_pred), output_distribution="normal"
+            )
+            self.qt_pred = self.qt_pred.fit(y_pred)
+            y_pred = self.qt_y.inverse_transform(self.qt_pred.transform(y_pred))
 
         return y_pred
 
