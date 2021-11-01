@@ -161,8 +161,6 @@ def make_dmcat(ctx):
 @pipeline.command()
 @click.pass_context
 def make_progenitors(ctx):
-    # total in progenitor_file ~ 382477
-    # takes like 2 hrs to run.
     progenitor_file = ctx.obj["progenitor_file"]
     lookup_file = ctx.obj["lookup_file"]
     assert progenitor_file.exists()
