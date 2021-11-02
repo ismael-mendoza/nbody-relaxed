@@ -62,6 +62,7 @@ class PredictionModelTransform(PredictionModel, ABC):
         # attributes to be fitted.
         self.qt_x = None
         self.qt_y = None
+        self.qt_pred = None
 
     def fit(self, x, y):
         y = y.reshape(x.shape[0], self.n_targets)
@@ -100,9 +101,11 @@ class PredictionModelTransform(PredictionModel, ABC):
 
         # optionally map prediction to correct quantiles from trained distribution.
         if self.use_multicam:
-            qt_pred = QuantileTransformer(n_quantiles=len(y_pred), output_distribution="normal")
-            qt_pred = qt_pred.fit(y_pred)
-            y_pred = self.qt_y.inverse_transform(qt_pred.transform(y_pred))
+            self.qt_pred = QuantileTransformer(
+                n_quantiles=len(y_pred), output_distribution="normal"
+            )
+            self.qt_pred = self.qt_pred.fit(y_pred)
+            y_pred = self.qt_y.inverse_transform(self.qt_pred.transform(y_pred))
 
         return y_pred
 
@@ -271,10 +274,10 @@ class MultiVariateGaussian(PredictionModelTransform):
         mu_cond = mu_cond.T.reshape(n_points, self.n_targets)
 
         if self.do_sample:
-            y_pred = np.zeros((n_points, self.n_targets))
-            for i in range(n_points):
-                y_pred_i = np.random.multivariate_normal(mu_cond[i, :], self.sigma_bar)
-                y_pred[i, :] = y_pred_i
+            _zero = np.zeros((self.n_targets,))
+            y_pred = np.random.multivariate_normal(mean=_zero, cov=self.sigma_bar, size=(n_points,))
+            assert y_pred.shape == (n_points, self.n_targets)
+            y_pred += mu_cond
             return y_pred
         else:
             return mu_cond
