@@ -274,7 +274,8 @@ class MultiVariateGaussian(PredictionModelTransform):
         mu_cond = mu_cond.T.reshape(n_points, self.n_targets)
 
         if self.do_sample:
-            y_pred = np.random.multivariate_normal(mean=0, cov=self.sigma_bar, size=(n_points,))
+            _zero = np.zeros((self.n_targets,))
+            y_pred = np.random.multivariate_normal(mean=_zero, cov=self.sigma_bar, size=(n_points,))
             assert y_pred.shape == (n_points, self.n_targets)
             y_pred += mu_cond
             return y_pred
