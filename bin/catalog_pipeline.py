@@ -8,13 +8,14 @@ import click
 import numpy as np
 from astropy import table
 from astropy.io import ascii
+from pminh import minh
 from tqdm import tqdm
 
 from relaxed import halo_filters
 from relaxed.halo_catalogs import HaloCatalog
 from relaxed.halo_catalogs import sims
 from relaxed.progenitors.progenitor_lines import get_next_progenitor
-from relaxed.subhaloes.catalog import create_subhalo_cat
+from relaxed.subhaloes import quantities as sub_quantities
 
 the_root = Path(__file__).absolute().parent.parent
 bolshoi_minh = "Bolshoi/minh/hlist_1.00035.minh"
@@ -22,6 +23,8 @@ catname_map = {
     "Bolshoi": "bolshoi",
     "BolshoiP": "bolshoi_p",
 }
+
+NAN_INTEGER = -5555
 
 
 @click.group()
@@ -50,6 +53,7 @@ def pipeline(ctx, root, outdir, minh_file, catalog_name, all_minh_files):
     z_map_file = output.joinpath("z_map.json")
 
     # write z_map file to output if not already there.
+    assert z_map_file_global.exists(), "Global z_map was deleted?!"
     if not z_map_file.exists():
         copyfile(z_map_file_global, z_map_file)
 
@@ -166,7 +170,7 @@ def make_progenitors(ctx):
     assert progenitor_file.exists()
     assert lookup_file.exists()
     with open(ctx.obj["ids_file"], "r") as fp:
-        ids = np.array(json.load(fp)).astype(int)
+        root_ids = np.array(json.load(fp)).astype(int)
 
     with open(lookup_file, "r") as jp:
         lookup = json.load(jp)
@@ -184,48 +188,50 @@ def make_progenitors(ctx):
     prog_lines = []
 
     # iterate through the progenitor generator, obtaining the haloes that match IDs
-    # as well as all available scales (will be nan's if not available for a given line)
     with open(progenitor_file, "r") as pf:
-        for id in tqdm(ids, desc="Progress on extracting lines"):
+        for id in tqdm(root_ids, desc="Extracting lines and building lookup table"):
             if id in lookup:  # only extract lines in lookup.
                 pos = lookup[id]
                 pf.seek(pos, os.SEEK_SET)
                 prog_line = get_next_progenitor(pf)
                 prog_lines.append(prog_line)
 
-    scales = sorted(list(z_map.values()), reverse=True)
+    # ordered from early -> late
+    scales = sorted(list(z_map.values()))
 
     mvir_names = [f"mvir_a{i}" for i in range(len(scales))]
     # ratio (m2 / m1) where m2 is second most massive co-progenitor.
     cpgr_names = [f"cpgratio_a{i}" for i in range(len(scales))]
     names = ("id", *mvir_names, *cpgr_names)
-    values = np.zeros((len(ids), len(names)))
-    values[:, 0] = ids
+    values = np.zeros((len(root_ids), len(names)))
+    values[:, 0] = root_ids
     values[values == 0] = np.nan
 
     # create an astropy table for a mainline progenitor 'lookup'
-    lookup_names = [f"id_a{i}" for i in range(len(scales))]
-    lookup_index = np.zeros((len(ids), len(scales)))
-    lookup_index[:, 0] = ids
-    lookup_index[lookup_index == 0] = -1  # np.nan forces us to use floats when saving.
+    # i.e. for a given idx of root_ids, where root_ids[idx] = root_id, we have
+    # lookup_index[idx, s] = id of progenitor line halo at scales[s]
+    lookup_names = ["id"] + [f"id_a{i}" for i in range(len(scales))]
+    lookup_index = np.zeros((len(root_ids), 1 + len(scales)))
+    lookup_index[:, 0] = root_ids
+    lookup_index[lookup_index == 0] = NAN_INTEGER  # np.nan forces us to use floats when saving.
 
-    for prog_line in prog_lines:
-        idx = np.where(ids == prog_line.root_id)[0].item()  # where should I insert this line?
-        n_scales = min(len(scales), len(prog_line.cat))
-        for s in range(n_scales):
-            assert scales[s] == prog_line.cat["scale"][s], "Progenitor was skipped!?"
-            mvir = prog_line.cat["mvir"][s]
-            values[idx, 1 + s] = mvir
-            cpg_mvir = prog_line.cat["coprog_mvir"][s]
-            cpg_mvir = 0 if cpg_mvir < 0 else cpg_mvir  # missing values with -1 -> 0
-            values[idx, 1 + len(scales) + s] = cpg_mvir / mvir
-            lookup_index[idx, s] = prog_line.cat["halo_id"][s]
+    for prog_line in tqdm(prog_lines, desc="Extracting information from lines"):
+        idx = np.where(root_ids == prog_line.root_id)[0].item()  # where should I insert this line?
+        for s in range(len(scales)):
+            if scales[s] in prog_line.cat["scale"]:
+                line_idx = np.where(prog_line.cat["scale"] == scales[s])[0].item()
+                mvir = prog_line.cat["mvir"][line_idx]
+                values[idx, 1 + s] = mvir
+                cpg_mvir = prog_line.cat["coprog_mvir"][line_idx]
+                cpg_mvir = 0 if cpg_mvir < 0 else cpg_mvir  # missing values -1 -> 0
+                values[idx, 1 + len(scales) + s] = cpg_mvir / mvir
+                lookup_index[idx, 1 + s] = prog_line.cat["halo_id"][line_idx]
 
     prog_table = table.Table(names=names, data=values)
     prog_table.sort("id")
     prog_table["id"] = prog_table["id"].astype(int)
     lookup_index = table.Table(names=lookup_names, data=lookup_index.astype(int))
-    lookup_index.sort("id_a0")
+    lookup_index.sort("id")
 
     # save final table and json file mapping index to scale
     ascii.write(prog_table, ctx.obj["progenitor_table_file"], format="csv")
@@ -251,7 +257,7 @@ def make_subhaloes(ctx, threshold):
     assert all_minh.exists()
     assert z_map_file.exists()
 
-    # get host ids
+    # load host ids
     with open(ctx.obj["ids_file"], "r") as fp:
         sample_ids = np.array(json.load(fp)).astype(int)
 
@@ -264,6 +270,7 @@ def make_subhaloes(ctx, threshold):
     # load lookup index
     lookup_index = ascii.read(ctx.obj["lookup_index"], format="csv")
 
+    # whether it was central in previous snapshot
     f_sub_names = [f"f_sub_a{i}" for i in z_map]
     m2_names = [f"m2_a{i}" for i in z_map]
     table_names = ["id", *f_sub_names, *m2_names]
@@ -273,7 +280,7 @@ def make_subhaloes(ctx, threshold):
 
     fcat = table.Table(data=data, names=table_names)
 
-    assert np.all(fcat["id"] == lookup_index["id_a0"])
+    assert np.all(fcat["id"] == lookup_index["id"])
 
     # check all scales from files are in z_map and viceversa (it's easier to handle this way)
     minh_scales = set()
@@ -284,23 +291,97 @@ def make_subhaloes(ctx, threshold):
             minh_scales.add(scale)
     assert len(minh_scales.intersection(z_map_inv.keys())) == len(z_map_inv), "Inconsistent scales"
 
-    for minh_file in tqdm(all_minh.iterdir(), total=len(z_map), desc="Progress on .minh files"):
-        if minh_file.suffix == ".minh":
-            fname = minh_file.stem
-            scale = float(fname.replace("hlist_", ""))
-            scale_idx = z_map_inv[scale]
+    # iterating from early to late.
+    for i in tqdm(range(1, len(z_map)), desc="Extracting subhalo info from .minh files."):
+        prev_scale = z_map[i - 1]
+        curr_scale = z_map[i]
+        curr_scale_idx = z_map_inv[curr_scale]
+        prev_minh_file = all_minh / f"hlist_{prev_scale}.minh"
+        curr_minh_file = all_minh / f"hlist_{curr_scale}.minh"
 
-            # from the look up index we have the ids at the snapshot that we need to extract.
-            host_ids = lookup_index[f"id_a{scale_idx}"]
-            keep = host_ids > 0  # remove -1s
+        # extract all necessary information from all blocks of these catalogs at this snapshot.
+        prev_pids = np.array([])
+        prev_dfpids = np.array([])
+        curr_ids = np.array([])
+        curr_pids = np.array([])
+        curr_dfpids = np.array([])
+        curr_mvir = np.array([])
 
-            # extract subhalo information for each halo in `ids`.
-            subcat = create_subhalo_cat(
-                host_ids[keep], minh_file, threshold=threshold, log=log_file
-            )
-            assert np.all(host_ids[keep] == subcat["id"])
-            fcat[f"f_sub_a{scale_idx}"][keep] = subcat["f_sub"]
-            fcat[f"m2_a{scale_idx}"][keep] = subcat["m2"]
+        # now from prev catalog
+        with minh.open(prev_minh_file) as prev_mcat:
+            for b in range(prev_mcat.blocks):
+                block_data = prev_mcat.block(b, ["pid", "depth_first_id"])
+                block_pid, block_dfpid = block_data
+
+                prev_pids = np.concatenate((prev_pids, block_pid))
+                prev_dfpids = np.concatenate((prev_dfpids, block_dfpid))
+
+        # first from current catalog.
+        with minh.open(curr_minh_file) as curr_mcat:
+            for b in range(curr_mcat.blocks):
+                block_data = curr_mcat.block(b, ["id", "pid", "depth_first_id", "mvir"])
+                block_id, block_pid, block_dfpid, block_mvir = block_data
+
+                curr_ids = np.concatenate((curr_ids, block_id))
+                curr_pids = np.concatenate((curr_pids, block_pid))
+                curr_dfpids = np.concatenate((curr_dfpids, block_dfpid))
+                curr_mvir = np.concatenate((curr_mvir, block_mvir))
+
+        # sort the data that was extracted from .minh catalogs.
+        prev_sort = np.argsort(prev_dfpids)
+        prev_dfpids = prev_dfpids[prev_sort]
+        prev_pids = prev_pids[prev_sort]
+
+        curr_sort = np.argsort(curr_ids)
+        curr_ids = curr_ids[curr_sort]
+        curr_pids = curr_pids[curr_sort]
+        curr_dfpids = curr_dfpids[curr_sort]
+        curr_mvir = curr_mvir[curr_sort]
+
+        # find subhaloes from curr that have a progenitor at prev.
+        # NOTE: pick most massive subhalo if tie has not been implemented.
+        sort_indices = np.searchsorted(prev_dfpids, curr_dfpids + 1)
+
+        # keep subhaloes that are found.
+        prev_dfpids_ext = np.concatenate((prev_dfpids, [NAN_INTEGER]))  # account for out of range
+        prog_found = prev_dfpids_ext[sort_indices] == curr_dfpids + 1
+
+        # create `was_central` flag.
+        prev_pids_ext = np.concatenate((prev_pids, [NAN_INTEGER]))  # account for out of range.
+        was_central = np.zeros_like(curr_dfpids).astype(bool)
+        was_central[prog_found] = prev_pids_ext[sort_indices][prog_found] == -1
+
+        # which subhaloes do we want to consider for computing m2 and f_sub?
+        sub_keep = prog_found & was_central & (curr_pids > -1)
+        sub_pids = curr_pids[sub_keep]
+        sub_mvir = curr_mvir[sub_keep]
+
+        # setup quantities for host haloes we want to calculate quantities for
+        # this correspond to MLP host haloes of `sample_ids`
+        host_ids = np.sort(lookup_index[f"id_a{curr_scale_idx}"].data)
+        host_keep = host_ids > 0
+        host_mvir = np.full_like(host_ids, np.nan, dtype=float)
+
+        keep1 = halo_filters.intersect(curr_ids, host_ids)
+        keep2 = halo_filters.intersect(host_ids, curr_ids)
+        host_mvir[keep2] = curr_mvir[keep1]
+
+        # extract subhalo information for each halo in `host_ids` using each halo in `curr_ids`
+        # satisfying `sub_keep`
+        f_sub = sub_quantities.m_sub(
+            host_ids[host_keep], host_mvir[host_keep], sub_pids, sub_mvir, threshold=threshold
+        )
+        m2_sub = sub_quantities.m2_sub(host_ids[host_keep], sub_pids, sub_mvir).reshape(-1)
+
+        fcat[f"f_sub_a{curr_scale_idx}"][host_keep] = f_sub
+        fcat[f"m2_a{curr_scale_idx}"][host_keep] = m2_sub
+
+        # how many host halo masses were not found?
+        msg = (
+            f"{np.sum(np.isnan(host_mvir))} host IDs out of {len(host_mvir)} are not contained"
+            f"in minh catalog loaded from file {curr_minh_file.stem}."
+        )
+        print(msg, file=open(log_file, "a"))
 
     ascii.write(fcat, output=outfile, format="csv")
 
