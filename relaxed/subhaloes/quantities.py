@@ -61,9 +61,6 @@ def bin_by_host(host_ids, sub_pids):
     return binning.bin_ints(sub_index, len(host_ids))
 
 
-# Provided as an example of how to use bin_by_host:
-
-
 def m_sub(host_ids, host_mvir, sub_pids, sub_mvir, threshold=1.0 / 1000):
     """M_sub returns the sum of the mass of all subhaloes of each host."""
     bins = bin_by_host(host_ids, sub_pids)
