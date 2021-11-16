@@ -339,7 +339,6 @@ def make_subhaloes(ctx, threshold):
         curr_mvir = curr_mvir[curr_sort]
 
         # find subhaloes from curr that have a progenitor at prev.
-        # NOTE: pick most massive subhalo if tie has not been implemented.
         sort_indices = np.searchsorted(prev_dfpids, curr_dfpids + 1)
 
         # keep subhaloes that are found.
