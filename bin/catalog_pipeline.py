@@ -201,7 +201,7 @@ def make_progenitors(ctx):
 
     mvir_names = [f"mvir_a{i}" for i in range(len(scales))]
     # ratio (m2 / m1) where m2 is second most massive co-progenitor.
-    cpgr_names = [f"cpgratio_a{i}" for i in range(len(scales))]
+    cpgr_names = [f"coprog_mvir_a{i}" for i in range(len(scales))]
     names = ("id", *mvir_names, *cpgr_names)
     values = np.zeros((len(root_ids), len(names)))
     values[:, 0] = root_ids
@@ -224,7 +224,7 @@ def make_progenitors(ctx):
                 values[idx, 1 + s] = mvir
                 cpg_mvir = prog_line.cat["coprog_mvir"][line_idx]
                 cpg_mvir = 0 if cpg_mvir < 0 else cpg_mvir  # missing values -1 -> 0
-                values[idx, 1 + len(scales) + s] = cpg_mvir / mvir
+                values[idx, 1 + len(scales) + s] = cpg_mvir
                 lookup_index[idx, 1 + s] = prog_line.cat["halo_id"][line_idx]
 
     prog_table = table.Table(names=names, data=values)
@@ -270,7 +270,7 @@ def make_subhaloes(ctx, threshold):
     # load lookup index
     lookup_index = ascii.read(ctx.obj["lookup_index"], format="csv")
 
-    # whether it was central in previous snapshot
+    # NOTE: We keep all NaN's for subhalo information of very first snapshot. Most likely not used.
     f_sub_names = [f"f_sub_a{i}" for i in z_map]
     m2_names = [f"m2_a{i}" for i in z_map]
     table_names = ["id", *f_sub_names, *m2_names]
@@ -299,55 +299,41 @@ def make_subhaloes(ctx, threshold):
         prev_minh_file = all_minh / f"hlist_{prev_scale}.minh"
         curr_minh_file = all_minh / f"hlist_{curr_scale}.minh"
 
-        # extract all necessary information from all blocks of these catalogs at this snapshot.
-        prev_pids = np.array([])
-        prev_dfpids = np.array([])
-        curr_ids = np.array([])
-        curr_pids = np.array([])
-        curr_dfpids = np.array([])
-        curr_mvir = np.array([])
+        # extract information from all blocks in minh files
+        prev_mcat = minh.open(prev_minh_file)
+        curr_mcat = minh.open(curr_minh_file)
 
-        # now from prev catalog
-        with minh.open(prev_minh_file) as prev_mcat:
-            for b in range(prev_mcat.blocks):
-                block_data = prev_mcat.block(b, ["pid", "depth_first_id"])
-                block_pid, block_dfpid = block_data
+        # reads info from ALL blocks.
+        prev_names = ["pid", "depth_first_id"]
+        curr_names = ["id", "pid", "depth_first_id", "mvir"]
+        prev_pids, prev_dfids = prev_mcat.read(prev_names)
+        curr_ids, curr_pids, curr_dfids, curr_mvir = prev_mcat.read(curr_names)
 
-                prev_pids = np.concatenate((prev_pids, block_pid))
-                prev_dfpids = np.concatenate((prev_dfpids, block_dfpid))
-
-        # first from current catalog.
-        with minh.open(curr_minh_file) as curr_mcat:
-            for b in range(curr_mcat.blocks):
-                block_data = curr_mcat.block(b, ["id", "pid", "depth_first_id", "mvir"])
-                block_id, block_pid, block_dfpid, block_mvir = block_data
-
-                curr_ids = np.concatenate((curr_ids, block_id))
-                curr_pids = np.concatenate((curr_pids, block_pid))
-                curr_dfpids = np.concatenate((curr_dfpids, block_dfpid))
-                curr_mvir = np.concatenate((curr_mvir, block_mvir))
+        # remember to close .minh files when done.
+        prev_mcat.close()
+        curr_mcat.close()
 
         # sort the data that was extracted from .minh catalogs.
-        prev_sort = np.argsort(prev_dfpids)
-        prev_dfpids = prev_dfpids[prev_sort]
+        prev_sort = np.argsort(prev_dfids)
+        prev_dfids = prev_dfids[prev_sort]
         prev_pids = prev_pids[prev_sort]
 
         curr_sort = np.argsort(curr_ids)
         curr_ids = curr_ids[curr_sort]
         curr_pids = curr_pids[curr_sort]
-        curr_dfpids = curr_dfpids[curr_sort]
+        curr_dfids = curr_dfids[curr_sort]
         curr_mvir = curr_mvir[curr_sort]
 
         # find subhaloes from curr that have a progenitor at prev.
-        sort_indices = np.searchsorted(prev_dfpids, curr_dfpids + 1)
+        sort_indices = np.searchsorted(prev_dfids, curr_dfids + 1)
 
         # keep subhaloes that are found.
-        prev_dfpids_ext = np.concatenate((prev_dfpids, [NAN_INTEGER]))  # account for out of range
-        prog_found = prev_dfpids_ext[sort_indices] == curr_dfpids + 1
+        prev_dfids_ext = np.concatenate((prev_dfids, [NAN_INTEGER]))  # account for out of range
+        prog_found = prev_dfids_ext[sort_indices] == curr_dfids + 1
 
         # create `was_central` flag.
         prev_pids_ext = np.concatenate((prev_pids, [NAN_INTEGER]))  # account for out of range.
-        was_central = np.zeros_like(curr_dfpids).astype(bool)
+        was_central = np.zeros_like(curr_dfids).astype(bool)
         was_central[prog_found] = prev_pids_ext[sort_indices][prog_found] == -1
 
         # which subhaloes do we want to consider for computing m2 and f_sub?
