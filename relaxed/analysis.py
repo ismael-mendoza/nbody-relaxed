@@ -76,7 +76,7 @@ def get_mah(
     m_version="vir",
 ):
     """Get catalog, indices, scales from given catalog pipeline output name."""
-    output = f"{path}/output_{name}/"
+    output = f"{path}/{name}/"
     cat_file = Path(output, "final_table.csv")
     z_map_file = Path(output, "z_map.json")
 
