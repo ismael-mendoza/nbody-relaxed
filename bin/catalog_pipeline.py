@@ -264,10 +264,15 @@ def get_central_subhaloes(prev_pids, prev_dfids, curr_ids, curr_pids, curr_dfids
     sub_keep = prog_found & was_central & is_subhalo
 
     if log_file:
-        print(f"Progenitors found {prog_found.sum().item()}", file=open(log_file, "a"))
-        print(f"Was Central found {was_central.sum().item()}", file=open(log_file, "a"))
-        print(f"Is Subhalo found {is_subhalo.sum().item()}", file=open(log_file, "a"))
-        print(f"Total current subhalos {len(curr_dfids)}", file=open(log_file, "a"))
+        n1 = prog_found.sum().item() / len(curr_dfids) * 100
+        n2 = was_central.sum().item() / len(curr_dfids) * 100
+        n3 = is_subhalo.sum().item() / len(curr_dfids) * 100
+        n4 = sub_keep.sum().item() / len(curr_dfids) * 100
+        print(f"Progenitors found (percentage): {n1:.2f}%", file=open(log_file, "a"))
+        print(f"Was Central found (percentage): {n2:.2f}%", file=open(log_file, "a"))
+        print(f"Is Subhalo found (percentage): {n3:.2f}%", file=open(log_file, "a"))
+        print(f"Sub Keep found (percentage): {n4:.2f}%", file=open(log_file, "a"))
+        print(f"Total current halos: {len(curr_dfids)}", file=open(log_file, "a"))
 
     return sub_keep
 
@@ -334,7 +339,7 @@ def make_subhaloes(ctx, threshold):
         curr_minh_file = all_minh / f"hlist_{curr_scale}.minh"
 
         print(
-            f"Computing subhalo information for files: {prev_minh_file} & {curr_minh_file}",
+            f"Computing subhalo information for: {prev_minh_file.stem} & {curr_minh_file.stem}",
             file=open(log_file, "a"),
         )
 
@@ -364,7 +369,7 @@ def make_subhaloes(ctx, threshold):
         curr_mvir = curr_mvir[curr_sort]
 
         sub_keep = get_central_subhaloes(
-            prev_pids, prev_dfids, curr_pids, curr_dfids, log_file=log_file
+            prev_pids, prev_dfids, curr_ids, curr_pids, curr_dfids, log_file=log_file
         )
 
         sub_pids = curr_pids[sub_keep]
@@ -391,9 +396,11 @@ def make_subhaloes(ctx, threshold):
         fcat[f"m2_a{curr_scale_idx}"][host_keep] = m2_sub
 
         # how many host halo masses were not found?
+        p1 = np.sum(np.isnan(host_mvir)) / len(host_mvir) * 100
         msg = (
             f"{np.sum(np.isnan(host_mvir))} host IDs out of {len(host_mvir)} are not contained"
-            f"in minh catalog loaded from file {curr_minh_file.stem}.\n\n"
+            f"in minh catalog loaded from file {curr_minh_file.stem}.\n"
+            f"Percentage: {p1:.2f}%\n\n"
         )
         print(msg, file=open(log_file, "a"))
 
