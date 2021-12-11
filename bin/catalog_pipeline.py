@@ -238,6 +238,40 @@ def make_progenitors(ctx):
     ascii.write(lookup_index, ctx.obj["lookup_index"], format="csv")
 
 
+def get_central_subhaloes(prev_pids, prev_dfids, curr_ids, curr_pids, curr_dfids, log_file=None):
+    prev_sort = np.argsort(prev_dfids)
+    assert np.array_equal(prev_pids[prev_sort], prev_pids)
+    assert np.array_equal(prev_dfids[prev_sort], prev_dfids)
+
+    curr_sort = np.argsort(curr_ids)
+    assert np.array_equal(curr_pids[curr_sort], curr_pids)
+    assert np.array_equal(curr_dfids[curr_sort], curr_dfids)
+
+    # find subhaloes from curr that have a progenitor at prev.
+    sort_indices = np.searchsorted(prev_dfids, curr_dfids + 1)
+
+    # keep subhaloes that are found.
+    prev_dfids_ext = np.concatenate((prev_dfids, [NAN_INTEGER]))  # account for out of range
+    prog_found = prev_dfids_ext[sort_indices] == curr_dfids + 1
+
+    # create `was_central` flag.
+    prev_pids_ext = np.concatenate((prev_pids, [NAN_INTEGER]))  # account for out of range.
+    was_central = np.zeros_like(curr_dfids).astype(bool)
+    was_central[prog_found] = prev_pids_ext[sort_indices][prog_found] == -1
+
+    # which subhaloes do we want to consider for computing m2 and f_sub?
+    is_subhalo = curr_pids > -1
+    sub_keep = prog_found & was_central & is_subhalo
+
+    if log_file:
+        print(f"Progenitors found {prog_found.sum().item()}", file=open(log_file, "a"))
+        print(f"Was Central found {was_central.sum().item()}", file=open(log_file, "a"))
+        print(f"Is Subhalo found {is_subhalo.sum().item()}", file=open(log_file, "a"))
+        print(f"Total current subhalos {len(curr_dfids)}", file=open(log_file, "a"))
+
+    return sub_keep
+
+
 @pipeline.command()
 @click.option(
     "--threshold",
@@ -299,6 +333,11 @@ def make_subhaloes(ctx, threshold):
         prev_minh_file = all_minh / f"hlist_{prev_scale}.minh"
         curr_minh_file = all_minh / f"hlist_{curr_scale}.minh"
 
+        print(
+            f"Computing subhalo information for files: {prev_minh_file} & {curr_minh_file}",
+            file=open(log_file, "a"),
+        )
+
         # extract information from all blocks in minh files
         prev_mcat = minh.open(prev_minh_file)
         curr_mcat = minh.open(curr_minh_file)
@@ -307,7 +346,7 @@ def make_subhaloes(ctx, threshold):
         prev_names = ["pid", "depth_first_id"]
         curr_names = ["id", "pid", "depth_first_id", "mvir"]
         prev_pids, prev_dfids = prev_mcat.read(prev_names)
-        curr_ids, curr_pids, curr_dfids, curr_mvir = prev_mcat.read(curr_names)
+        curr_ids, curr_pids, curr_dfids, curr_mvir = curr_mcat.read(curr_names)
 
         # remember to close .minh files when done.
         prev_mcat.close()
@@ -324,20 +363,10 @@ def make_subhaloes(ctx, threshold):
         curr_dfids = curr_dfids[curr_sort]
         curr_mvir = curr_mvir[curr_sort]
 
-        # find subhaloes from curr that have a progenitor at prev.
-        sort_indices = np.searchsorted(prev_dfids, curr_dfids + 1)
+        sub_keep = get_central_subhaloes(
+            prev_pids, prev_dfids, curr_pids, curr_dfids, log_file=log_file
+        )
 
-        # keep subhaloes that are found.
-        prev_dfids_ext = np.concatenate((prev_dfids, [NAN_INTEGER]))  # account for out of range
-        prog_found = prev_dfids_ext[sort_indices] == curr_dfids + 1
-
-        # create `was_central` flag.
-        prev_pids_ext = np.concatenate((prev_pids, [NAN_INTEGER]))  # account for out of range.
-        was_central = np.zeros_like(curr_dfids).astype(bool)
-        was_central[prog_found] = prev_pids_ext[sort_indices][prog_found] == -1
-
-        # which subhaloes do we want to consider for computing m2 and f_sub?
-        sub_keep = prog_found & was_central & (curr_pids > -1)
         sub_pids = curr_pids[sub_keep]
         sub_mvir = curr_mvir[sub_keep]
 
@@ -364,7 +393,7 @@ def make_subhaloes(ctx, threshold):
         # how many host halo masses were not found?
         msg = (
             f"{np.sum(np.isnan(host_mvir))} host IDs out of {len(host_mvir)} are not contained"
-            f"in minh catalog loaded from file {curr_minh_file.stem}."
+            f"in minh catalog loaded from file {curr_minh_file.stem}.\n\n"
         )
         print(msg, file=open(log_file, "a"))
 
