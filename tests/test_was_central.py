@@ -4,7 +4,6 @@ from bin.catalog_pipeline import get_central_subhaloes
 
 
 def test_was_central():
-    prev_ids = np.array([0, 1, 2, 3, 4])
     curr_ids = np.array([5, 6, 7, 8, 9, 10, 11, 12, 13])
     prev_pids = np.array([-1, 1, 2, -1, 4, -1])
     prev_dfids = np.array([5, 10, 11, 15, 35, 47])
