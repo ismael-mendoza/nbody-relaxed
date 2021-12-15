@@ -148,7 +148,7 @@ class SamplingModel(PredictionModelTransform):
 
 
 class LogNormalRandomSample(PredictionModel):
-    """ "Lognormal random samples."""
+    """Lognormal random samples."""
 
     def __init__(self, n_features: int, n_targets: int) -> None:
         super().__init__(n_features, n_targets)
@@ -382,44 +382,41 @@ class BayesianLinearRegression(SamplingModel):
         # model
         self.noise_var = noise_var  # assumes diagonal, uniform covariance.
 
-        assert self.mu.shape[0] == (self.n_features + 1)
-        assert self.sigma.shape == (self.n_features + 1, self.n_features + 1)
+        assert self.mu.shape[0] == self.n_features
+        assert self.sigma.shape == (self.n_features, self.n_features)
 
-    def _gaussian_inverse_problem(self, y, A, mu0, sigma0, noise_var):
+    def _gaussian_inverse_problem(self, x, y, mu0, sigma0, noise_var):
         # Y is data
         # 0 mean prior
         # Sigma0 is prior on Beta covariance.
         # A is vandermonde matrix
-        n_points, _ = A.shape
+        n_points, _ = x.shape
         assert n_points == y.shape[0]
-        S = A.dot(sigma0).dot(A.T) + noise_var * np.eye(n_points)
-        U = sigma0.dot(A.T)
+        S = x.dot(sigma0).dot(x.T) + noise_var * np.eye(n_points)
+        U = sigma0.dot(x.T)
 
-        delta = y - A.dot(mu0)
+        delta = y - x.dot(mu0)
         mu_post = U.dot(np.linalg.solve(S, delta))
         sigma_post = sigma0 - U.dot(np.linalg.inv(S)).dot(U.T)
 
         return mu_post, sigma_post
 
     def _fit(self, x, y):
-        A = np.hstack([np.ones((x.shape[0], 1)), x])
         self.mu, self.sigma = self._gaussian_inverse_problem(
-            y, A, self.mu, self.sigma, self.noise_var
+            x, y, self.mu, self.sigma, self.noise_var
         )
 
     def _predict(self, x):
         # return expectation value / MAP.
-        A = np.hstack([np.ones((x.shape[0], 1)), x])
-        return A.dot(self.mu).reshape(-1, self.n_targets)
+        return x.dot(self.mu).reshape(-1, self.n_targets)
 
     def _sample(self, x, n_samples):
         n_points = x.shape[0]
-        A = np.hstack([np.ones((x.shape[0], 1)), x])
         y_samples = np.zeros((n_points, n_samples, self.n_targets))
         for i in range(n_points):
-            Ai = A[i, None]
-            mean = Ai.dot(self.mu).reshape(-1)
-            cov = Ai.dot(self.sigma).dot(Ai.T) + self.noise_var * np.eye(1)
+            xi = x[i, None]
+            mean = xi.dot(self.mu).reshape(-1)
+            cov = xi.dot(self.sigma).dot(xi.T) + self.noise_var * np.eye(1)
             y_samples[i] = np.random.multivariate_normal(mean, cov, size=(n_samples,))
         return y_samples
 
