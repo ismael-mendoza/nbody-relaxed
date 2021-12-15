@@ -382,45 +382,62 @@ class BayesianLinearRegression(SamplingModel):
         # model
         self.noise_var = noise_var  # assumes diagonal, uniform covariance.
 
-        assert self.mu.shape[0] == (self.n_features + 1)
-        assert self.sigma.shape == (self.n_features + 1, self.n_features + 1)
+        assert self.mu.shape[0] == (self.n_features * self.n_targets)
+        assert self.sigma.shape == (
+            self.n_features * self.n_targets,
+            self.n_features * self.n_targets,
+        )
 
-    def _gaussian_inverse_problem(self, y, A, mu0, sigma0, noise_var):
+    def _get_vandermonde_matrix(self, x):
+        # obtain block vandermonde matrix from x w/ shape (n_points, n_features)
+        n_points = x.shape[0]
+        block_list = []
+        for i in range(self.n_targets):
+            block_list.append([(x if j == i else np.zeros_like(x)) for j in range(self.n_targets)])
+        block = np.block([block_list])
+        block = block.reshape(n_points * self.n_targets, self.n_features * self.n_targets)
+        return block
+
+    def _gaussian_inverse_problem(self, x, y, mu0, sigma0, noise_var):
         # Y is data
         # 0 mean prior
         # Sigma0 is prior on Beta covariance.
         # A is vandermonde matrix
-        n_points, _ = A.shape
+        n_points, _ = x.shape
         assert n_points == y.shape[0]
-        S = A.dot(sigma0).dot(A.T) + noise_var * np.eye(n_points)
-        U = sigma0.dot(A.T)
+        S = x.dot(sigma0).dot(x.T) + noise_var * np.eye(n_points)
+        U = sigma0.dot(x.T)
 
-        delta = y - A.dot(mu0)
+        delta = y - x.dot(mu0)
         mu_post = U.dot(np.linalg.solve(S, delta))
         sigma_post = sigma0 - U.dot(np.linalg.inv(S)).dot(U.T)
 
         return mu_post, sigma_post
 
     def _fit(self, x, y):
-        A = np.hstack([np.ones((x.shape[0], 1)), x])
+        y = y.reshape(-1)
+        A = self._get_vandermonde_matrix(x)
         self.mu, self.sigma = self._gaussian_inverse_problem(
-            y, A, self.mu, self.sigma, self.noise_var
+            A, y, self.mu, self.sigma, self.noise_var
         )
 
     def _predict(self, x):
         # return expectation value / MAP.
-        A = np.hstack([np.ones((x.shape[0], 1)), x])
-        return A.dot(self.mu).reshape(-1, self.n_targets)
+        n_points = x.shape[0]
+        A = self._get_vandermonde_matrix(x)
+        return A.dot(self.mu).reshape(n_points, self.n_targets)
 
     def _sample(self, x, n_samples):
         n_points = x.shape[0]
-        A = np.hstack([np.ones((x.shape[0], 1)), x])
+        A = self._get_vandermonde_matrix(x)
         y_samples = np.zeros((n_points, n_samples, self.n_targets))
-        for i in range(n_points):
+        for i in range(self.n_targets * n_points):
             Ai = A[i, None]
             mean = Ai.dot(self.mu).reshape(-1)
             cov = Ai.dot(self.sigma).dot(Ai.T) + self.noise_var * np.eye(1)
-            y_samples[i] = np.random.multivariate_normal(mean, cov, size=(n_samples,))
+            y_samples[i % self.n_points] = np.random.multivariate_normal(
+                mean, cov, size=(n_samples,)
+            )
         return y_samples
 
 
