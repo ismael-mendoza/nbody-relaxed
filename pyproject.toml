@@ -29,6 +29,7 @@ python = "~3.8"
 scikit-image = "~0.18.3"
 scikit-learn = "~0.24.2"
 scipy = "~1.7.3"
+corner = "^2.2.1"
 
 [tool.poetry.dev-dependencies]
 Cython = "~0.29.25"

@@ -408,7 +408,8 @@ class BayesianLinearRegression(SamplingModel):
 
     def _predict(self, x):
         # return expectation value / MAP.
-        return x.dot(self.mu).reshape(-1, self.n_targets)
+        n_points = x.shape[0]
+        return x.dot(self.mu).reshape(n_points, self.n_targets)
 
     def _sample(self, x, n_samples):
         n_points = x.shape[0]
