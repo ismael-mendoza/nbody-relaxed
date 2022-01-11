@@ -19,6 +19,7 @@ class PredictionModel(ABC):
         self.trained = False  # whether model has been trained yet.
 
     def fit(self, x, y):
+        # change internal state such that predict and/or sampling are possible.
         assert np.sum(np.isnan(x)) == np.sum(np.isnan(y)) == 0
         assert x.shape == (y.shape[0], self.n_features)
         y = y.reshape(x.shape[0], self.n_targets)
@@ -59,10 +60,9 @@ class PredictionModelTransform(PredictionModel, ABC):
         self.to_log = to_log  # transform to log space.
         self.use_multicam = use_multicam  # map predictions to trained data quantiles.
 
-        # attributes to be fitted.
+        # quantile transformers.
         self.qt_x = None
         self.qt_y = None
-        self.qt_pred = None
 
     def fit(self, x, y):
         y = y.reshape(x.shape[0], self.n_targets)
@@ -101,17 +101,54 @@ class PredictionModelTransform(PredictionModel, ABC):
 
         # optionally map prediction to correct quantiles from trained distribution.
         if self.use_multicam:
-            self.qt_pred = QuantileTransformer(
-                n_quantiles=len(y_pred), output_distribution="normal"
-            )
-            self.qt_pred = self.qt_pred.fit(y_pred)
-            y_pred = self.qt_y.inverse_transform(self.qt_pred.transform(y_pred))
+            qt_pred = QuantileTransformer(n_quantiles=len(y_pred), output_distribution="normal")
+            qt_pred = qt_pred.fit(y_pred)
+            y_pred = self.qt_y.inverse_transform(qt_pred.transform(y_pred))
 
         return y_pred
 
 
+class SamplingModel(PredictionModelTransform):
+    def sample(self, x, n_samples):
+        assert len(x.shape) == 2
+        assert x.shape[1] == self.n_features
+        assert np.sum(np.isnan(x)) == 0
+        assert self.trained
+
+        n_points = x.shape[0]
+        if self.to_marginal_normal:
+            x_trans = self.qt_x.transform(x)
+        elif self.to_log:
+            x_trans = np.log(x)
+        else:
+            x_trans = x
+
+        y_pred = self._sample(x_trans, n_samples).reshape(n_points, n_samples, self.n_targets)
+
+        if self.to_marginal_normal:
+            for i in range(n_samples):
+                y_pred[:, i, :] = self.qt_y.inverse_transform(y_pred[:, i, :])
+
+        elif self.to_log:
+            y_pred = np.exp(y_pred)
+
+        if self.use_multicam:
+            for i in range(n_samples):
+                y_pred_i = y_pred[:, i, :]
+                qt_pred = QuantileTransformer(
+                    n_quantiles=len(y_pred_i), output_distribution="normal"
+                )
+                y_pred[:, i, :] = self.qt_y.inverse_transform(qt_pred.transform(y_pred_i))
+
+        return y_pred
+
+    @abstractmethod
+    def _sample(self, x, n_samples):
+        pass
+
+
 class LogNormalRandomSample(PredictionModel):
-    """"Lognormal random samples."""
+    """Lognormal random samples."""
 
     def __init__(self, n_features: int, n_targets: int) -> None:
         super().__init__(n_features, n_targets)
@@ -135,6 +172,7 @@ class InverseCDFRandomSamples(PredictionModel):
 
     def __init__(self, n_features: int, n_targets: int) -> None:
         super().__init__(n_features, n_targets)
+        assert self.n_targets == 1
 
     def _fit(self, x, y):
         self.qt_y = QuantileTransformer(n_quantiles=len(y), output_distribution="uniform")
@@ -182,12 +220,10 @@ class LASSO(PredictionModelTransform):
         return self.lasso.predict(x)
 
 
-class MultiVariateGaussian(PredictionModelTransform):
+class MultiVariateGaussian(SamplingModel):
     """Multi-Variate Gaussian using full covariance matrix (returns conditional mean)."""
 
-    def __init__(
-        self, n_features: int, n_targets, do_sample: bool = True, **transform_kwargs
-    ) -> None:
+    def __init__(self, n_features: int, n_targets, **transform_kwargs) -> None:
         # do_sample: wheter to sample from x1|x2 or return E[x1 | x2] for predictions
         super().__init__(n_features, n_targets, **transform_kwargs)
 
@@ -196,7 +232,6 @@ class MultiVariateGaussian(PredictionModelTransform):
         self.Sigma = None
         self.rho = None
         self.sigma_cond = None
-        self.do_sample = do_sample
 
         if not self.to_marginal_normal:
             warnings.warn(
@@ -265,22 +300,27 @@ class MultiVariateGaussian(PredictionModelTransform):
         self.rho = rho
         self.sigma_bar = sigma_bar.reshape(n_targets, n_targets)
 
-    def _predict(self, x):
-        # returns mu_cond evaluated given x.
+    def _get_mu_cond(self, x):
+        # returns mu_cond evaluated at given x.
+        assert self.trained
         assert np.sum(np.isnan(x)) == 0
         n_points = x.shape[0]
         x = x.reshape(n_points, self.n_features).T
         mu_cond = self.mu1 + self.Sigma12.dot(np.linalg.inv(self.Sigma22)).dot(x - self.mu2)
-        mu_cond = mu_cond.T.reshape(n_points, self.n_targets)
+        return mu_cond.T.reshape(n_points, self.n_targets)
 
-        if self.do_sample:
-            _zero = np.zeros((self.n_targets,))
-            y_pred = np.random.multivariate_normal(mean=_zero, cov=self.sigma_bar, size=(n_points,))
-            assert y_pred.shape == (n_points, self.n_targets)
-            y_pred += mu_cond
-            return y_pred
-        else:
-            return mu_cond
+    def _predict(self, x):
+        return self._get_mu_cond(x)
+
+    def _sample(self, x, n_samples):
+        n_points = x.shape[0]
+        _zero = np.zeros((n_samples, self.n_targets))
+        mu_cond = self._get_mu_cond(x)
+        size = (n_points, n_samples)
+        y_pred = np.random.multivariate_normal(mean=_zero, cov=self.sigma_bar, size=size)
+        assert y_pred.shape == (n_points, n_samples, self.n_targets)
+        y_pred += mu_cond.reshape(-1, 1, self.n_targets)
+        return y_pred
 
 
 class CAM(PredictionModel):
@@ -328,12 +368,67 @@ class CAM(PredictionModel):
         return self.mark_to_Y(self.an_to_mark(an))
 
 
+class BayesianLinearRegression(SamplingModel):
+    def __init__(self, n_features, n_targets, mu0, sigma0, noise_var, **kwargs) -> None:
+        super().__init__(n_features, n_targets, **kwargs)
+
+        self.prior = (mu0, sigma0)
+
+        # prior on beta
+        # assumes data is already normal gaussian transformed.
+        self.mu = mu0
+        self.sigma = sigma0
+
+        # model
+        self.noise_var = noise_var  # assumes diagonal, uniform covariance.
+
+        assert self.mu.shape[0] == self.n_features
+        assert self.sigma.shape == (self.n_features, self.n_features)
+
+    def _gaussian_inverse_problem(self, x, y, mu0, sigma0, noise_var):
+        # Y is data
+        # 0 mean prior
+        # Sigma0 is prior on Beta covariance.
+        # A is vandermonde matrix
+        n_points, _ = x.shape
+        assert n_points == y.shape[0]
+        S = x.dot(sigma0).dot(x.T) + noise_var * np.eye(n_points)
+        U = sigma0.dot(x.T)
+
+        delta = y - x.dot(mu0)
+        mu_post = U.dot(np.linalg.solve(S, delta))
+        sigma_post = sigma0 - U.dot(np.linalg.inv(S)).dot(U.T)
+
+        return mu_post, sigma_post
+
+    def _fit(self, x, y):
+        self.mu, self.sigma = self._gaussian_inverse_problem(
+            x, y, self.mu, self.sigma, self.noise_var
+        )
+
+    def _predict(self, x):
+        # return expectation value / MAP.
+        n_points = x.shape[0]
+        return x.dot(self.mu).reshape(n_points, self.n_targets)
+
+    def _sample(self, x, n_samples):
+        n_points = x.shape[0]
+        y_samples = np.zeros((n_points, n_samples, self.n_targets))
+        for i in range(n_points):
+            xi = x[i, None]
+            mean = xi.dot(self.mu).reshape(-1)
+            cov = xi.dot(self.sigma).dot(xi.T) + self.noise_var * np.eye(1)
+            y_samples[i] = np.random.multivariate_normal(mean, cov, size=(n_samples,))
+        return y_samples
+
+
 available_models = {
     "gaussian": MultiVariateGaussian,
     "cam": CAM,
     "linear": LinearRegression,
     "lasso": LASSO,
     "lognormal": LogNormalRandomSample,
+    "bayes_linear": BayesianLinearRegression,
 }
 
 
