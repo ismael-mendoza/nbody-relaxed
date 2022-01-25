@@ -137,7 +137,7 @@ class SamplingModel(PredictionModelTransform):
                 y_pred_i = y_pred[:, i, :]
                 qt_pred = QuantileTransformer(
                     n_quantiles=len(y_pred_i), output_distribution="normal"
-                )
+                ).fit(y_pred_i)
                 y_pred[:, i, :] = self.qt_y.inverse_transform(qt_pred.transform(y_pred_i))
 
         return y_pred
@@ -314,13 +314,13 @@ class MultiVariateGaussian(SamplingModel):
 
     def _sample(self, x, n_samples):
         n_points = x.shape[0]
-        _zero = np.zeros((n_samples, self.n_targets))
+        _zero = np.zeros((self.n_targets,))
         mu_cond = self._get_mu_cond(x)
         size = (n_points, n_samples)
-        y_pred = np.random.multivariate_normal(mean=_zero, cov=self.sigma_bar, size=size)
-        assert y_pred.shape == (n_points, n_samples, self.n_targets)
-        y_pred += mu_cond.reshape(-1, 1, self.n_targets)
-        return y_pred
+        y_samples = np.random.multivariate_normal(mean=_zero, cov=self.sigma_bar, size=size)
+        assert y_samples.shape == (n_points, n_samples, self.n_targets)
+        y_samples += mu_cond.reshape(-1, 1, self.n_targets)
+        return y_samples
 
 
 class CAM(PredictionModel):
