@@ -288,7 +288,7 @@ class MultiVariateGaussian(SamplingModel):
         Sigma11 = Sigma[:n_targets, :n_targets].reshape(n_targets, n_targets)
         Sigma12 = Sigma[:n_targets, n_targets:].reshape(n_targets, n_features)
         Sigma22 = Sigma[n_targets:, n_targets:].reshape(n_features, n_features)
-        sigma_bar = Sigma11 - Sigma12.dot(np.linalg.inv(Sigma22)).dot(Sigma12.T)
+        sigma_bar = Sigma11 - Sigma12.dot(np.linalg.solve(Sigma22, Sigma12.T))
 
         # update prediction attributes
         self.mu1 = mu1
