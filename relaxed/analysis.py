@@ -6,6 +6,7 @@ import numpy as np
 from astropy.cosmology import LambdaCDM
 from scipy import stats
 from scipy.interpolate import interp1d
+from scipy.optimize import curve_fit
 from scipy.signal import savgol_filter
 
 from relaxed import halo_catalogs
@@ -365,3 +366,16 @@ def get_tt_indices(n_points, test_ratio=0.2):
     assert max(max(test_idx), max(train_idx)) == n_points - 1
     assert min(min(test_idx), min(train_idx)) == 0
     return train_idx, test_idx
+
+
+def lma_fit(z, alpha):
+    return -alpha * z
+
+
+def get_alpha(zs, lma):
+    # use the fit of the form:
+    # log m(z) = - \alpha * z
+    # get best exponential fit to the line of main progenitors.
+
+    opt_params, _ = curve_fit(lma_fit, zs, lma, p0=(1,))
+    return opt_params  # = alpha
