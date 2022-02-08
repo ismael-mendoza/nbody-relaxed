@@ -236,14 +236,16 @@ def get_ma_corrs(cat, param, indices):
     return np.array(corrs)
 
 
-def get_am_corrs(pvalues, am, box_keep=None):
+def get_am_corrs(cat, param, am, box_keep=None):
     if box_keep is None:
-        box_keep = np.ones(am.shape[0])
+        box_keep = np.ones(am.shape[0]).astype(bool)
 
     corrs = []
     n_mass_bins = am.shape[1]
     for k in range(n_mass_bins):
-        corrs.append(stats.spearmanr(pvalues[box_keep], am[:, k][box_keep], nan_policy="omit")[0])
+        corrs.append(
+            stats.spearmanr(cat[param][box_keep], am[:, k][box_keep], nan_policy="omit")[0]
+        )
     return np.array(corrs)
 
 
@@ -259,7 +261,7 @@ def add_box_indices(cat, boxes=8, box_size=250):
             cat["ibox"] += 2 ** k * (d < cat[dim])
 
 
-def vol_jacknife_err(fn, cat, *args, mode="dict"):
+def vol_jacknife_err(cat, fn, *args, mode="dict"):
     # assumes cat has had its box indices added with the function above.
     n_boxes = int(np.max(cat["ibox"]) + 1)
     values = []
