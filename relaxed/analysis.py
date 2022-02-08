@@ -8,6 +8,7 @@ from scipy import stats
 from scipy.interpolate import interp1d
 from scipy.optimize import curve_fit
 from scipy.signal import savgol_filter
+from tqdm import tqdm
 
 from relaxed import halo_catalogs
 
@@ -379,3 +380,18 @@ def get_alpha(zs, lma):
 
     opt_params, _ = curve_fit(lma_fit, zs, lma, p0=(1,))
     return opt_params  # = alpha
+
+
+def alpha_analysis(ma, scales, mass_bins):
+    # alpha parametrization fit MAH
+    # m(a) = exp(- alpha * z)
+    alphas = []
+    for ii in tqdm(range(len(ma))):
+        lam_ii = np.log(ma)[ii]
+        alpha = get_alpha(1 / scales - 1, lam_ii)
+        alphas.append(alpha)
+    alphas = np.array(alphas)
+    ma_exp = np.exp(-alphas * (1 / scales - 1))
+    am_exp = (1 - (1 / alphas * np.log(mass_bins))) ** -1
+
+    return alphas, ma_exp, am_exp
