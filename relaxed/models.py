@@ -331,7 +331,7 @@ class CAM(PredictionModel):
         n_features: int,
         n_targets: int,
         mass_bins: np.ndarray,
-        mbin: float,
+        opt_mbin: float,
         cam_order: int = -1,
     ) -> None:
         # cam_order: +1 or -1 depending on correlation of a_{n} with y
@@ -341,7 +341,7 @@ class CAM(PredictionModel):
 
         assert cam_order in {-1, 1}
         assert isinstance(mass_bins, np.ndarray)
-        self.mbin = mbin
+        self.opt_mbin = opt_mbin
         self.cam_order = cam_order
         self.mass_bins = mass_bins
 
@@ -352,7 +352,7 @@ class CAM(PredictionModel):
     def _fit(self, am, y):
 
         y = y.reshape(-1)
-        an_train = get_an_from_am(am, self.mass_bins, mbin=self.mbin).reshape(-1)
+        an_train = get_an_from_am(am, self.mass_bins, mbin=self.opt_mbin).reshape(-1)
         assert an_train.shape[0] == am.shape[0]
 
         y_sort, an_sort = self.cam_order * np.sort(self.cam_order * y), np.sort(an_train)
@@ -364,8 +364,40 @@ class CAM(PredictionModel):
         )
 
     def _predict(self, am):
-        an = get_an_from_am(am, self.mass_bins, mbin=self.mbin)
+        an = get_an_from_am(am, self.mass_bins, mbin=self.opt_mbin)
         return self.mark_to_Y(self.an_to_mark(an))
+
+
+class MixedCAM(PredictionModel):
+    """CAM but w/ multiple indepent CAMs inside to allow multiple predictors."""
+
+    def __init__(
+        self,
+        n_features: int,
+        n_targets: int,
+        mass_bins: np.ndarray,
+        opt_mbins: tuple,
+        cam_orders: tuple = (-1,),
+    ) -> None:
+        assert n_features == len(mass_bins)
+        assert n_targets > 1, "Use 'CAM' instead"
+        super().__init__(n_features, n_targets)
+
+        # create `n_targets` independent CAMs.
+        self.cams = [
+            CAM(n_features, 1, mass_bins, opt_mbins[ii], cam_orders[ii]) for ii in range(n_targets)
+        ]
+
+    def _fit(self, x, y):
+        for jj in range(self.n_targets):
+            self.cams[jj].fit(x, y[:, jj].reshape(-1, 1))
+
+    def _predict(self, x):
+        y_pred = []
+        for jj in range(self.n_targets):
+            y = self.cams[jj].predict(x)
+            y_pred.append(y)
+        return np.hstack(y_pred)
 
 
 class BayesianLinearRegression(SamplingModel):
@@ -429,6 +461,7 @@ available_models = {
     "lasso": LASSO,
     "lognormal": LogNormalRandomSample,
     "bayes_linear": BayesianLinearRegression,
+    "mixed_cam": MixedCAM,
 }
 
 
