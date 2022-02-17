@@ -4,6 +4,8 @@ from pathlib import Path
 import findiff
 import numpy as np
 from astropy.cosmology import LambdaCDM
+from lmfit import minimize
+from lmfit import Parameters
 from scipy import stats
 from scipy.interpolate import interp1d
 from scipy.optimize import curve_fit
@@ -298,6 +300,15 @@ def get_fractional_tdyn(scale, tdyn, sim_name="Bolshoi"):
     return (cosmo.age(0).value - cosmo.age(z).value) / tdyn
 
 
+def get_t_from_a(scale, sim_name="Bolshoi"):
+    sim = halo_catalogs.sims[sim_name]
+
+    # get cosmology based on given sim
+    cosmo = LambdaCDM(H0=sim.h * 100, Ob0=sim.omega_b, Ode0=sim.omega_lambda, Om0=sim.omega_m)
+    z = (1 / scale) - 1
+    return cosmo.age(z).value, cosmo.age(0).value
+
+
 def get_an_from_am(am, mass_bins, mbin=0.498):
     # `mbin` is the bin you want to get from am, returns first bin bigger than `mbin`
     # default is `a_{n} = a_{1/2}`
@@ -360,17 +371,6 @@ def get_savgol_grads(scales, ma, k=5, deriv=1, n_samples=200):
     return gamma_a
 
 
-def get_tt_indices(n_points, test_ratio=0.2):
-    test_size = int(np.ceil(test_ratio * n_points))
-    test_idx = np.random.choice(range(n_points), replace=False, size=test_size)
-    assert len(test_idx) == len(set(test_idx))
-    train_idx = np.array(list(set(range(n_points)) - set(test_idx)))
-    assert set(train_idx).intersection(set(test_idx)) == set()
-    assert max(max(test_idx), max(train_idx)) == n_points - 1
-    assert min(min(test_idx), min(train_idx)) == 0
-    return train_idx, test_idx
-
-
 def lma_fit(z, alpha):
     return -alpha * z
 
@@ -397,3 +397,41 @@ def alpha_analysis(ma, scales, mass_bins):
     am_exp = (1 - (1 / alphas * np.log(mass_bins))) ** -1
 
     return alphas, ma_exp, am_exp
+
+
+def softplus(z):
+    return np.log(1 + np.exp(z))
+
+
+# k = 3.5 is kept constant in Hearin2021
+def fit_hearin_params(ma_peak, scales, sim_name="bolshoi"):
+    k = 3.5
+    fit_pars = Parameters()
+    fit_pars.add("x0", value=9.0)
+    fit_pars.add("beta_e", value=2.0)
+    fit_pars.add("beta_l", value=1.9)
+
+    t, t0 = get_t_from_a(scales, sim_name)
+
+    def alpha(t, tau_c, alpha_late, alpha_early):
+        return alpha_early + (alpha_late - alpha_early) / (1 + np.exp(-k * (t - tau_c)))
+
+    def model(t, t0, x0, beta_l, beta_e):
+        # model m(t) = M_peak(t) / M(0) = (t/t0)**(alpha(t))
+        # M0 = M_peak(t=0)
+        tau_c = 10 ** (x0)
+        alpha_late = softplus(beta_l)
+        alpha_early = alpha_late + softplus(beta_e)
+        return (t / t0) ** alpha(t, tau_c, alpha_late, alpha_early)
+
+    def residual(pars, data, t, t0):
+        vals = pars.valuedict()
+        x0 = vals["x0"]
+        beta_l = vals["beta_l"]
+        beta_e = vals["beta_e"]
+
+        return data - model(t, t0, x0, beta_l, beta_e)
+
+    args = (ma_peak, t, t0)
+    out = minimize(residual, fit_pars, args=args)
+    return out
