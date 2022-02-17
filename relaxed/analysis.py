@@ -6,7 +6,9 @@ import numpy as np
 from astropy.cosmology import LambdaCDM
 from scipy import stats
 from scipy.interpolate import interp1d
+from scipy.optimize import curve_fit
 from scipy.signal import savgol_filter
+from tqdm import tqdm
 
 from relaxed import halo_catalogs
 
@@ -234,14 +236,16 @@ def get_ma_corrs(cat, param, indices):
     return np.array(corrs)
 
 
-def get_am_corrs(pvalues, am, box_keep=None):
+def get_am_corrs(cat, param, am, box_keep=None):
     if box_keep is None:
-        box_keep = np.ones(am.shape[0])
+        box_keep = np.ones(am.shape[0]).astype(bool)
 
     corrs = []
     n_mass_bins = am.shape[1]
     for k in range(n_mass_bins):
-        corrs.append(stats.spearmanr(pvalues[box_keep], am[:, k][box_keep], nan_policy="omit")[0])
+        corrs.append(
+            stats.spearmanr(cat[param][box_keep], am[:, k][box_keep], nan_policy="omit")[0]
+        )
     return np.array(corrs)
 
 
@@ -257,7 +261,7 @@ def add_box_indices(cat, boxes=8, box_size=250):
             cat["ibox"] += 2 ** k * (d < cat[dim])
 
 
-def vol_jacknife_err(fn, cat, *args, mode="dict"):
+def vol_jacknife_err(cat, fn, *args, mode="dict"):
     # assumes cat has had its box indices added with the function above.
     n_boxes = int(np.max(cat["ibox"]) + 1)
     values = []
@@ -365,3 +369,31 @@ def get_tt_indices(n_points, test_ratio=0.2):
     assert max(max(test_idx), max(train_idx)) == n_points - 1
     assert min(min(test_idx), min(train_idx)) == 0
     return train_idx, test_idx
+
+
+def lma_fit(z, alpha):
+    return -alpha * z
+
+
+def get_alpha(zs, lma):
+    # use the fit of the form:
+    # log m(z) = - \alpha * z
+    # get best exponential fit to the line of main progenitors.
+
+    opt_params, _ = curve_fit(lma_fit, zs, lma, p0=(1,))
+    return opt_params  # = alpha
+
+
+def alpha_analysis(ma, scales, mass_bins):
+    # alpha parametrization fit MAH
+    # m(a) = exp(- alpha * z)
+    alphas = []
+    for ii in tqdm(range(len(ma))):
+        lam_ii = np.log(ma)[ii]
+        alpha = get_alpha(1 / scales - 1, lam_ii)
+        alphas.append(alpha)
+    alphas = np.array(alphas)
+    ma_exp = np.exp(-alphas * (1 / scales - 1))
+    am_exp = (1 - (1 / alphas * np.log(mass_bins))) ** -1
+
+    return alphas, ma_exp, am_exp
