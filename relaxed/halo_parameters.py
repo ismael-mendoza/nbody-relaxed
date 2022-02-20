@@ -192,7 +192,7 @@ class Tdyn(HaloParam):
         rvir_mks = cat["rvir"] * 3.086e19  # rvir in kpc/h not Mpc/h
         vvir_mks = Vvir.calc_vvir(cat) * 1e3
         tdyn_mks = 2 * rvir_mks / vvir_mks
-        return tdyn_mks / (365 * 24 * 3600)
+        return tdyn_mks / (365 * 24 * 3600) / 10**9
 
     @property
     def derive(self):
