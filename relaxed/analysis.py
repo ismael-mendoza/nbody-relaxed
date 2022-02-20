@@ -78,7 +78,6 @@ def get_mah(
     particle_mass=1.35e8,  # Bolshoi
     particle_res=50,
     n_mass_bins=100,
-    m_version="vir",
 ):
     """Get catalog, indices, scales from given catalog pipeline output name."""
     output = f"{path}/{name}/"
@@ -101,7 +100,8 @@ def get_mah(
 
     # extract m(a) information.
     ma_info = get_ma_info(cat, indices)
-    ma = ma_info[f"ma_{m_version}"]  # no cut yet.
+    ma = ma_info["ma_vir"]
+    ma_peak = ma_info["ma_peak"]
 
     # get relevant cutoff on scales and mass bins (defined on m(a)).
     min_scale, min_mass_bin = determine_cutoffs(
@@ -111,6 +111,7 @@ def get_mah(
     # fill nan's with average `m` value of 1 particle
     avg_mass = np.nanmean(cat["mvir"])
     ma[np.isnan(ma)] = particle_mass / avg_mass
+    ma_peak[np.isnan(ma)] = particle_mass / avg_mass
 
     # obtain a(m) and corresponding mass_bins
     am, mass_bins = get_am(ma, scales, min_mass_bin, n_mass_bins)
@@ -120,6 +121,7 @@ def get_mah(
     indices = indices[keep_scale]
     scales = scales[keep_scale]
     ma = ma.T[keep_scale].T
+    ma_peak = ma_peak.T[keep_scale].T
 
     assert np.sum(np.isnan(ma)) == 0
 
@@ -131,11 +133,13 @@ def get_mah(
     keep_am = ~np.isnan(np.sum(am, axis=1))
     cat = cat[keep_am]
     ma = ma[keep_am]
+    ma_peak = ma_peak[keep_am]
     am = am[keep_am]
 
     return {
         "cat": cat,
         "ma": ma,
+        "ma_peak": ma_peak,
         "am": am,
         "scales": scales,
         "indices": indices,
@@ -187,7 +191,8 @@ def get_am(ma, scales, min_mass_bin, n_bins=100):
     # 1. + 2.
     mass_bins = np.linspace(np.log(min_mass_bin), np.log(1.0), n_bins)
 
-    # 3. NOTE: Make function monotonic. We assume start is early -> late ordering.
+    # 3.
+    # NOTE: Make function monotonic. We assume start is early -> late ordering.
     # NOTE: ma should not have any cuts.
     m_peak = np.fmax.accumulate(ma, axis=1)  # fmax ignores nan's (except beginning ones)
 
@@ -202,10 +207,7 @@ def get_am(ma, scales, min_mass_bin, n_bins=100):
                 pairs.append((scales[j], m_peak[i][j]))
                 count += 1
 
-        if len(pairs) == 1:
-            raise AssertionError(
-                "Only 1 pair was added, so max was reached at a -> 0 which is impossible."
-            )
+        assert not len(pairs) == 1, "Only 1 pair added, so max reached at a -> 0, impossible."
 
         _scales = np.array([pair[0] for pair in pairs])
         _m_peaks = np.array([pair[1] for pair in pairs])
