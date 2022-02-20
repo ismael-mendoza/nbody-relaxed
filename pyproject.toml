@@ -34,7 +34,7 @@ scipy = ">=1.7.3"
 
 [tool.poetry.dev-dependencies]
 Cython = "^0.29.24"
-black = ">=21.12b0"
+black = ">=22.1.0"
 flake8 = ">=3.9.2"
 flake8-absolute-import = ">=1.0.0"
 jupyter-contrib-nbextensions = ">=0.5.1"
