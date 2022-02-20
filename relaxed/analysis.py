@@ -261,7 +261,7 @@ def add_box_indices(cat, boxes=8, box_size=250):
     cat.add_column(np.zeros(len(cat)), name="ibox")
     for k, dim in enumerate(["x", "y", "z"]):
         for d in divides:
-            cat["ibox"] += 2 ** k * (d < cat[dim])
+            cat["ibox"] += 2**k * (d < cat[dim])
 
 
 def vol_jacknife_err(cat, fn, *args, mode="dict"):
