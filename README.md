@@ -8,7 +8,6 @@ conda install -c conda-forge poetry
 poetry install
 ```
 
-
 ## slurm resources
 
 See [here](https://paper.dropbox.com/doc/slurm--BItc4vwhUPkv~lWVk68u0R9sAg-BiRTZcyZDW0QJsPgr0bG6).
@@ -23,7 +22,6 @@ See [here](https://paper.dropbox.com/doc/slurm--BItc4vwhUPkv~lWVk68u0R9sAg-BiRTZ
 cd /home/imendoza
 ln -s /nfs/turbo/lsa-cavestru/imendoza /home/imendoza/nbody-relaxed/data
 ```
-
 
 ## Variable descriptions (ROCKSTAR)
 
@@ -46,7 +44,7 @@ ln -s /nfs/turbo/lsa-cavestru/imendoza /home/imendoza/nbody-relaxed/data
 - `Vmax`: Maxmimum circular velocity (km/s physical).
 - `X/Y/Z`: Halo position (Mpc/h comoving).
 - `VX/VY/VZ`: Halo velocity (km/s physical).
-- `JX/JY/JZ`: Halo angular momenta ((Msun/h) * (Mpc/h) * km/s (physical)).
+- `JX/JY/JZ`: Halo angular momenta ((Msun/h) *(Mpc/h)* km/s (physical)).
 - `Spin`: Halo spin parameter.
 - `Breadth_first_ID`: breadth-first ordering of halos within a tree.
 - `Depth_first_ID`: depth-first ordering of halos within a tree.
@@ -70,9 +68,9 @@ ln -s /nfs/turbo/lsa-cavestru/imendoza /home/imendoza/nbody-relaxed/data
 - `Mpeak,Vpeak`: Peak mass and Vmax over mass accretion history.
 - `Halfmass_Scale`: Scale factor at which the MMP reaches 0.5*Mpeak.
 - `Acc_Rate_*`: Halo mass accretion rates in Msun/h/yr. [Also known as gamma]
-    - `Inst`: instantaneous; 100Myr: averaged over past 100Myr,
-    - `X*Tdyn`: averaged over past X*virial dynamical time.
-    - `Mpeak`: Growth Rate of Mpeak, averaged from current z to z+0.5
+  - `Inst`: instantaneous; 100Myr: averaged over past 100Myr,
+  - `X*Tdyn`: averaged over past X*virial dynamical time.
+  - `Mpeak`: Growth Rate of Mpeak, averaged from current z to z+0.5
 - `Mpeak_Scale`: Scale at which Mpeak was reached.
 - `Acc_Scale`: Scale at which satellites were (last) accreted.
 - `First_Acc_Scale`: Scale at which current and former satellites first passed through a larger halo.
