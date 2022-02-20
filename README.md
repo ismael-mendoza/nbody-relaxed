@@ -2,19 +2,15 @@
 
 ## Instalation
 
-```
+```bash
 conda create -n relaxed python=3.7
 conda install -c conda-forge poetry 
 poetry install
 ```
 
-## slurm resources
-
-See [here](https://paper.dropbox.com/doc/slurm--BItc4vwhUPkv~lWVk68u0R9sAg-BiRTZcyZDW0QJsPgr0bG6).
-
 ## data location
 
-```
+```bash
 /nfs/turbo/lsa-cavestru
 /scratch/cavestru_root/cavestru/imendoza/
 
