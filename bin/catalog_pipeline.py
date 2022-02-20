@@ -101,8 +101,8 @@ def pipeline(ctx, root, outdir, minh_file, catalog_name, all_minh_files):
 def make_ids(ctx, m_low, m_high, n_haloes):
     # create appropriate filters
     assert not ctx.obj["ids_file"].exists()
-    m_low = 10 ** m_low
-    m_high = 10 ** m_high
+    m_low = 10**m_low
+    m_high = 10**m_high
     particle_mass = sims[ctx.obj["catalog_name"]].particle_mass
     assert m_low > particle_mass * 1e3, f"particle mass: {particle_mass:.3g}"
     the_filters = {
