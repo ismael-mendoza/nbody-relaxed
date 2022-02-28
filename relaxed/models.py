@@ -465,37 +465,67 @@ available_models = {
 }
 
 
-def training_suite(data: dict):
+def training_suite(info: dict):
     """Returned models specified in the data dictionary.
 
     Args:
-        data:  Dictionary containing all the information required to train models. Using the format
-            `name:info` where `name` is an identifier for the model (can be anything)
-            and `info` is a dictionary with keys:
+        info:  Dictionary containing all the information required to train models. Using the format
+            `name:value` where `name` is an identifier for the model (can be anything)
+            and `value` is a dictionary with keys:
                 - 'xy': (x,y) tuple containing data to train model with.
                 - 'model': Which model from `available_models` to use.
                 - 'n_features': Number of features for this model.
                 - 'kwargs': Keyword argument dict to initialize the model.
     """
     # check data dict is in the right format.
-    assert isinstance(data, dict)
-    for name in data:
-        assert isinstance(data[name]["xy"], tuple)
-        assert data[name]["model"] in available_models
-        assert isinstance(data[name]["n_features"], int)
-        assert isinstance(data[name]["n_targets"], int)
-        assert isinstance(data[name]["kwargs"], dict)
-        assert data[name]["n_features"] == data[name]["xy"][0].shape[1]
+    assert isinstance(info, dict)
+    for name in info:
+        assert isinstance(info[name]["xy"], tuple)
+        assert info[name]["model"] in available_models
+        assert isinstance(info[name]["n_features"], int)
+        assert isinstance(info[name]["n_targets"], int)
+        assert isinstance(info[name]["kwargs"], dict)
 
     trained_models = {}
-    for name in data:
-        m = data[name]["model"]
-        kwargs = data[name]["kwargs"]
-        n_features = data[name]["n_features"]
-        n_targets = data[name]["n_targets"]
-        x, y = data[name]["xy"]
+    for name in info:
+        m = info[name]["model"]
+        kwargs = info[name]["kwargs"]
+        n_features = info[name]["n_features"]
+        n_targets = info[name]["n_targets"]
+        x, y = info[name]["xy"]
         model = available_models[m](n_features, n_targets, **kwargs)
         model.fit(x, y)
         trained_models[name] = model
 
     return trained_models
+
+
+def prepare_datasets(cat, datasets: dict, test_ratio=0.3):
+    # train/test split
+    train_idx, test_idx = get_tt_indices(len(cat), test_ratio=test_ratio)
+    cat_train, cat_test = cat[train_idx], cat[test_idx]
+    output = {}
+    for name in datasets:
+        x_params, y_params = datasets[name]["x"], datasets[name]["y"]
+        x_train, x_test = tbl_to_arr(cat_train, x_params), tbl_to_arr(cat_test, x_params)
+        y_train, y_test = tbl_to_arr(cat_train, y_params), tbl_to_arr(cat_test, y_params)
+        output[name] = {"train": (x_train, y_train), "test": (x_test, y_test)}
+    return output, cat_train, cat_test
+
+
+def tbl_to_arr(table, names=None):
+    if not names:
+        names = table.colnames
+
+    return np.hstack([table[param].reshape(-1, 1) for param in names])
+
+
+def get_tt_indices(n_points, test_ratio=0.2):
+    test_size = int(np.ceil(test_ratio * n_points))
+    test_idx = np.random.choice(range(n_points), replace=False, size=test_size)
+    assert len(test_idx) == len(set(test_idx))
+    train_idx = np.array(list(set(range(n_points)) - set(test_idx)))
+    assert set(train_idx).intersection(set(test_idx)) == set()
+    assert max(max(test_idx), max(train_idx)) == n_points - 1
+    assert min(min(test_idx), min(train_idx)) == 0
+    return train_idx, test_idx

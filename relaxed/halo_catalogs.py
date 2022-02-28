@@ -31,13 +31,13 @@ Sim = namedtuple(
 )
 
 # From https://www.cosmosim.org/cms/simulations/bolshoi/
-Bolshoi = Sim("Bolshoi", 250, 2048 ** 3, 1.35e8, 1.0, 80, 0.70, 0.73, 0.27, 0.0469, 0.95, 0.82)
+Bolshoi = Sim("Bolshoi", 250, 2048**3, 1.35e8, 1.0, 80, 0.70, 0.73, 0.27, 0.0469, 0.95, 0.82)
 
 # From https://www.cosmosim.org/cms/simulations/bolshoip/
 BolshoiP = Sim(
     "BolshoiP",
     250,
-    2048 ** 3,
+    2048**3,
     1.55e8,
     1.0,
     80,
@@ -53,7 +53,7 @@ BolshoiP = Sim(
 MDPL2 = Sim(
     "MDPL2",
     1e3,
-    3840 ** 3,
+    3840**3,
     1.51e9,
     (5, 13),  # low redshift and high redshift respectively
     120,

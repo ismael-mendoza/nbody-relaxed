@@ -63,7 +63,7 @@ def write_main_line_progenitors(read_trees_dir, trees_dir, prefix, mcut, cpus=5)
 
 
 def merge_progenitors(progenitor_dir, progenitor_file):
-    """Merge all progenitor files in 'progenitor_dir' into one, save it as 'progenitor_file'.  """
+    """Merge all progenitor files in 'progenitor_dir' into one, save it as 'progenitor_file'."""
     with open(progenitor_file, "w") as pf:
         for p in progenitor_dir.iterdir():
             assert p.name.startswith("mline")

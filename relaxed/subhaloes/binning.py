@@ -160,7 +160,7 @@ def main():
         bin_sizes = np.array([len(bin) for bin in bins])
 
         print("Bins = %d^3" % n_bins)
-        exp_mean = float(n) / n_bins ** 3
+        exp_mean = float(n) / n_bins**3
         exp_std = np.sqrt(exp_mean)
         print("Expected mean = %.4g, expected std = %.3g" % (exp_mean, exp_std))
         print("Actual mean =   %.4g, actual std =   %.3g" % (np.mean(bin_sizes), np.std(bin_sizes)))
