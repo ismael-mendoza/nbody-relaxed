@@ -144,6 +144,7 @@ def get_mah(
         "scales": scales,
         "indices": indices,
         "mass_bins": mass_bins,
+        "mpeak": ma_info["Mpeak"][:, -1][keep_am],
     }
 
 
@@ -430,7 +431,7 @@ def transform_diffmah(x0, beta_e, beta_l):
     return tau_c, alpha_early, alpha_late
 
 
-def fit_hearin_params(ma_peak, scales, sim_name="Bolshoi"):
+def fit_hearin_params(ma_peak, scales, sim_name="Bolshoi", do_log=False):
     fit_pars = Parameters()
     fit_pars.add("x0", value=0.1)
     fit_pars.add("beta_e", value=2.08)
@@ -451,7 +452,11 @@ def fit_hearin_params(ma_peak, scales, sim_name="Bolshoi"):
         beta_l = vals["beta_l"]
         beta_e = vals["beta_e"]
 
-        return data - model(t, t0, x0, beta_l, beta_e)
+        if do_log:
+            return np.log10(data) - np.log10(model(t, t0, x0, beta_l, beta_e))
+
+        else:
+            return data - model(t, t0, x0, beta_l, beta_e)
 
     args = (ma_peak, t, t0)
     try:
@@ -465,9 +470,9 @@ def fit_hearin_params(ma_peak, scales, sim_name="Bolshoi"):
     return (tau_c, alpha_early, alpha_late)
 
 
-def diffmah_analysis(ma_peaks, scales, sim_name="Bolshoi"):
+def diffmah_analysis(ma_peaks, scales, sim_name="Bolshoi", do_log=False):
     data = []
     for ma_peak in tqdm(ma_peaks, desc="Fitting Diffmah parameters"):
-        data.append(fit_hearin_params(ma_peak, scales, sim_name))
+        data.append(fit_hearin_params(ma_peak, scales, sim_name, do_log=do_log))
     data = np.array(data)
     return data[:, 0], data[:, 1], data[:, 2]
