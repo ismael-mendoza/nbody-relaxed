@@ -396,15 +396,20 @@ def get_alpha(zs, lma):
     return opt_params  # = alpha
 
 
-def alpha_analysis(ma, scales, mass_bins):
-    # alpha parametrization fit MAH
-    # m(a) = exp(- alpha * z)
-    alphas = []
-    for ii in tqdm(range(len(ma)), desc="Fitting Alpha parametrization"):
-        lam_ii = np.log(ma)[ii]
-        alpha = get_alpha(1 / scales - 1, lam_ii)
-        alphas.append(alpha)
-    alphas = np.array(alphas)
+def alpha_analysis(ma, scales, mass_bins, alpha_file="../../output/alpha_fits.npy"):
+    alpha_file = Path(alpha_file)
+    if alpha_file.exists():
+        alphas = np.load(alpha_file)
+    else:
+        # alpha parametrization fit MAH
+        # m(a) = exp(- alpha * z)
+        alphas = []
+        for ii in tqdm(range(len(ma)), desc="Fitting Alpha parametrization"):
+            lam_ii = np.log(ma)[ii]
+            alpha = get_alpha(1 / scales - 1, lam_ii)
+            alphas.append(alpha)
+        alphas = np.array(alphas)
+        np.save(alpha_file, alphas)
     ma_exp = np.exp(-alphas * (1 / scales - 1))
     am_exp = (1 - (1 / alphas * np.log(mass_bins))) ** -1
 
