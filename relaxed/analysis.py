@@ -424,6 +424,12 @@ def inv_softplus(z):
     return np.log(np.exp(z) - 1)
 
 
+def get_early_late(ue, ul):
+    late = softplus(ul)
+    early = late + softplus(ue)
+    return early, late
+
+
 # k = 3.5 is kept constant in Hearin2021
 def alpha_diffmah(t, tau_c, alpha_early, alpha_late, k=3.5):
     return alpha_early + (alpha_late - alpha_early) / (1 + np.exp(-k * (t - tau_c)))
