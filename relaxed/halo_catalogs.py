@@ -105,6 +105,7 @@ class HaloCatalog(object):
         params = ["id", "pid", "mvir", "rvir", "rs", "xoff", "voff", "x", "y", "z"]
         params += ["x0", "v0", "cvir", "spin", "q", "vvir", "t/|u|", "eta", "phi_l"]
         params += ["gamma_tdyn", "tdyn", "scale_of_last_mm", "cvir_klypin"]
+        params += ["b_to_a", "c_to_a", "spin_bullock"]
         return params
 
     def get_default_hfilter(self):
