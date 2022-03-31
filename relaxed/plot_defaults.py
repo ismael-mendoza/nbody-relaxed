@@ -4,6 +4,18 @@ import numpy as np
 
 plt.style.use("seaborn-colorblind")
 
+latex_params = {
+    "cvir": r"$c_{\rm vir}$",
+    "t/|u|": r"$t/\vert u \vert$",
+    "x0": r"$x_{\rm off}$",
+    "spin": r"$\lambda$",
+    "q": r"$q$",
+    "spin_bullock": r"$\lambda_{\rm bullock}$",
+    "b_to_a": r"$b/a$",
+    "c_to_a": r"$c/a$",
+    "cvir_klypin": r"$c_{\rm vir, klypin}$",
+}
+
 
 mpl.rcParams.update(
     {

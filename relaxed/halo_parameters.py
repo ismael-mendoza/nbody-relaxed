@@ -309,6 +309,21 @@ class Spin(HaloParam):
         }
 
 
+class SpinBullock(HaloParam):
+    units = ""
+
+    @property
+    def name(self):
+        return "spin_bullock"
+
+    @property
+    def latex(self):
+        return {
+            "units": "",
+            "form": "\\lambda",
+        }
+
+
 class ScaleOfLastMM(HaloParam):
     units = ""
 

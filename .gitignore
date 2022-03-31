@@ -21,4 +21,3 @@ data/
 *.DS_Store
 output/30k/
 bin/temp.py
-output/m12/
