@@ -6,8 +6,8 @@ from pathlib import Path
 # NOTE: Need to check that *.config file has correct path to `name_index` and `type_index`
 repo = Path("/home/imendoza/nbody-relaxed/")
 executable = "/home/imendoza/minnow/scripts/text_to_minh"
-config = repo.joinpath("params/Bolshoi.config")
-all_vars = repo.joinpath("params/all_vars.txt")
+config = repo.joinpath("data/Bolshoi.config")
+all_vars = repo.joinpath("data/all_vars.txt")
 catalogs_dir = repo.joinpath("data/bolshoi_catalogs")
 output_dir = repo.joinpath("data/bolshoi_catalogs_minh")
 
