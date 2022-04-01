@@ -12,8 +12,8 @@ from pminh import minh
 from tqdm import tqdm
 
 from relaxed import halo_filters
-from relaxed.halo_catalogs import HaloCatalog
-from relaxed.halo_catalogs import sims
+from relaxed.catalogs import HaloCatalog
+from relaxed.catalogs import sims
 from relaxed.progenitors.progenitor_lines import get_next_progenitor
 from relaxed.subhaloes import quantities as sub_quantities
 

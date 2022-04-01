@@ -1,342 +1,66 @@
-from abc import ABC
-from abc import abstractmethod
-
 import numpy as np
 from astropy.table import Table
 
-
-class HaloParam(ABC):
-    def __init__(self, log=False, modifiers=(lambda x: x,)):
-        """
-        Class implementing a Param object which manages how data is accessed from catalog
-        and attributes like its name and its text representation for plots.
-
-        :param log: Whether to log the values when returning them and change the label to
-                    indicate that there is a log.
-        :param modifiers: Extra modifiers to the values passed in as a list of lambda
-                         functions. This will be applied after np.log() if log=True. Should be
-                         linear function in number of data points.
-        """
-        self.log = log
-        self.modifiers = modifiers
-        self.text = self.get_text()
-
-    def get_values_minh_block(self, mcat, b):
-        t = Table(mcat.block(b, self.derive["requires"]), names=self.derive["requires"])
-        return self.get_values(t)
-
-    def get_values_minh(self, mcat):
-        raise NotImplementedError()
-
-    def get_values(self, cat):
-        if self.name in cat.colnames:
-            values = cat[self.name]
-
-        else:
-            values = self.derive["func"](cat)
-
-        if self.log:
-            values = np.log10(values)
-
-        # apply modifiers
-        for modifier in self.modifiers:
-            values = modifier(values)
-
-        return values
-
-    def get_text(self, only_param=False):
-        """
-        Obtain the text that will be used in the produce_plots.
-        :return:
-        """
-        template = "${}{}{}$"
-        log_tex = ""
-        units_tex = ""
-
-        if only_param:
-            return template.format(log_tex, self.latex["form"], units_tex)
-
-        if self.log:
-            log_tex = "\\log_{10}"
-        if self.latex["units"]:
-            units_tex = "\\; [{}]".format(self.latex["units"])
-
-        return template.format(log_tex, self.latex["form"], units_tex)
-
-    @property
-    @abstractmethod
-    def name(self):
-        return ""
-
-    @property
-    def latex(self):
-        return {"form": "", "units": ""}
-
-    @property
-    def derive(self):
-        return {
-            "func": lambda cat: cat[self.name],
-            "requires": (self.name,),
-        }
+latex_params = {
+    "mvir": {"units": "h^{-1} \\, M_{\\odot}", "form": "M_{\\rm vir}"},
+    "tdyn": {"units": "Gyr", "form": "T_{\\rm dyn}"},
+    "gamma_tdyn": {
+        "units": "h^{-1}\\, yr^{-1} \\, M_{\\odot}",
+        "form": "\\gamma_{\\tau_{\\rm dyn}}",
+    },
+    "t/|u|": {"units": "", "form": "T/|U|"},
+    "spin": {"units": "", "form": "\\lambda"},
+    "spin_bullock": {"units": "", "form": "\\lambda"},
+}
 
 
-class ID(HaloParam):
-    units = ""
-
-    @property
-    def name(self):
-        return "id"
-
-
-class Mvir(HaloParam):
-    units = "Msun/h"
-
-    @property
-    def name(self):
-        return "mvir"
-
-    @property
-    def latex(self):
-        return {"units": "h^{-1} \\, M_{\\odot}", "form": "M_{\\rm vir}"}
+def derive_vvir(mcat, b):
+    # units = km/s
+    # prevent overflow by combining MKS factors into one constant.
+    # C = G_mks * mvir_factor_mks / rvir_factor_mks
+    C = 6.674e-11 * 1.988435e30 / 3.086e19
+    rvir, mvir = mcat.block(b, ["rvir", "mvir"])
+    vvir_mks = np.sqrt(C * mvir / rvir)
+    vvir = vvir_mks / 1e3
+    return vvir
 
 
-class Rvir(HaloParam):
-    units = "kpc/h"
+def derive(pname: str, mcat, b):
+    available = {"phi_l", "x0", "v0", "tdyn", "eta", "q", "vvir", "cvir"}
+    assert pname in available
 
-    @property
-    def name(self):
-        return "rvir"
+    if pname == "phi_l":
+        pass
 
-    @property
-    def latex(self):
-        return {"units": "h^{-1} \\, \\rm kpc", "form": "R_{\\rm vir}"}
+    if pname == "x0":
+        pass
 
+    if pname == "v0":
+        pass
 
-class Rs(HaloParam):
-    units = "kpc/h"
-
-    @property
-    def name(self):
-        return "rs"
-
-    @property
-    def latex(self):
-        return {
-            "units": "h^{-1} \\, \\rm kpc",
-            "form": "R_{s}",
-        }
-
-
-class Rs_Klypin(HaloParam):
-    units = "kpc/h"
-
-    @property
-    def name(self):
-        return "rs_klypin"
-
-    @property
-    def latex(self):
-        return {
-            "units": "h^{-1} \\, \\rm kpc",
-            "form": "R_{s, \\rm Klypin}",
-        }
-
-
-class Xoff(HaloParam):
-    units = "kpc/h"
-
-    @property
-    def name(self):
-        return "xoff"
-
-    @property
-    def latex(self):
-        return {
-            "units": "h^{-1} \\, \\rm kpc",
-            "form": "X_{\\rm off}",
-        }
-
-
-class Voff(HaloParam):
-    units = "km/s"
-
-    @property
-    def name(self):
-        return "voff"
-
-    @property
-    def latex(self):
-        return {
-            "units": "h^{-1} \\, \\rm kpc",
-            "form": "V_{\\rm off}",
-        }
-
-
-class Tdyn(HaloParam):
-    units = "Gyr"
-
-    @property
-    def name(self):
-        return "tdyn"
-
-    @property
-    def latex(self):
-        return {
-            "units": "Gyr",
-            "form": "T_{\\rm dyn}",
-        }
-
-    @staticmethod
-    def calc_tdyn(cat):
-        # prevent overflow by combining MKS factors into one constant.
-        rvir_mks = cat["rvir"] * 3.086e19  # rvir in kpc/h not Mpc/h
-        vvir_mks = Vvir.calc_vvir(cat) * 1e3
+    if pname == "tdyn":
+        rvir = mcat.block(b, "rvir")
+        vvir = derive_vvir(mcat, b)
+        rvir_mks = rvir * 3.086e19  # rvir in kpc/h not Mpc/h
+        vvir_mks = vvir * 1e3
         tdyn_mks = 2 * rvir_mks / vvir_mks
         return tdyn_mks / (365 * 24 * 3600) / 10**9
 
-    @property
-    def derive(self):
-        return {
-            "func": self.calc_tdyn,
-            "requires": ("mvir", "rvir"),
-        }
+    if pname == "eta":
+        pass
 
+    if pname == "q":
+        pass
 
-class Vvir(HaloParam):
-    units = "km/s"
+    if pname == "vvir":
+        pass
 
-    @property
-    def name(self):
-        return "vvir"
+    if pname == "cvir":
+        rvir, rs = mcat.block(b, ["rvir", "rs"])
+        return rvir / rs
 
-    @property
-    def latex(self):
-        return {
-            "units": "h^{-1} \\, \\rm kpc",
-            "form": "V_{\\rm vir}",
-        }
-
-    @staticmethod
-    def calc_vvir(cat):
-        # prevent overflow by combining MKS factors into one constant.
-        # C = G_mks * mvir_factor_mks / rvir_factor_mks
-        C = 6.674e-11 * 1.988435e30 / 3.086e19
-        vvir_mks = np.sqrt(C * cat["mvir"] / cat["rvir"])
-        return vvir_mks / 1e3
-
-    @property
-    def derive(self):
-        return {
-            "func": self.calc_vvir,
-            "requires": ("mvir", "rvir"),
-        }
-
-
-class Vrms(HaloParam):
-    units = "km/s"
-
-    @property
-    def name(self):
-        return "vrms"
-
-    @property
-    def latex(self):
-        return {
-            "units": "\\rm km \\, s^{-1}",
-            "form": "V_{\\rm rms}",
-        }
-
-
-class GammaTDyn(HaloParam):
-    r"""Defined as \log(\Delta M) / \delta z"""
-
-    units = "Msun/h/yr"
-
-    @property
-    def name(self):
-        return "gamma_tdyn"
-
-    @property
-    def latex(self):
-        return {
-            "units": "h^{-1}\\, yr^{-1} \\, M_{\\odot}",
-            "form": "\\gamma_{\\tau_{\\rm dyn}}",
-        }
-
-
-class GammaInst(HaloParam):
-    units = "Msun/h/yr"
-
-    @property
-    def name(self):
-        return "gamma_inst"
-
-    @property
-    def latex(self):
-        return {
-            "units": "h^{-1}\\, yr^{-1} \\, M_{\\odot}",
-            "form": "\\alpha_{\\rm inst}",
-        }
-
-
-class ToverU(HaloParam):
-    units = ""
-
-    @property
-    def name(self):
-        return "t/|u|"
-
-    @property
-    def latex(self):
-        return {
-            "units": "",
-            "form": "T/|U|",
-        }
-
-
-class Spin(HaloParam):
-    units = ""
-
-    @property
-    def name(self):
-        return "spin"
-
-    @property
-    def latex(self):
-        return {
-            "units": "",
-            "form": "\\lambda",
-        }
-
-
-class SpinBullock(HaloParam):
-    units = ""
-
-    @property
-    def name(self):
-        return "spin_bullock"
-
-    @property
-    def latex(self):
-        return {
-            "units": "",
-            "form": "\\lambda",
-        }
-
-
-class ScaleOfLastMM(HaloParam):
-    units = ""
-
-    @property
-    def name(self):
-        return "scale_of_last_mm"
-
-    @property
-    def latex(self):
-        return {
-            "units": "",
-            "form": "\\delta_{\\rm MM}",
-        }
+    else:
+        raise NotImplementedError()
 
 
 class BToA(HaloParam):
@@ -367,25 +91,6 @@ class CToA(HaloParam):
             "units": "",
             "form": "c/a",
         }
-
-
-class Cvir(HaloParam):
-    units = ""
-
-    @property
-    def name(self):
-        return "cvir"
-
-    @property
-    def latex(self):
-        return {
-            "units": "",
-            "form": "c_{\\rm vir}",
-        }
-
-    @property
-    def derive(self):
-        return {"func": lambda cat: cat["rvir"] / cat["rs"], "requires": ("rvir", "rs")}
 
 
 class Cvir_Klypin(HaloParam):
@@ -530,22 +235,6 @@ class V0(HaloParam):
         }
 
 
-class UPID(HaloParam):
-    units = ""
-
-    @property
-    def name(self):
-        return "upid"
-
-
-class PID(HaloParam):
-    units = ""
-
-    @property
-    def name(self):
-        return "pid"
-
-
 class Fsub(HaloParam):
     units = ""
 
@@ -565,137 +254,3 @@ class Fsub(HaloParam):
 
     def get_values_minh_block(self, mcat, b=None):
         raise NotImplementedError("Cannot obtain f_sub from minh")
-
-
-class A2(HaloParam):
-    # a_{1/2}: scale at which half of mass has been accreted.
-    units = ""
-
-    @property
-    def name(self):
-        return "a2"
-
-    @property
-    def latex(self):
-        return {
-            "units": "",
-            "form": "a_{1/2}",
-        }
-
-    def get_values_minh(self, mcat):
-        raise NotImplementedError("Cannot obtain a2 from minh")
-
-    def get_values_minh_block(self, mcat, b=None):
-        raise NotImplementedError("Cannot obtain a2 from minh")
-
-
-class Alpha(HaloParam):
-    # fit of m(a) using the M(z) = M(0) * (1 + z)^{\beta} * exp(- \alpha * z) parametrization.
-    units = ""
-
-    @property
-    def name(self):
-        return "alpha"
-
-    @property
-    def latex(self):
-        return {
-            "units": "",
-            "form": "\\alpha",
-        }
-
-    def get_values_minh(self, mcat):
-        raise NotImplementedError("Cannot obtain alpha from minh")
-
-    def get_values_minh_block(self, mcat, b=None):
-        raise NotImplementedError("Cannot obtain alpha from minh")
-
-
-class Beta(HaloParam):
-    # fit of m(a) using the M(z) = M(0) * (1 + z)^{\beta} * exp(- \gamma * z) parametrization.
-    units = ""
-
-    @property
-    def name(self):
-        return "beta"
-
-    @property
-    def latex(self):
-        return {
-            "units": "",
-            "form": "\\beta",
-        }
-
-    def get_values_minh(self, mcat):
-        raise NotImplementedError("Cannot obtain beta from minh")
-
-    def get_values_minh_block(self, mcat, b=None):
-        raise NotImplementedError("Cannot obtain beta from minh")
-
-
-class X(HaloParam):
-    units = "Mpc/h"
-
-    @property
-    def name(self):
-        return "x"
-
-    @property
-    def latex(self):
-        return {
-            "units": "h^{-1} \\, \\rm kpc",
-            "form": "x",
-        }
-
-
-class Y(HaloParam):
-    units = "Mpc/h"
-
-    @property
-    def name(self):
-        return "y"
-
-    @property
-    def latex(self):
-        return {
-            "units": "h^{-1} \\, \\rm kpc",
-            "form": "y",
-        }
-
-
-class Z(HaloParam):
-    units = "Mpc/h"
-
-    @property
-    def name(self):
-        return "z"
-
-    @property
-    def latex(self):
-        return {
-            "units": "h^{-1} \\, \\rm kpc",
-            "form": "z",
-        }
-
-
-class Chi2(HaloParam):
-    units = ""
-
-    @property
-    def name(self):
-        return "chi2"
-
-    @property
-    def latex(self):
-        return {
-            "units": "",
-            "form": "\\chi^{2}",
-        }
-
-
-# map from parameter name -> class
-hparam_dict = {c().name: c for c in HaloParam.__subclasses__()}
-
-
-def get_hparam(param, **kwargs):
-    return hparam_dict[param](**kwargs)

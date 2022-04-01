@@ -8,7 +8,7 @@ from sklearn import linear_model
 from sklearn.feature_selection import SelectFromModel
 from sklearn.preprocessing import QuantileTransformer
 
-from relaxed.analysis import get_an_from_am
+from relaxed.mah import get_an_from_am
 
 
 class PredictionModel(ABC):
