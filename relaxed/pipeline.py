@@ -11,10 +11,13 @@ from astropy.io import ascii
 from pminh import minh
 from tqdm import tqdm
 
-from relaxed import halo_filters
-from relaxed.catalogs import HaloCatalog
-from relaxed.catalogs import sims
+from relaxed.catalogs import get_id_filter
+from relaxed.catalogs import intersect
+from relaxed.catalogs import load_cat_minh
+from relaxed.catalogs import save_cat_csv
+from relaxed.parameters import default_params
 from relaxed.progenitors.progenitor_lines import get_next_progenitor
+from relaxed.sims import all_sims
 from relaxed.subhaloes import quantities as sub_quantities
 
 the_root = Path(__file__).absolute().parent.parent
@@ -103,36 +106,28 @@ def make_ids(ctx, m_low, m_high, n_haloes):
     assert not ctx.obj["ids_file"].exists()
     m_low = 10**m_low
     m_high = 10**m_high
-    particle_mass = sims[ctx.obj["catalog_name"]].particle_mass
+    particle_mass = all_sims[ctx.obj["catalog_name"]].particle_mass
     assert m_low > particle_mass * 1e3, f"particle mass: {particle_mass:.3g}"
-    the_filters = {
+    filters = {
         "mvir": lambda x: (x > m_low) & (x < m_high),
         "pid": lambda x: x == -1,
     }
-    hfilter = halo_filters.HaloFilter(the_filters, name=ctx.obj["catalog_name"])
 
-    # we only need the params that appear in the filter. (including 'id' and 'mvir')
-    minh_params = ["id", "mvir", "pid"]
+    # we only need the params that appear in the filter for now. (including 'id' and 'mvir')
+    params = ["id", "mvir", "pid"]
 
-    # create catalog
-    hcat = HaloCatalog(
-        ctx.obj["catalog_name"],
-        ctx.obj["minh_file"],
-        subhalos=False,
-    )
-    hcat.load_cat_minh(minh_params, hfilter)
+    cat = load_cat_minh(ctx.obj["minh_file"], params, filters, verbose=False)
 
-    # do we have enough haloes?
-    # keep only N of them
-    assert len(hcat) >= n_haloes, f"There are only {len(hcat)} haloes satisfying filter."
-    keep = np.random.choice(np.arange(len(hcat)), size=n_haloes, replace=False)
-    hcat.cat = hcat.cat[keep]
+    # do we have enough haloes? keep only N of them.
+    assert len(cat) >= n_haloes, f"There are only {len(cat)} haloes satisfying filter."
+    keep = np.random.choice(np.arange(len(cat)), size=n_haloes, replace=False)
+    cat = cat[keep]
 
     # double check only host haloes are allowed.
-    assert np.all(hcat.cat["pid"] == -1)
+    assert np.all(cat["pid"] == -1)
 
     # extract ids into a json file, first convert to int's.
-    ids = sorted([int(x) for x in hcat.cat["id"]])
+    ids = sorted([int(x) for x in cat["id"]])
     assert len(ids) == n_haloes
     with open(ctx.obj["ids_file"], "w") as fp:
         json.dump(ids, fp)
@@ -146,20 +141,14 @@ def make_dmcat(ctx):
 
     assert np.all(np.sort(ids) == ids)
 
-    id_filter = halo_filters.get_id_filter(ids)
-    hfilter = halo_filters.HaloFilter(id_filter)
+    id_filter = get_id_filter(ids)
+    cat = load_cat_minh(ctx.obj["minh_file"], default_params, id_filter)
 
-    # create hcat to store these ids, then load from minh
-    # NOTE: Use default halo parameters defined in HaloCatalog.
-    hcat = HaloCatalog(ctx.obj["catalog_name"], ctx.obj["minh_file"])
-    hcat.load_cat_minh(hfilter=hfilter)
+    assert np.all(cat["id"] == ids)
+    assert np.all(cat["pid"] == -1)
+    assert len(cat) == len(ids)
 
-    assert np.all(hcat.cat["id"] == ids)
-    assert len(hcat) == len(ids)
-    assert np.all(hcat.cat["pid"] == -1)
-
-    # save as CSV to be loaded later.
-    hcat.save_cat(ctx.obj["dm_file"])
+    save_cat_csv(cat, ctx.obj["dm_file"])
 
 
 @pipeline.command()
@@ -381,8 +370,8 @@ def make_subhaloes(ctx, threshold):
         host_keep = host_ids > 0
         host_mvir = np.full_like(host_ids, np.nan, dtype=float)
 
-        keep1 = halo_filters.intersect(curr_ids, host_ids)
-        keep2 = halo_filters.intersect(host_ids, curr_ids)
+        keep1 = intersect(curr_ids, host_ids)
+        keep2 = intersect(host_ids, curr_ids)
         host_mvir[keep2] = curr_mvir[keep1]
 
         # extract subhalo information for each halo in `host_ids` using each halo in `curr_ids`
