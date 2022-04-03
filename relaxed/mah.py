@@ -30,10 +30,8 @@ def get_mah(
     indices = indices[sort_idx].astype(int)  # easier to handle.
     scales = scales[sort_idx]
 
-    # load catalog.
-    hcat = catalogs.HaloCatalog("Bolshoi", cat_file, label=name)
-    hcat.load_cat_csv()
-    cat = hcat.cat
+    # load catalog
+    cat = catalogs.load_cat_csv(cat_file)
 
     # extract m(a) information.
     ma_info = get_ma_info(cat, indices)
