@@ -1,8 +1,13 @@
 """Contains functions to perform and process various fits (e.g. diffmah) to MAH data."""
+from pathlib import Path
+
+import numpy as np
 from lmfit import minimize
 from lmfit import Parameters
 from scipy.optimize import curve_fit
 from tqdm import tqdm
+
+from relaxed.cosmo import get_t_from_a
 
 
 def get_alpha(zs, lma):
