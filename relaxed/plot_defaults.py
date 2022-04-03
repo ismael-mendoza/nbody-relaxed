@@ -54,6 +54,22 @@ latex_params = {
     "b_to_a": r"$b/a$",
     "c_to_a": r"$c/a$",
     "cvir_klypin": r"$c_{\rm vir, klypin}$",
+    "a2": r"$a_{1/2}$",
+    "a4": r"$a_{3/4}$",
+    "alpha": r"$\alpha$",
+    "mdyn": r"$m(a_{\rm dyn})$",
+    "tau_c": r"$\tau_{c}$",
+    "alpha_early": r"$\alpha_{\rm early}$",
+    "alpha_late": r"$\alpha_{\rm late}$",
+}
+
+latex_metrics = {
+    "mu": r"$\mu \left( y_{\rm pred} - y_{\rm true} \right)$",
+    "med": r"$\mu_{x}'$",
+    "sigma_ratio": r"$\sigma_{\rm pred} / \sigma_{\rm true}$",
+    "spear": r"$\rho_{\rm spearman} \left(y_{\rm true}, y_{\rm pred} \right)$",
+    "rscatter": r"$\frac{\sigma(y_{\rm pred} - y_{\rm true})}{ \sigma(y_{\rm true}) \sqrt{2}}$",
+    "mad": r"\rm MAD",
 }
 
 
