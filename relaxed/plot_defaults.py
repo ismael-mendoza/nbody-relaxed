@@ -4,18 +4,6 @@ import numpy as np
 
 plt.style.use("seaborn-colorblind")
 
-latex_params = {
-    "cvir": r"$c_{\rm vir}$",
-    "t/|u|": r"$t/\vert u \vert$",
-    "x0": r"$x_{\rm off}$",
-    "spin": r"$\lambda$",
-    "q": r"$q$",
-    "spin_bullock": r"$\lambda_{\rm bullock}$",
-    "b_to_a": r"$b/a$",
-    "c_to_a": r"$c/a$",
-    "cvir_klypin": r"$c_{\rm vir, klypin}$",
-}
-
 
 mpl.rcParams.update(
     {
@@ -43,7 +31,30 @@ plt.rc("font", **{"family": "sans-serif", "sans-serif": ["Helvetica"]})
 plt.rc("text", usetex=True)
 
 
-colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+default_colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+cb_colors = [
+    "#377eb8",
+    "#ff7f00",
+    "#4daf4a",
+    "#f781bf",
+    "#a65628",
+    "#984ea3",
+    "#999999",
+    "#e41a1c",
+    "#dede00",
+]
+
+latex_params = {
+    "cvir": r"$c_{\rm vir}$",
+    "t/|u|": r"$t/\vert u \vert$",
+    "x0": r"$x_{\rm off}$",
+    "spin": r"$\lambda$",
+    "q": r"$q$",
+    "spin_bullock": r"$\lambda_{\rm bullock}$",
+    "b_to_a": r"$b/a$",
+    "c_to_a": r"$c/a$",
+    "cvir_klypin": r"$c_{\rm vir, klypin}$",
+}
 
 
 def draw_histogram(
