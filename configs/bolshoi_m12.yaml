@@ -1,0 +1,11 @@
+sim_name: bolshoi
+minh_present_catalog: data/raw/Bolshoi/minh/hlist_1.00035.minh
+minh_catalogs_dir: data/raw/Bolshoi/minh/
+outdir: data/processed/bolshoi_m12/
+
+files:
+
+ids:
+  m_low: 12.0
+  m_high: 12.2
+  n_haloes: 1e4
