@@ -1,3 +1,4 @@
+"""Functions related to loading and filtering catalogs."""
 import warnings
 from pathlib import Path
 
@@ -7,46 +8,42 @@ from astropy.table import Table
 from astropy.table import vstack
 from pminh import minh
 
-from relaxed import halo_parameters
+from relaxed import parameters
 
-default_params = {
-    "id",
-    "pid",
-    "mvir",
-    "rvir",
-    "rs",
-    "xoff",
-    "voff",
-    "x",
-    "y",
-    "z",
-    "x0",
-    "v0",
-    "cvir",
-    "spin",
-    "q",
-    "vvir",
-    "t/|u|",
-    "eta",
-    "phi_l",
-    "gamma_tdyn",
-    "tdyn",
-    "scale_of_last_mm",
-    "cvir_klypin",
-    "gamma_tdyn",
-    "tdyn",
-    "scale_of_last_mm",
-    "cvir_klypin",
-    "b_to_a",
-    "c_to_a",
-    "spin_bullock",
-}
+
+def intersect(ids1, ids2):
+    """Intersect two np.array IDs.
+
+    Args:
+        Both inputs should be np.arrays.
+
+    Returns:
+        An boolean array `indx_ok` corresponding to `ids1` s.t. `indx_ok[i]` is true iff
+        `ids1[i]` is contained in `ids2`.
+
+    Notes:
+        - Full intersection by repeating operation but switching order.
+    """
+    assert type(ids1) == type(ids2) == np.ndarray
+    assert np.all(np.sort(ids1) == ids1)
+    assert np.all(np.sort(ids2) == ids2)
+    indx = np.searchsorted(ids2, ids1)
+    indx_ok = indx < len(ids2)
+    indx_ok[indx_ok] &= ids2[indx[indx_ok]] == ids1[indx_ok]
+
+    return indx_ok
+
+
+def get_id_filter(ids):
+    assert isinstance(ids, list) or isinstance(ids, np.ndarray)
+    ids = np.array(ids)
+    return {"id": lambda x: intersect(np.array(x), ids)}
 
 
 def filter_cat(cat, filters):
     # Always do filtering in real space NOT log space.
     for param, filt in filters:
-        hparam = halo_parameters.get_hparam(param, log=False)
+        hparam = parameters.get_hparam(param, log=False)
         cat = cat[filt(hparam.get_values(cat))]
     return cat
 
@@ -73,24 +70,26 @@ def load_cat_minh(self, minh_file: str, params: list, filters: dict, verbose=Fal
     if verbose:
         warnings.warn("Divide by zero errors are ignored, and filtered out.")
 
-    with minh.open(minh_file) as mcat:
-        cats = []
-        for b in range(mcat.blocks):
-            cat = Table()
+    mcat = minh.open(minh_file)
+    cats = []
+    for b in range(mcat.blocks):
+        cat = Table()
 
-            # obtain all params from minh and their values.
-            with np.errstate(divide="ignore", invalid="ignore"):
-                for param in params:
-                    hparam = halo_parameters.get_hparam(param, log=False)
-                    values = hparam.get_values_minh_block(mcat, b)
-                    cat.add_column(values, name=param)
+        # obtain all params from minh and their values.
+        with np.errstate(divide="ignore", invalid="ignore"):
+            for param in params:
+                if param in mcat.names:
+                    value = mcat.block(b, [param])
+                else:
+                    value = parameters.derive(param, mcat, b)
+                cat.add_column(value, name=param)
 
-            # make sure it's sorted by ID in case using id_filter
-            cat.sort("id")
+        # make sure it's sorted by ID in case using id_filter
+        cat.sort("id")
 
-            # filter to reduce size of each block.
-            cat = filter_cat(cat, filters)
-            cats.append(cat)
+        # filter to reduce size of each block.
+        cat = filter_cat(cat, filters)
+        cats.append(cat)
 
     fcat = vstack(cats)
     fcat.sort("id")
