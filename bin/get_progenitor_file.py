@@ -5,7 +5,7 @@ from pathlib import Path
 
 import click
 
-from relaxed.halo_catalogs import sims
+from relaxed.catalogs import sims
 from relaxed.progenitors import io_progenitors
 
 the_root = Path(__file__).absolute().parent.parent

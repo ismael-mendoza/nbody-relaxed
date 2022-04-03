@@ -1,9 +1,11 @@
 import numpy as np
-from relaxed.analysis import get_mah, get_t_from_a
-from tqdm import tqdm
 from diffmah.fit_mah_helpers import get_loss_data
 from diffmah.fit_mah_helpers import log_mah_mse_loss_and_grads
 from diffmah.utils import jax_adam_wrapper
+from tqdm import tqdm
+
+from relaxed.cosmo import get_t_from_a
+from relaxed.mah import get_mah
 
 
 mah_data = get_mah("m12", "output", cutoff_missing=0.05, cutoff_particle=0.05)

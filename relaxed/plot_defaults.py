@@ -46,10 +46,6 @@ plt.rc("text", usetex=True)
 colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 
 
-def get_bins(values, bins=30, **hist_kwargs):
-    return np.histogram(values, bins=bins, **hist_kwargs)[1]
-
-
 def draw_histogram(
     ax,
     values,

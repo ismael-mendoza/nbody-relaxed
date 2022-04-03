@@ -1,3 +1,4 @@
+"""Download ROCKSTAR tree information and process it with Consistent Trees."""
 import multiprocessing
 import os
 import re
