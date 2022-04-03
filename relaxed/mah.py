@@ -8,73 +8,18 @@ from scipy.interpolate import interp1d
 from relaxed import catalogs
 
 
-def determine_cutoffs(
-    Mvir,
-    scales,
-    cutoff_missing=0.05,
-    cutoff_particle=0.05,
-    particle_mass=1.35e8,
-    particle_res=50,
-):
-    """Return minimum scale to use for m(a) and minimum mass bin to use for a(m).
-
-    Args:
-        * Mvir: Raw virial mass accretion history, array w/ shape (n_samples, n_scales).
-
-        * cutoff_particle: is the percentage of haloes at a given scale that we tolerate
-            with < `particle_res` particles,
-
-        * cutoff_missing: the percentage of haloes with no progenitors we are OK discarding.
-            NOTE: Phil suggested to make this small so that we don't bias our samples
-            (late-forming haloes are more likely to have nan's at the end.)
-
-    """
-    # minimum virial mass we are comfortable with
-    min_mass = particle_res * particle_mass
-
-    # NOTE: Assumes that order is early -> late.
-    # determine scales we should cutoff based on percentage of NaN progenitors.
-    n_nan = np.sum(np.isnan(Mvir), axis=0) / len(Mvir)
-    idx1 = np.where(n_nan > cutoff_missing)[0][-1] + 1
-    min_scale1 = scales[idx1]
-
-    # NOTE: Assumes that order is early -> late.
-    # NOTE: These two cuts are different because ROCKSTAR does not limit to ~50 particles.
-    # determine scale we should cutoff based on num. of particles.
-    m_cutoff = np.nanquantile(Mvir, cutoff_particle, axis=0)  # it is monotonically decreasing
-    idx2 = np.where(m_cutoff < min_mass)[0][-1] + 1  # over scales NOT data points.
-    min_scale2 = scales[idx2]
-
-    # combine two criteria into one scale
-    min_scale = max(min_scale1, min_scale2)
-
-    # Now we want to do the same but for mass bins.
-    # NOTE: The explanation is that we want (1) minimum mass bin m0 such that at least
-    # 99% haloes have a progenitor at that mass bin and (2) minimum mass bin m0 such that
-    # 90% of haloes have their earliest a0 s.t. m(a0) > m0 satisfy m(a0) * Mvir(a=1)/ 1.35e8 > 50
-    # NOTE: (1) is exactly Phil's suggestin.
-    min_mass_bin1 = np.nanquantile(np.nanmin(Mvir, axis=1) / Mvir[:, -1], 1 - cutoff_missing)
-    min_mass_bin2 = np.nanquantile(min_mass / Mvir[:, -1], 1 - cutoff_particle)
-    assert isinstance(min_mass_bin1, float)
-    assert isinstance(min_mass_bin2, float)
-    min_mass_bin = max(min_mass_bin1, min_mass_bin2)
-
-    return min_scale, min_mass_bin
-
-
 def get_mah(
-    name="m12",
-    path="../../output",
+    outdir="../../data/processed/bolshoi_m12",
     cutoff_missing=0.05,
     cutoff_particle=0.05,
     particle_mass=1.35e8,  # Bolshoi
     particle_res=50,
     n_mass_bins=100,
 ):
-    """Get catalog, indices, scales from given catalog pipeline output name."""
-    output = f"{path}/{name}/"
-    cat_file = Path(output, "final_table.csv")
-    z_map_file = Path(output, "z_map.json")
+    """Get catalog, indices, scales from given catalog pipeline outdir path."""
+    outdir = Path(outdir)
+    cat_file = outdir.joinpath("final_table.csv")
+    z_map_file = outdir.joinpath("z_map.json")
 
     # load all available scales and indices.
     with open(z_map_file, "r") as fp:
@@ -218,3 +163,57 @@ def get_an_from_am(am, mass_bins, mbin=0.498):
     # default is `a_{n} = a_{1/2}`
     idx = np.where(mass_bins > mbin)[0][0]
     return am[:, idx]
+
+
+def determine_cutoffs(
+    Mvir,
+    scales,
+    cutoff_missing=0.05,
+    cutoff_particle=0.05,
+    particle_mass=1.35e8,
+    particle_res=50,
+):
+    """Return minimum scale to use for m(a) and minimum mass bin to use for a(m).
+
+    Args:
+        * Mvir: Raw virial mass accretion history, array w/ shape (n_samples, n_scales).
+
+        * cutoff_particle: is the percentage of haloes at a given scale that we tolerate
+            with < `particle_res` particles,
+
+        * cutoff_missing: the percentage of haloes with no progenitors we are OK discarding.
+            NOTE: Phil suggested to make this small so that we don't bias our samples
+            (late-forming haloes are more likely to have nan's at the end.)
+
+    """
+    # minimum virial mass we are comfortable with
+    min_mass = particle_res * particle_mass
+
+    # NOTE: Assumes that order is early -> late.
+    # determine scales we should cutoff based on percentage of NaN progenitors.
+    n_nan = np.sum(np.isnan(Mvir), axis=0) / len(Mvir)
+    idx1 = np.where(n_nan > cutoff_missing)[0][-1] + 1
+    min_scale1 = scales[idx1]
+
+    # NOTE: Assumes that order is early -> late.
+    # NOTE: These two cuts are different because ROCKSTAR does not limit to ~50 particles.
+    # determine scale we should cutoff based on num. of particles.
+    m_cutoff = np.nanquantile(Mvir, cutoff_particle, axis=0)  # it is monotonically decreasing
+    idx2 = np.where(m_cutoff < min_mass)[0][-1] + 1  # over scales NOT data points.
+    min_scale2 = scales[idx2]
+
+    # combine two criteria into one scale
+    min_scale = max(min_scale1, min_scale2)
+
+    # Now we want to do the same but for mass bins.
+    # NOTE: The explanation is that we want (1) minimum mass bin m0 such that at least
+    # 99% haloes have a progenitor at that mass bin and (2) minimum mass bin m0 such that
+    # 90% of haloes have their earliest a0 s.t. m(a0) > m0 satisfy m(a0) * Mvir(a=1)/ 1.35e8 > 50
+    # NOTE: (1) is exactly Phil's suggestin.
+    min_mass_bin1 = np.nanquantile(np.nanmin(Mvir, axis=1) / Mvir[:, -1], 1 - cutoff_missing)
+    min_mass_bin2 = np.nanquantile(min_mass / Mvir[:, -1], 1 - cutoff_particle)
+    assert isinstance(min_mass_bin1, float)
+    assert isinstance(min_mass_bin2, float)
+    min_mass_bin = max(min_mass_bin1, min_mass_bin2)
+
+    return min_scale, min_mass_bin
