@@ -60,12 +60,12 @@ def save_cat_csv(cat, cat_file: Path):
     ascii.write(cat, cat_file, format="csv")
 
 
-def load_cat_minh(self, minh_file: str, params: list, filters: dict, verbose=False):
+def load_cat_minh(minh_file: str, params: list, filters: dict, verbose=False):
     """Return astropy table of Halo present-day parameters from .minh catalog.
 
     Parameters are filtered on the fly to avoid memory errors.
     """
-    assert self.cat_file.name.endswith(".minh")
+    assert Path(minh_file).name.endswith(".minh")
     assert set(filters.keys()).issubset(set(params))
     if verbose:
         warnings.warn("Divide by zero errors are ignored, and filtered out.")
