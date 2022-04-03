@@ -3,22 +3,16 @@ import numpy as np
 from scipy import stats
 
 
-def get_ma_corrs(cat, param, indices):
+def get_ma_corrs(cat, param, ma):
     corrs = []
-    for k in indices:
-        colname = f"mvir_a{k}"
-        keep = (~np.isnan(cat[colname])) & (cat[colname] > 0)
-
-        # get mass fraction at this scale
-        mvir = cat["mvir"][keep]
-        ms = cat[colname][keep]
-        ms = ms / mvir
-        pvalue = cat[param][keep]
+    n_scales = ma.shape[1]
+    for k in range(n_scales):
+        keep = (~np.isnan(ma[:, k])) & (ma[:, k] > 0)
+        ma_k = ma[:, k][keep]
 
         # get correlation.
-        assert np.all(ms > 0) and np.all(~np.isnan(ms))
-        assert np.all(mvir > 0)
-        corr = stats.spearmanr(ms, pvalue)[0]
+        assert np.all(ma_k > 0) and np.all(~np.isnan(ma_k))
+        corr = stats.spearmanr(ma_k, cat[param][keep])[0]
         corrs.append(corr)
 
     return np.array(corrs)
