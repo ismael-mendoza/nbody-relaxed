@@ -4,18 +4,6 @@ import numpy as np
 
 plt.style.use("seaborn-colorblind")
 
-latex_params = {
-    "cvir": r"$c_{\rm vir}$",
-    "t/|u|": r"$t/\vert u \vert$",
-    "x0": r"$x_{\rm off}$",
-    "spin": r"$\lambda$",
-    "q": r"$q$",
-    "spin_bullock": r"$\lambda_{\rm bullock}$",
-    "b_to_a": r"$b/a$",
-    "c_to_a": r"$c/a$",
-    "cvir_klypin": r"$c_{\rm vir, klypin}$",
-}
-
 
 mpl.rcParams.update(
     {
@@ -43,7 +31,46 @@ plt.rc("font", **{"family": "sans-serif", "sans-serif": ["Helvetica"]})
 plt.rc("text", usetex=True)
 
 
-colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+default_colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+cb_colors = [
+    "#377eb8",
+    "#ff7f00",
+    "#4daf4a",
+    "#f781bf",
+    "#a65628",
+    "#984ea3",
+    "#999999",
+    "#e41a1c",
+    "#dede00",
+]
+
+latex_params = {
+    "cvir": r"$c_{\rm vir}$",
+    "t/|u|": r"$t/\vert u \vert$",
+    "x0": r"$x_{\rm off}$",
+    "spin": r"$\lambda$",
+    "q": r"$q$",
+    "spin_bullock": r"$\lambda_{\rm bullock}$",
+    "b_to_a": r"$b/a$",
+    "c_to_a": r"$c/a$",
+    "cvir_klypin": r"$c_{\rm vir, klypin}$",
+    "a2": r"$a_{1/2}$",
+    "a4": r"$a_{3/4}$",
+    "alpha": r"$\alpha$",
+    "mdyn": r"$m(a_{\rm dyn})$",
+    "tau_c": r"$\tau_{c}$",
+    "alpha_early": r"$\alpha_{\rm early}$",
+    "alpha_late": r"$\alpha_{\rm late}$",
+}
+
+latex_metrics = {
+    "mu": r"$\mu \left( y_{\rm pred} - y_{\rm true} \right)$",
+    "med": r"$\mu_{x}'$",
+    "sigma_ratio": r"$\sigma_{\rm pred} / \sigma_{\rm true}$",
+    "spear": r"$\rho_{\rm spearman} \left(y_{\rm true}, y_{\rm pred} \right)$",
+    "rscatter": r"$\frac{\sigma(y_{\rm pred} - y_{\rm true})}{ \sigma(y_{\rm true}) \sqrt{2}}$",
+    "mad": r"\rm MAD",
+}
 
 
 def draw_histogram(
