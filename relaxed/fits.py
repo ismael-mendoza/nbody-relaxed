@@ -58,6 +58,7 @@ def get_early_late(ue, ul):
 
 # k = 3.5 is kept constant in Hearin2021
 def alpha_diffmah(t, tau_c, alpha_early, alpha_late, k=3.5):
+    # t and tau_c in Gyrs
     return alpha_early + (alpha_late - alpha_early) / (1 + np.exp(-k * (t - tau_c)))
 
 
