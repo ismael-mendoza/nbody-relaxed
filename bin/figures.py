@@ -709,11 +709,11 @@ def make_pred_plots():
 
 
 def make_figures():
-    # make_correlation_mah_plots()
-    # make_triangle_plots()
-    # make_am_pred_plots()
+    make_correlation_mah_plots()
+    make_triangle_plots()
+    make_am_pred_plots()
     make_inv_pred_plots()
-    # make_pred_plots()
+    make_pred_plots()
 
 
 if __name__ == "__main__":
