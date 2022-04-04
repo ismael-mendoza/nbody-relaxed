@@ -486,7 +486,7 @@ def make_inv_pred_plots():
             markers[3],
         ),
     }
-    fig = metrics_plot(
+    fig = rxplots.metrics_plot(
         metrics_data,
         test_data,
         models,
@@ -626,7 +626,8 @@ def make_pred_plots():
         #     "kwargs": {"to_marginal_normal": True, "use_multicam": True},
         # },
         # 'gradients': {
-        #     'xy': datasets['gradients']['train'], 'n_features': 100 + 165, 'n_targets': len(params),
+        #     'xy': datasets['gradients']['train'], 'n_features': 100 + 165, 'n_targets':
+        # len(params),
         #     'model': 'linear', 'kwargs': {'to_marginal_normal':True , 'use_multicam': True},
         # },
         # "overfitting5": {
@@ -673,7 +674,8 @@ def make_pred_plots():
             rxplots.cb_colors[3],
             markers[3],
         ),
-        # 'multicam_diffmah': (datasets['diffmah']['test'][0], r"\rm MultiCAM DiffMAH parameters", 'b', 's'),
+        # 'multicam_diffmah': (datasets['diffmah']['test'][0], r"\rm MultiCAM DiffMAH parameters",
+        # 'b', 's'),
         # "overfitting5": (
         #     datasets["overfitting5"]["test"][0],
         #     r"\rm MultiCAM subsampled every 5",
@@ -686,9 +688,10 @@ def make_pred_plots():
         #     "k",
         #     "*",
         # ),
-        # 'gradients': (datasets['gradients']['test'][0], r"\rm MultiCAM Gradients + MAH", 'k', '*'),
+        # 'gradients': (datasets['gradients']['test'][0], r"\rm MultiCAM Gradients + MAH", 'k',
+        # '*'),
     }
-    fig = metrics_plot(
+    fig = rxplots.metrics_plot(
         metrics_data,
         test_data,
         models,
