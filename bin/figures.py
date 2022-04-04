@@ -496,7 +496,7 @@ def make_inv_pred_plots():
         y_label_size=26,
         bbox_to_anchor=(0.0, 1.0, 0.45, 0.45),
     )
-    figfile = figsdir.joinpath("inv_pred.jpg")
+    figfile = figsdir.joinpath("inv_pred.png")
     fig.savefig(figfile)
 
 
@@ -704,7 +704,7 @@ def make_pred_plots():
         y_label_size=32,
         bbox_to_anchor=(0.0, 1.0, 0.45, 0.45),
     )
-    figfile = figsdir.joinpath("pred_plots.jpg")
+    figfile = figsdir.joinpath("pred_plots.png")
     fig.savefig(figfile)
 
 
