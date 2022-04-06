@@ -137,19 +137,22 @@ def metrics_plot(
     cat_test,
     params=("cvir",),
     figsize=(12, 12),
-    nrows=2,
-    ncols=2,
+    nrows=1,
+    ncols=1,
     ticksize=16,
     bbox_to_anchor=(0.0, 1.0, 0.3, 0.3),
     y_label_size=28,
+    ms=10,
 ):
     # NOTE: params and models MUST have same order
     fig, axes = plt.subplots(nrows, ncols, figsize=figsize)
+    if nrows == 1 and ncols == 1:
+        axes = np.array([axes])
     axes = axes.flatten()
     model_metrics = {}
 
     for jj, param in enumerate(params):
-        for mdl_name, (x_test, label, color, shape) in test_data.items():
+        for mdl_name, (x_test, label, color, _) in test_data.items():
             model = trained_models[mdl_name]
             pred_func = lambda x: model.predict(x)[:, jj]  # noqa: E731
             y_test = cat_test[param].value.reshape(-1)
@@ -179,10 +182,10 @@ def metrics_plot(
                     val,
                     yerr=err,
                     label=label,
-                    marker=marker,
+                    fmt=marker,
                     color=color,
                     capsize=2.5,
-                    ms=6,
+                    ms=ms,
                     capthick=2.0,
                 )
             x_bias += 0.1
