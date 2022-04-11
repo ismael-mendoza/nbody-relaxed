@@ -238,6 +238,7 @@ def make_am_pred_plots():
     cat = mah_data["cat"]
     am = mah_data["am"]
     mass_bins = mah_data["mass_bins"]
+    mass_bins = mass_bins[:-1]  # remove last bin to avoid spearman error.
 
     # prepare catalog with all a(m)
     am_names = [f"am_{ii}" for ii in range(len(mass_bins))]
@@ -261,28 +262,28 @@ def make_am_pred_plots():
         "linear_cvir": {
             "xy": datasets["cvir_only"]["train"],
             "n_features": 1,
-            "n_targets": 100,
+            "n_targets": 99,
             "model": "linear",
             "kwargs": {"to_marginal_normal": True, "use_multicam": True},
         },
         "linear_x0": {
             "xy": datasets["x0_only"]["train"],
             "n_features": 1,
-            "n_targets": 100,
+            "n_targets": 99,
             "model": "linear",
             "kwargs": {"to_marginal_normal": True, "use_multicam": True},
         },
         "linear_tu": {
             "xy": datasets["tu_only"]["train"],
             "n_features": 1,
-            "n_targets": 100,
+            "n_targets": 99,
             "model": "linear",
             "kwargs": {"to_marginal_normal": True, "use_multicam": True},
         },
         "linear_all": {
             "xy": datasets["all"]["train"],
             "n_features": 7,
-            "n_targets": 100,
+            "n_targets": 99,
             "model": "linear",
             "kwargs": {"to_marginal_normal": True, "use_multicam": True},
         },
@@ -451,12 +452,10 @@ def make_inv_pred_plots():
 
     # make metrics plot
     metrics_data = {
-        "spear": {
-            "yrange": (0, 0.85),
-        },
-        "rscatter": {},
-        "sigma_ratio": {"yrange": (0.8, 1.2), "hline": 1.0},
-        "mu": {"yrange": (-0.1, 0.1), "hline": 0.0},
+        "spear": {"yrange": (0, 0.85)},
+        # "rscatter": {},
+        # "sigma_ratio": {"yrange": (0.8, 1.2), "hline": 1.0},
+        # "mu": {"yrange": (-0.1, 0.1), "hline": 0.0},
     }
 
     markers = ["o", "D", "s", "^"]
@@ -492,6 +491,8 @@ def make_inv_pred_plots():
         models,
         cat_test,
         params,
+        nrows=1,
+        ncols=1,
         ticksize=22,
         y_label_size=26,
         bbox_to_anchor=(0.0, 1.0, 0.45, 0.45),
@@ -511,6 +512,11 @@ def make_pred_plots():
     scales = mah_data["scales"]
     mass_bins = mah_data["mass_bins"]
 
+    # prepare catalog with all m_a
+    ma_names = [f"ma_{ii}" for ii in range(len(scales))]
+    for ii in range(len(scales)):
+        cat.add_column(ma[:, ii], name=ma_names[ii])
+
     # prepare catalog with all a_m
     am_names = [f"am_{ii}" for ii in range(len(mass_bins))]
     for ii in range(len(mass_bins)):
@@ -521,13 +527,22 @@ def make_pred_plots():
     alphas, _, _ = alpha_analysis(ma, scales, mass_bins, alpha_file=alpha_file)
     cat.add_column(alphas, name="alpha")
 
-    # load diffmah fits
+    # load diffmah parameters of best fits.
     pars = np.load(root.joinpath("data", "processed", "pbest_diffmah.npy"))
     logtc, ue, ul = pars[:, 0], pars[:, 1], pars[:, 2]
     early, late = get_early_late(ue, ul)
     cat.add_column(10**logtc, name="tau_c")
     cat.add_column(early, name="alpha_early")
     cat.add_column(late, name="alpha_late")
+
+    # load diffmah fits curves.
+    diffmah_curves = np.load(root.joinpath("data", "processed", "diffmah_fits.npy"))
+    ma_diffmah_names = [f"ma_diffmah_{ii}" for ii in range(len(scales))]
+    for ii in range(len(scales)):
+        cat.add_column(diffmah_curves[:, ii], name=ma_diffmah_names[ii])
+
+    # add a_{1/2} also as alternative parametrization
+    cat.add_column(get_an_from_am(am, mass_bins, 0.5), name="a2")
 
     # add savitsky-golay gradients
     ks = [11, 21, 41, 81, 121, 161]
@@ -543,10 +558,7 @@ def make_pred_plots():
     ]
     assert delta_k and all_grad_names
 
-    # add a_{1/2} also as alternative parametrization
-    cat.add_column(get_an_from_am(am, mass_bins, 0.5), name="a2")
-
-    # add to catalog
+    # add gradients to catalog catalog
     for k in ks:
         for jj in range(gamma_k[k].shape[1]):
             name = grad_names_k[k][jj]
@@ -554,20 +566,28 @@ def make_pred_plots():
             cat.add_column(value, name=name)
 
     info = {
-        "all": {
+        "ma": {
+            "x": ma_names,
+            "y": params,
+        },
+        "am": {
             "x": am_names,
+            "y": params,
+        },
+        "ma_diffmah": {
+            "x": ma_diffmah_names,
+            "y": params,
+        },
+        "params_diffmah": {
+            "x": ("tau_c", "alpha_early", "alpha_late"),
+            "y": params,
+        },
+        "new_params_diffmah": {
+            "x": ("tau_c", "a2", "alpha_late"),
             "y": params,
         },
         "alpha": {
             "x": ("alpha",),
-            "y": params,
-        },
-        "diffmah": {
-            "x": ("tau_c", "alpha_early", "alpha_late"),
-            "y": params,
-        },
-        "diffmah_new": {
-            "x": ("tau_c", "a2", "alpha_late"),
             "y": params,
         },
         "gradients": {
@@ -586,29 +606,29 @@ def make_pred_plots():
     datasets, _, cat_test = prepare_datasets(cat, info)
 
     data = {
-        "multicam": {
-            "xy": datasets["all"]["train"],
-            "n_features": 100,
+        "multicam_ma": {
+            "xy": datasets["ma"]["train"],
+            "n_features": 165,
             "n_targets": len(params),
             "model": "linear",
             "kwargs": {"to_marginal_normal": True, "use_multicam": True},
         },
-        "multicam_alpha": {
-            "xy": datasets["alpha"]["train"],
-            "n_features": 1,
+        "multicam_ma_diffmah": {
+            "xy": datasets["ma_diffmah"]["train"],
+            "n_features": 165,
             "n_targets": len(params),
             "model": "linear",
             "kwargs": {"to_marginal_normal": True, "use_multicam": True},
         },
-        "multicam_diffmah_new": {
-            "xy": datasets["diffmah_new"]["train"],
+        "multicam_params_diffmah": {
+            "xy": datasets["params_diffmah"]["train"],
             "n_features": 3,
             "n_targets": len(params),
             "model": "linear",
             "kwargs": {"to_marginal_normal": True, "use_multicam": True},
         },
-        "mixed_cam": {
-            "xy": datasets["all"]["train"],
+        "optcam": {
+            "xy": datasets["am"]["train"],
             "n_features": 100,
             "n_targets": len(params),
             "model": "mixed_cam",
@@ -618,9 +638,16 @@ def make_pred_plots():
                 "cam_orders": [opcam_dict[param]["order"] for param in params],
             },
         },
-        # "multicam_diffmah": {
-        #     "xy": datasets["diffmah"]["train"],
+        # "multicam_diffmah_new": {
+        #     "xy": datasets["diffmah_new"]["train"],
         #     "n_features": 3,
+        #     "n_targets": len(params),
+        #     "model": "linear",
+        #     "kwargs": {"to_marginal_normal": True, "use_multicam": True},
+        # },
+        # "multicam_alpha": {
+        #     "xy": datasets["alpha"]["train"],
+        #     "n_features": 1,
         #     "n_targets": len(params),
         #     "model": "linear",
         #     "kwargs": {"to_marginal_normal": True, "use_multicam": True},
@@ -647,40 +674,49 @@ def make_pred_plots():
     }
     models = training_suite(data)
     metrics_data = {
-        "spear": {"yrange": (0.25, 0.85)},
-        "rscatter": {"yrange": (0.3, 1.0)},
-        "sigma_ratio": {"yrange": (0.8, 1.2), "hline": 1.0},
-        "mu": {"yrange": (-0.2, 0.2), "hline": 0.0},
+        "spear": {"yrange": (0.3, 0.85)},
+        # "rscatter": {"yrange": (0.3, 1.0)},
+        # "sigma_ratio": {"yrange": (0.8, 1.2), "hline": 1.0},
+        # "mu": {"yrange": (-0.2, 0.2), "hline": 0.0},
     }
 
-    markers = ["o", "D", "s", "^"]
+    markers = ["o", "v", "^", "D", "*"]
     test_data = {
-        "multicam": (datasets["all"]["test"][0], r"\rm MultiCAM", rxplots.cb_colors[0], markers[0]),
-        "multicam_alpha": (
-            datasets["alpha"]["test"][0],
-            r"\rm MultiCAM $\alpha$ only",
-            rxplots.cb_colors[1],
-            markers[1],
+        "multicam_ma": (
+            datasets["ma"]["test"][0],
+            r"\rm MultiCAM $m(a)$",
+            rxplots.cb_colors[0],
+            markers[0],
         ),
-        "multicam_diffmah_new": (
-            datasets["diffmah_new"]["test"][0],
-            r"\rm MultiCAM DiffMAH parameters with $a_{1/2}$",
+        "multicam_ma_diffmah": (
+            datasets["ma_diffmah"]["test"][0],
+            r"\rm MultiCAM DiffMAH $m(a)$ curves",
             rxplots.cb_colors[2],
             markers[2],
         ),
-        "mixed_cam": (
-            datasets["all"]["test"][0],
-            r"\rm Optimal CAM",
+        "multicam_params_diffmah": (
+            datasets["params_diffmah"]["test"][0],
+            r"\rm MultiCAM DiffMAH parameters",
+            rxplots.cb_colors[1],
+            markers[1],
+        ),
+        "optcam": (
+            datasets["am"]["test"][0],
+            r"\rm CAM $a_{\rm opt}$",
             rxplots.cb_colors[3],
             markers[3],
         ),
-        # 'multicam_diffmah': (datasets['diffmah']['test'][0], r"\rm MultiCAM DiffMAH parameters",
-        # 'b', 's'),
         # "overfitting5": (
         #     datasets["overfitting5"]["test"][0],
         #     r"\rm MultiCAM subsampled every 5",
         #     "g",
         #     "D",
+        # ),
+        # "multicam_alpha": (
+        #     datasets["alpha"]["test"][0],
+        #     r"\rm MultiCAM $\alpha$ only",
+        #     rxplots.cb_colors[1],
+        #     markers[1],
         # ),
         # "overfitting10": (
         #     datasets["overfitting10"]["test"][0],
@@ -697,22 +733,23 @@ def make_pred_plots():
         models,
         cat_test,
         params=params,
-        ncols=2,
-        nrows=2,
-        figsize=(21, 21),
+        ncols=1,
+        nrows=1,
+        figsize=(10, 10),
         ticksize=28,
         y_label_size=32,
         bbox_to_anchor=(0.0, 1.0, 0.45, 0.45),
+        ms=8,
     )
     figfile = figsdir.joinpath("pred_plots.png")
     fig.savefig(figfile)
 
 
 def make_figures():
-    make_correlation_mah_plots()
-    make_triangle_plots()
-    make_am_pred_plots()
-    make_inv_pred_plots()
+    # make_correlation_mah_plots()
+    # make_triangle_plots()
+    # make_am_pred_plots()
+    # make_inv_pred_plots()
     make_pred_plots()
 
 
