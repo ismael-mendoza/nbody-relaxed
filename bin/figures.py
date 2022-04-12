@@ -231,14 +231,23 @@ def make_triangle_plots():
     make_triangle("optcam", params, joint_models, datasets, sample_fn, figfile)
 
 
-def make_am_pred_plots():
+def make_mah_pred_plots():
+    set_rc(fontsize=28, lgsize=18, figsize=(9, 6))
     mahdir = root.joinpath("data", "processed", "bolshoi_m12")
     mah_data = get_mah(mahdir, cutoff_missing=0.05, cutoff_particle=0.05)
 
     cat = mah_data["cat"]
+    ma = mah_data["ma"]
     am = mah_data["am"]
-    mass_bins = mah_data["mass_bins"]
-    mass_bins = mass_bins[:-1]  # remove last bin to avoid spearman error.
+    mass_bins = mah_data["mass_bins"][:-1]  # remove last bin to avoid spearman error.
+    scales = mah_data["scales"][:-1]  # same for scales.
+    n_mbins = len(mass_bins)
+    n_scales = len(scales)
+
+    # prepare catalog with all m_a
+    ma_names = [f"ma_{ii}" for ii in range(len(scales))]
+    for ii in range(len(scales)):
+        cat.add_column(ma[:, ii], name=ma_names[ii])
 
     # prepare catalog with all a(m)
     am_names = [f"am_{ii}" for ii in range(len(mass_bins))]
@@ -247,12 +256,12 @@ def make_am_pred_plots():
 
     # prepare datasets
     info = {
-        "cvir_only": {"x": ("cvir",), "y": am_names},
-        "x0_only": {"x": ("x0",), "y": am_names},
-        "tu_only": {"x": ("t/|u|",), "y": am_names},
+        "cvir_only": {"x": ("cvir",), "y": am_names + ma_names},
+        "x0_only": {"x": ("x0",), "y": am_names + ma_names},
+        "tu_only": {"x": ("t/|u|",), "y": am_names + ma_names},
         "all": {
             "x": ("cvir", "cvir_klypin", "t/|u|", "x0", "spin_bullock", "c_to_a", "b_to_a"),
-            "y": am_names,
+            "y": am_names + ma_names,
         },
     }
     datasets, _, _ = prepare_datasets(cat, info)
@@ -262,54 +271,54 @@ def make_am_pred_plots():
         "linear_cvir": {
             "xy": datasets["cvir_only"]["train"],
             "n_features": 1,
-            "n_targets": 99,
+            "n_targets": n_mbins + n_scales,
             "model": "linear",
             "kwargs": {"to_marginal_normal": True, "use_multicam": True},
         },
         "linear_x0": {
             "xy": datasets["x0_only"]["train"],
             "n_features": 1,
-            "n_targets": 99,
+            "n_targets": n_mbins + n_scales,
             "model": "linear",
             "kwargs": {"to_marginal_normal": True, "use_multicam": True},
         },
         "linear_tu": {
             "xy": datasets["tu_only"]["train"],
             "n_features": 1,
-            "n_targets": 99,
+            "n_targets": n_mbins + n_scales,
             "model": "linear",
             "kwargs": {"to_marginal_normal": True, "use_multicam": True},
         },
         "linear_all": {
             "xy": datasets["all"]["train"],
             "n_features": 7,
-            "n_targets": 99,
+            "n_targets": n_mbins + n_scales,
             "model": "linear",
             "kwargs": {"to_marginal_normal": True, "use_multicam": True},
         },
     }
     models = training_suite(data)
 
-    corrs = {}
-    sigmas_x = {}
+    corrs_am = {}
+    corrs_ma = {}
     dataset_names = ["cvir_only", "x0_only", "tu_only", "all"]
     mdl_names = ["linear_cvir", "linear_x0", "linear_tu", "linear_all"]
     for dataset_names, mdl_name in zip(dataset_names, mdl_names):
         model = models[mdl_name]
         x_test, y_test = datasets[dataset_names]["test"]
         y_pred = model.predict(x_test)
-        corrs[mdl_name] = np.array(
-            [spearmanr(y_pred[:, jj], y_test[:, jj]).correlation for jj in range(y_pred.shape[1])]
+        corrs_am[mdl_name] = np.array(
+            [spearmanr(y_pred[:, jj], y_test[:, jj]).correlation for jj in range(n_mbins)]
         )
-        sigmas_x[mdl_name] = np.array(
+        corrs_ma[mdl_name] = np.array(
             [
-                np.std(y_pred[:, jj] - y_test[:, jj]) / (np.sqrt(2) * np.std(y_test[:, jj]))
-                for jj in range(y_pred.shape[1])
+                spearmanr(y_pred[:, jj + n_mbins], y_test[:, jj + n_mbins]).correlation
+                for jj in range(n_scales)
             ]
         )
 
     # (1) Correlation a(m) vs a_pred(m) figure
-    fig, ax = plt.subplots(1, 1, figsize=(12, 8))
+    fig, ax = plt.subplots(1, 1)
     nice_names = [
         r"\rm MultiCAM $c_{\rm vir}$ only",
         r"\rm MultiCAM $x_{\rm off}$ only",
@@ -317,47 +326,28 @@ def make_am_pred_plots():
         r"\rm MultiCAM all parameters",
     ]
     for nice_name, mdl_name in zip(nice_names, mdl_names):
-        ax.plot(mass_bins, corrs[mdl_name], label=nice_name)
+        ax.plot(mass_bins, corrs_am[mdl_name], label=nice_name)
     ax.set_xlabel("$m$")
-    ax.set_ylabel("$\\rho(a_{m}, a_{m, \\rm{pred}})$")
+    ax.set_ylabel(r"$\rho(a_{m}, a_{m, \rm{pred}})$")
+    ax.set_yticks([0.2, 0.4, 0.6, 0.8])
+    ax.set_yticklabels(f"${x:.1f}$" for x in ax.get_yticks())
     ax.legend()
-
-    # (1) Correlation a(m) vs a_pred(m) figure
-    fig, ax = plt.subplots(1, 1, figsize=(12, 8))
-    nice_names = [
-        r"\rm MultiCAM $c_{\rm vir}$ only",
-        r"\rm MultiCAM $x_{\rm off}$ only",
-        r"\rm MultiCAM $T / \vert U \vert$ only",
-        r"\rm MultiCAM all parameters",
-    ]
-    for nice_name, mdl_name in zip(nice_names, mdl_names):
-        ax.plot(mass_bins, corrs[mdl_name], label=nice_name)
-    ax.set_xlabel("$m$")
-    ax.set_ylabel("$\\rho(a_{m}, a_{m, \\rm{pred}})$")
-    ax.legend()
-    figfile = figsdir.joinpath("corr_pred_am.png")
+    figfile = figsdir.joinpath("corr_pred_mah_am.png")
     fig.savefig(figfile)
 
-    # (2) Sigma scatter a(m) vs a_pred(m) figure
-    fig, ax = plt.subplots(1, 1, figsize=(12, 8))
-    nice_names = [
-        r"\rm MultiCAM $c_{\rm vir}$ only",
-        r"\rm MultiCAM $x_{\rm off}$ only",
-        r"\rm MultiCAM $\eta$ only",
-        r"\rm MultiCAM all parameters",
-    ]
+    # (2) Correlation m(a) vs m_pred(a) figure
+    fig, ax = plt.subplots(1, 1)
     for nice_name, mdl_name in zip(nice_names, mdl_names):
-        ax.plot(mass_bins, sigmas_x[mdl_name], label=nice_name)
-    ax.set_xlabel("$m$")
-    ax.set_ylabel(
-        r"$\frac{\sigma(a_{m, \rm pred} - a_{m, \rm true})}{ \sigma(a_{m, \rm true}) \sqrt{2}}$",
-    )
+        ax.plot(scales, corrs_ma[mdl_name], label=nice_name)
+    ax.set_xlabel("$a$")
+    ax.set_ylabel(r"$\rho(m_{a}, m_{a, \rm{pred}})$")
     ax.legend()
-    figfile = figsdir.joinpath("scatter_pred_am.png")
+    figfile = figsdir.joinpath("corr_pred_mah_ma.png")
     fig.savefig(figfile)
 
 
 def make_inv_pred_plots():
+    set_rc()
     mahdir = root.joinpath("data", "processed", "bolshoi_m12")
     mah_data = get_mah(mahdir, cutoff_missing=0.05, cutoff_particle=0.05)
 
@@ -489,6 +479,7 @@ def make_inv_pred_plots():
 
 
 def make_pred_plots():
+    set_rc()
     params = ("cvir", "cvir_klypin", "t/|u|", "x0", "b_to_a", "c_to_a", "spin_bullock")
     mahdir = root.joinpath("data", "processed", "bolshoi_m12")
     mah_data = get_mah(mahdir, cutoff_missing=0.05, cutoff_particle=0.05)
@@ -746,10 +737,10 @@ def make_covariance_am_plot():
     fig.savefig(figfile)
 
 
-def make_figures():
-    make_correlation_mah_plots()
+def main():
+    # make_correlation_mah_plots()
     # make_triangle_plots()
-    # make_am_pred_plots()
+    make_mah_pred_plots()
     # make_inv_pred_plots()
     # make_pred_plots()
     # make_covariance_am_plot()
@@ -757,4 +748,4 @@ def make_figures():
 
 
 if __name__ == "__main__":
-    make_figures()
+    main()
