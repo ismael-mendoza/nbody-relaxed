@@ -5,52 +5,82 @@ from scipy.stats import spearmanr
 
 from relaxed.correlations import vol_jacknife_err
 
+cb_colors_dict = {
+    "blue": "#377eb8",
+    "orange": "#ff7f00",
+    "green": "#4daf4a",
+    "purple": "#984ea3",
+    "pink": "#f781bf",
+    "brown": "#a65628",
+    "red": "#e41a1c",
+    "yellow": "#dede00",
+    "gray": "#999999",
+}
+CB_COLORS = list(cb_colors_dict.values())
+MARKS = ["o", "v", "^", "D", "*"]
 
-plt.style.use("seaborn-colorblind")
 
-
-mpl.rcParams.update(
-    {
+def set_rc(
+    figsize=(7, 7),
+    fontsize=20,
+    major_ticksize=8,
+    minor_ticksize=5,
+    major_tickwidth=1.0,
+    minor_tickwidth=0.8,
+    ms=8,
+    mew=2.0,
+    lw=2.0,
+    capsize=2.0,
+    lgloc="best",
+    lgsize="small",
+):
+    # relative to fontsize options: 'xx-small', 'x-small', 'small', 'medium', 'large', 'x-large'
+    rc_params = {
         # figure
-        "figure.figsize": (10, 10),
+        "figure.figsize": figsize,  # default single axis
+        # font.
+        "font.family": "sans-serif",
+        "font.sans-serif": "Helvetica",
+        "text.usetex": True,
+        "text.latex.preamble": r"\usepackage{amsmath}",
+        "mathtext.fontset": "cm",
+        "font.size": fontsize,
         # axes
-        "axes.labelsize": 24,
-        "axes.titlesize": 28,
+        "axes.labelsize": "medium",
+        "axes.titlesize": "large",
         # ticks
-        "xtick.major.size": 10,
-        "xtick.minor.size": 5,
-        "xtick.major.width": 0.8,
-        "xtick.minor.width": 0.6,
-        "xtick.labelsize": 22,
-        "ytick.major.size": 10,
-        "ytick.minor.size": 5,
-        "ytick.major.width": 0.8,
-        "ytick.minor.width": 0.6,
-        "ytick.labelsize": 22,
+        "xtick.labelsize": "small",
+        "ytick.labelsize": "small",
+        "xtick.major.size": major_ticksize,
+        "ytick.major.size": major_ticksize,
+        "ytick.minor.size": minor_ticksize,
+        "xtick.minor.size": minor_ticksize,
+        "xtick.major.width": major_tickwidth,
+        "ytick.major.width": major_tickwidth,
+        "xtick.minor.width": minor_tickwidth,
+        "ytick.minor.width": minor_tickwidth,
+        # lines and markers
+        "lines.markersize": ms,
+        "lines.markeredgewidth": mew,
+        "lines.linewidth": lw,
+        # errobars
+        "errorbar.capsize": capsize,
+        # colors
+        "axes.prop_cycle": mpl.cycler(color=CB_COLORS),
+        # images
+        "image.cmap": "bwr",
         # legend
-        "legend.fontsize": 22,
+        "legend.loc": lgloc,
+        "legend.fontsize": lgsize,
+        # figures
+        "figure.autolayout": True,  # same as 'tight_layout'
     }
-)
-plt.rc("font", **{"family": "sans-serif", "sans-serif": ["Helvetica"]})
-plt.rc("text", usetex=True)
+    mpl.rcParams.update(rc_params)
 
-
-default_colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
-cb_colors = [
-    "#377eb8",
-    "#ff7f00",
-    "#4daf4a",
-    "#f781bf",
-    "#a65628",
-    "#984ea3",
-    "#999999",
-    "#e41a1c",
-    "#dede00",
-]
 
 latex_params = {
     "cvir": r"$c_{\rm vir}$",
-    "t/|u|": r"$t/\vert u \vert$",
+    "t/|u|": r"$T/\vert U \vert$",
     "x0": r"$x_{\rm off}$",
     "spin": r"$\lambda$",
     "q": r"$q$",
@@ -139,10 +169,6 @@ def metrics_plot(
     figsize=(12, 12),
     nrows=1,
     ncols=1,
-    ticksize=16,
-    bbox_to_anchor=(0.0, 1.0, 0.3, 0.3),
-    y_label_size=28,
-    ms=10,
 ):
     # NOTE: params and models MUST have same order
     fig, axes = plt.subplots(nrows, ncols, figsize=figsize)
@@ -171,30 +197,18 @@ def metrics_plot(
                 ax.set_ylim(metrics_data[met]["yrange"])
         ax.set_xticks(np.array(list(range(len(params)))))
         ax.set_xticklabels(params_latex)
-        ax.tick_params(axis="x", labelsize=ticksize)
         x_bias = 0.0
         for mdl_name, (x_test, label, color, marker) in test_data.items():
             for jj, param in enumerate(params):
                 label = label if (jj == 0 and ii == 0) else None
                 val, err = model_metrics[(param, mdl_name)][met]
-                ax.errorbar(
-                    jj + x_bias,
-                    val,
-                    yerr=err,
-                    label=label,
-                    fmt=marker,
-                    color=color,
-                    capsize=2.5,
-                    ms=ms,
-                    capthick=2.0,
-                )
+                ax.errorbar(jj + x_bias, val, yerr=err, label=label, fmt=marker, color=color)
             x_bias += 0.1
 
-        ax.set_ylabel(latex_metrics[met], size=y_label_size)
+        ax.set_ylabel(latex_metrics[met])
         if metrics_data[met].get("hline", None) is not None:
             ax.axhline(metrics_data[met]["hline"], ls="--", color="k")
 
-        if ii == 0:
-            ax.legend(loc="lower left", bbox_to_anchor=bbox_to_anchor)
+    axes[ii].legend(loc="lower left")
     plt.tight_layout()
     return fig
