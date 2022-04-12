@@ -21,6 +21,9 @@ from relaxed.mah import get_mah
 from relaxed.models import opcam_dict
 from relaxed.models import prepare_datasets
 from relaxed.models import training_suite
+from relaxed.plotting import CB_COLORS
+from relaxed.plotting import MARKS
+from relaxed.plotting import set_rc
 
 plt.ioff()
 
@@ -31,8 +34,9 @@ figsdir.mkdir(exist_ok=True, parents=False)
 
 
 def make_correlation_mah_plots():
-    params = ["cvir", "cvir_klypin", "x0", "t/|u|", "spin", "spin_bullock", "q", "b_to_a", "c_to_a"]
-    lss = np.array(["-", "--"])
+    set_rc(figsize=(7, 7), fontsize=24, lgsize=14)
+    params = ["cvir", "cvir_klypin", "x0", "t/|u|", "spin_bullock", "b_to_a", "c_to_a"]
+    lss = np.array(["-", ":"])
 
     # load data
     mahdir = root.joinpath("data", "processed", "bolshoi_m12")
@@ -50,13 +54,13 @@ def make_correlation_mah_plots():
     mass_bins = mass_bins[:-1]
 
     # (1) Correlation with m(a)
-    fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+    fig, ax = plt.subplots(1, 1)
     tdyn = np.mean(cat["tdyn"]) / 10**9  # Gyr which astropy also returns by default
     max_dict = {}
 
     for j, param in enumerate(params):
         latex_param = rxplots.latex_params[param]
-        color = rxplots.cb_colors[j]
+        color = CB_COLORS[j]
         corrs = get_ma_corrs(cat, param, ma)
         pos = corrs > 0
         neg = ~pos
@@ -67,17 +71,17 @@ def make_correlation_mah_plots():
         # plot positive corr and negative corr with different markers.
         if sum(pos) > 0:
             label = f"${latex_param}$" if sum(pos) > sum(neg) else None
-            ax.plot(scales[pos], _corrs[pos], color=color, ls=lss[0], label=label, markersize=7)
+            ax.plot(scales[pos], _corrs[pos], color=color, ls=lss[0], label=label)
 
         if sum(neg) > 0:
             label = f"${latex_param}$" if sum(pos) < sum(neg) else None
-            ax.plot(scales[neg], _corrs[neg], color=color, ls=lss[1], label=label, markersize=7)
+            ax.plot(scales[neg], _corrs[neg], color=color, ls=lss[1], label=label)
 
     # draw a vertical line at max scales
     text = ""
     for j, param in enumerate(params):
         corr, scale = max_dict[param]
-        color = rxplots.cb_colors[j]
+        color = CB_COLORS[j]
         ax.axvline(scale, linestyle="--", color=color)
         text += f"{param}: Max corr is {corr:.3f} at scale {scale:.3f}\n"
 
@@ -86,9 +90,8 @@ def make_correlation_mah_plots():
 
     ax.set_ylim(0, 1.0)
     ax.set_xlim(0, 1.0)
-    ax.set_ylabel("$\\rho(\\cdot, m(a))$", size=22)
-    ax.set_xlabel("$a$", size=22)
-    ax.tick_params(axis="both", which="major", labelsize=16)
+    ax.set_ylabel("$\\rho(\\cdot, m(a))$")
+    ax.set_xlabel("$a$")
 
     # add additional x-axis with tydn fractional scale
     ax2 = ax.twiny()
@@ -98,10 +101,10 @@ def make_correlation_mah_plots():
     xticks = ax.get_xticks()[1:]
     fractional_tdyn = get_fractional_tdyn(xticks, tdyn, sim_name="Bolshoi")
     fractional_tdyn = [f"${x/10**9:.2g}$" for x in fractional_tdyn]
-    ax2.set_xticklabels([np.nan] + fractional_tdyn, size=16)
-    ax2.set_xlabel("$\\tau_{\\rm dyn} \\, {\\rm [Gyrs]}$", size=22, labelpad=10)
+    ax2.set_xticklabels([np.nan] + fractional_tdyn)
+    ax2.set_xlabel("$\\tau_{\\rm dyn} \\, {\\rm [Gyrs]}$", labelpad=10)
 
-    ax.legend(loc="best", prop={"size": 16})
+    ax.legend(loc="upper right")
 
     ax.set_xlim(0.15, 1)
     ax2.set_xlim(0.15, 1)
@@ -110,12 +113,12 @@ def make_correlation_mah_plots():
 
     ###############################################################################################
     # (2) Correlations with a(m)
-    fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+    fig, ax = plt.subplots(1, 1)
     max_dict = {}
 
     for j, param in enumerate(params):
         latex_param = rxplots.latex_params[param]
-        color = rxplots.cb_colors[j]
+        color = CB_COLORS[j]
         corrs = get_am_corrs(cat, param, am)
         pos = corrs >= 0
         neg = ~pos
@@ -134,7 +137,7 @@ def make_correlation_mah_plots():
     # draw a vertical line at max scales, output table.
     text = ""
     for j, param in enumerate(params):
-        color = rxplots.cb_colors[j]
+        color = CB_COLORS[j]
         corr, mbin = max_dict[param]
         ax.axvline(mbin, linestyle="--", color=color)
         text += f"{param}: Max corr is {corr:.3f} at mass bin {mbin:.3f}\n"
@@ -143,13 +146,11 @@ def make_correlation_mah_plots():
 
     ax.set_ylim(0, 1.0)
     ax.set_xlim(0.01, 1.0)
-    ax.set_ylabel("$\\rho(\\cdot, a(m))$", size=22)
-    ax.set_xlabel("$m$", size=22)
-    ax.tick_params(axis="both", which="major", labelsize=16, size=10)
-    ax.tick_params(axis="x", which="minor", size=8)
-    ax.legend(loc="best", prop={"size": 16})
-
-    plt.tight_layout()
+    ax.set_ylabel("$\\rho(\\cdot, a(m))$")
+    ax.set_xlabel("$m$")
+    ax.tick_params(axis="both", which="major")
+    ax.tick_params(axis="x", which="minor")
+    ax.legend(loc="upper right")
     fig.savefig(figsdir.joinpath("corrs_am.png"))
 
 
@@ -169,7 +170,6 @@ def make_triangle(model_name, params, trained_models, datasets, sample_fn, figfi
     labels = [rxplots.latex_params[param] for param in params]
     fig = corner.corner(y1, labels=labels, max_n_ticks=3, color="C1", labelpad=0.05)
     fig = corner.corner(y2, labels=labels, max_n_ticks=3, fig=fig, color="C2", labelpad=0.05)
-
     fig.savefig(figfile)
 
 
@@ -348,10 +348,9 @@ def make_am_pred_plots():
     ]
     for nice_name, mdl_name in zip(nice_names, mdl_names):
         ax.plot(mass_bins, sigmas_x[mdl_name], label=nice_name)
-    ax.set_xlabel("$m$", size=32)
+    ax.set_xlabel("$m$")
     ax.set_ylabel(
         r"$\frac{\sigma(a_{m, \rm pred} - a_{m, \rm true})}{ \sigma(a_{m, \rm true}) \sqrt{2}}$",
-        size=32,
     )
     ax.legend()
     figfile = figsdir.joinpath("scatter_pred_am.png")
@@ -458,45 +457,33 @@ def make_inv_pred_plots():
         # "mu": {"yrange": (-0.1, 0.1), "hline": 0.0},
     }
 
-    markers = ["o", "D", "s", "^"]
     test_data = {
         "linear_all": (
             datasets["all"]["test"][0],
             r"\rm MultiCAM",
-            rxplots.cb_colors[0],
-            markers[0],
+            CB_COLORS[0],
+            MARKS[0],
         ),
         "linear_cvir": (
             datasets["cvir_only"]["test"][0],
             r"\rm MultiCAM $c_{\rm vir}$ only",
-            rxplots.cb_colors[1],
-            markers[1],
+            CB_COLORS[1],
+            MARKS[1],
         ),
         "linear_x0": (
             datasets["x0_only"]["test"][0],
             r"\rm MultiCAM $x_{\rm off}$ only",
-            rxplots.cb_colors[2],
-            markers[2],
+            CB_COLORS[2],
+            MARKS[2],
         ),
         "linear_tu": (
             datasets["tu_only"]["test"][0],
             r"\rm MultiCAM $T/\vert U \vert$ only",
-            rxplots.cb_colors[3],
-            markers[3],
+            CB_COLORS[3],
+            MARKS[3],
         ),
     }
-    fig = rxplots.metrics_plot(
-        metrics_data,
-        test_data,
-        models,
-        cat_test,
-        params,
-        nrows=1,
-        ncols=1,
-        ticksize=22,
-        y_label_size=26,
-        bbox_to_anchor=(0.0, 1.0, 0.45, 0.45),
-    )
+    fig = rxplots.metrics_plot(metrics_data, test_data, models, cat_test, params)
     figfile = figsdir.joinpath("inv_pred.png")
     fig.savefig(figfile)
 
@@ -680,31 +667,30 @@ def make_pred_plots():
         # "mu": {"yrange": (-0.2, 0.2), "hline": 0.0},
     }
 
-    markers = ["o", "v", "^", "D", "*"]
     test_data = {
         "multicam_ma": (
             datasets["ma"]["test"][0],
             r"\rm MultiCAM $m(a)$",
-            rxplots.cb_colors[0],
-            markers[0],
+            CB_COLORS[0],
+            MARKS[0],
         ),
         "multicam_ma_diffmah": (
             datasets["ma_diffmah"]["test"][0],
             r"\rm MultiCAM DiffMAH $m(a)$ curves",
-            rxplots.cb_colors[2],
-            markers[2],
+            CB_COLORS[2],
+            MARKS[2],
         ),
         "multicam_params_diffmah": (
             datasets["params_diffmah"]["test"][0],
             r"\rm MultiCAM DiffMAH parameters",
-            rxplots.cb_colors[1],
-            markers[1],
+            CB_COLORS[1],
+            MARKS[1],
         ),
         "optcam": (
             datasets["am"]["test"][0],
             r"\rm CAM $a_{\rm opt}$",
-            rxplots.cb_colors[3],
-            markers[3],
+            CB_COLORS[3],
+            MARKS[3],
         ),
         # "overfitting5": (
         #     datasets["overfitting5"]["test"][0],
@@ -715,8 +701,8 @@ def make_pred_plots():
         # "multicam_alpha": (
         #     datasets["alpha"]["test"][0],
         #     r"\rm MultiCAM $\alpha$ only",
-        #     rxplots.cb_colors[1],
-        #     markers[1],
+        #     rxplots.CB_COLORS[1],
+        #     MARKS[1],
         # ),
         # "overfitting10": (
         #     datasets["overfitting10"]["test"][0],
@@ -727,30 +713,47 @@ def make_pred_plots():
         # 'gradients': (datasets['gradients']['test'][0], r"\rm MultiCAM Gradients + MAH", 'k',
         # '*'),
     }
-    fig = rxplots.metrics_plot(
-        metrics_data,
-        test_data,
-        models,
-        cat_test,
-        params=params,
-        ncols=1,
-        nrows=1,
-        figsize=(10, 10),
-        ticksize=28,
-        y_label_size=32,
-        bbox_to_anchor=(0.0, 1.0, 0.45, 0.45),
-        ms=8,
-    )
+    fig = rxplots.metrics_plot(metrics_data, test_data, models, cat_test, params=params)
     figfile = figsdir.joinpath("pred_plots.png")
     fig.savefig(figfile)
 
 
+def make_covariance_am_plot():
+    mahdir = root.joinpath("data", "processed", "bolshoi_m12")
+    mah_data = get_mah(mahdir, cutoff_missing=0.05, cutoff_particle=0.05)
+    mass_bins = mah_data["mass_bins"]
+    am = mah_data["am"]
+    corr_matrix = [
+        [spearmanr(am[:, ii], am[:, jj])[0] for ii in range(am.shape[1])]
+        for jj in range(am.shape[1])
+    ]
+    corr_matrix = np.array(corr_matrix).reshape(am.shape[1], am.shape[1])
+
+    fig, ax = plt.subplots(1, 1)
+    ax.set_xlabel(r"$m$")
+    ax.set_ylabel(r"$m$")
+    ax.set_title(r"$\rho_{\rm spearman} \left( a(m), a(m) \right)$")
+    n_ticks = len(ax.get_xticklabels())
+    mass_bin_labels = mass_bins[:: (len(mass_bins) + 2) // n_ticks]
+    mass_bin_labels = [f"{label:.2f}" for label in mass_bin_labels]
+    print(len(mass_bins), n_ticks, len(mass_bin_labels))
+    assert n_ticks == len(mass_bin_labels)
+    ax.set_xticklabels(mass_bin_labels)
+    ax.set_yticklabels(mass_bin_labels)
+    ax.matshow(corr_matrix)
+
+    figfile = figsdir.joinpath("am_corr.png")
+    fig.savefig(figfile)
+
+
 def make_figures():
-    # make_correlation_mah_plots()
+    make_correlation_mah_plots()
     # make_triangle_plots()
     # make_am_pred_plots()
     # make_inv_pred_plots()
-    make_pred_plots()
+    # make_pred_plots()
+    # make_covariance_am_plot()
+    pass
 
 
 if __name__ == "__main__":
