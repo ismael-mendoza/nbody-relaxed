@@ -141,7 +141,7 @@ class CorrelationMAH(Figure):
 
         for j, param in enumerate(self.params):
             corr = corrs[param]
-            latex_param = rxplots.latex_params[param]
+            latex_param = rxplots.LATEX_PARAMS[param]
             color = CB_COLORS[j]
             pos = corr > 0
             neg = ~pos
@@ -165,7 +165,7 @@ class CorrelationMAH(Figure):
             text += f"{param}: Max corr is {corr:.3f} at scale {scale:.3f}\n"
 
         # additional saving of max correlations for table
-        with open(FIGS_DIR.joinpath("corrs_ma.txt"), "w") as fp:
+        with open(FIGS_DIR.joinpath("max_corrs_ma.txt"), "w") as fp:
             print(text.strip(), file=fp)
 
         ax.set_ylim(0, 1.0)
@@ -200,7 +200,7 @@ class CorrelationMAH(Figure):
 
         for j, param in enumerate(self.params):
             corr = corrs[param]
-            latex_param = rxplots.latex_params[param]
+            latex_param = rxplots.LATEX_PARAMS[param]
             color = CB_COLORS[j]
             pos = corr >= 0
             neg = ~pos
@@ -223,7 +223,7 @@ class CorrelationMAH(Figure):
             ax.axvline(mbin, linestyle="--", color=color)
             text += f"{param}: Max corr is {corr:.3f} at mass bin {mbin:.3f}\n"
 
-        with open(FIGS_DIR.joinpath("corrs_am.txt"), "w") as fp:
+        with open(FIGS_DIR.joinpath("max_corrs_am.txt"), "w") as fp:
             print(text.strip(), file=fp)
 
         ax.set_ylim(0, 1.0)
@@ -244,6 +244,9 @@ class TriangleSamples(Figure):
     cache_name = "triangle"
     params = ("cvir", "cvir_klypin", "t/|u|", "x0", "spin_bullock", "b_to_a", "c_to_a")
     which_log = [True, True, True, True, True, False, False]
+
+    def _set_rc(self):
+        return set_rc()
 
     def get_data(self):
         mah_data = get_mah(MAH_DIR, cutoff_missing=0.05, cutoff_particle=0.05)
@@ -305,7 +308,7 @@ class TriangleSamples(Figure):
 
     def get_figures(self, data: Dict[str, np.ndarray]) -> Dict[str, mpl.figure.Figure]:
         figs = {}
-        labels = [rxplots.latex_params[param] for param in self.params]
+        labels = [rxplots.LATEX_PARAMS[param] for param in self.params]
         y_true = data.pop("truth")
         y1 = self.transform(y_true)
         for name, y_est in data.items():
@@ -853,11 +856,11 @@ class ForwardPredMetrics(Figure):
 
 def main():
     ext = "png"
-    CorrelationMAH(overwrite=False, ext=ext).save()
-    TriangleSamples(overwrite=False, ext=ext).save()
-    PredictMAH(overwrite=False, ext=ext).save()
-    InvPredMetrics(overwrite=False, ext=ext).save()
-    ForwardPredMetrics(overwrite=False, ext=ext).save()
+    CorrelationMAH(overwrite=True, ext=ext).save()
+    TriangleSamples(overwrite=True, ext=ext).save()
+    PredictMAH(overwrite=True, ext=ext).save()
+    InvPredMetrics(overwrite=True, ext=ext).save()
+    ForwardPredMetrics(overwrite=True, ext=ext).save()
 
 
 if __name__ == "__main__":
