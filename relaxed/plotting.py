@@ -25,7 +25,7 @@ LATEX_PARAMS = {
     "spin_bullock": r"$\lambda_{\rm bullock}$",
     "b_to_a": r"$b/a$",
     "c_to_a": r"$c/a$",
-    "cvir_klypin": r"$c_{\rm vir, klypin}$",
+    "cvir_klypin": r"$c_{\rm vir, k}$",
     "a2": r"$a_{1/2}$",
     "a4": r"$a_{3/4}$",
     "alpha": r"$\alpha$",
@@ -147,6 +147,6 @@ def metrics_plot(ax, mval, merr, params, label="", x_bias=0.0, m="o", c="r"):
     ax.set_xticks(np.array(list(range(n_params))))
     ax.set_xticklabels(params_latex)
     for jj in range(n_params):
+        label = label if jj == 0 else None
         ax.errorbar(jj + x_bias, mval[jj], yerr=merr[jj], label=label, fmt=m, color=c)
-    ax.legend(loc="best")
     return ax

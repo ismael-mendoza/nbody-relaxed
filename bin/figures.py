@@ -47,15 +47,16 @@ CACHE_DIR.mkdir(exist_ok=True, parents=False)
 
 class Figure(ABC):
     cache_name = ""
-    rc_params = dict()
+    params = ()
 
     def __init__(self, overwrite=False, ext="png") -> None:
         self.cache_file = CACHE_DIR.joinpath(self.cache_name).with_suffix(".npy")
         self.ext = "." + ext
         self.overwrite = overwrite
 
+    @abstractmethod
     def _set_rc(self):
-        set_rc()
+        """Specify global plotting parameters."""
 
     @abstractmethod
     def get_data(self):
@@ -78,7 +79,7 @@ class Figure(ABC):
 
 class CorrelationMAH(Figure):
     cache_name = "correlations_mah"
-    params = ["cvir", "cvir_klypin", "x0", "t/|u|", "spin_bullock", "b_to_a", "c_to_a"]
+    params = ("cvir", "cvir_klypin", "x0", "t/|u|", "spin_bullock", "b_to_a", "c_to_a")
     lss = np.array(["-", ":"])  # pos vs neg correlations
 
     def _set_rc(self):
@@ -461,9 +462,10 @@ class PredictMAH(Figure):
 
 class InvPredMetrics(Figure):
     cache_name = "inv_pred_metrics"
+    params = ("a2", "a4", "alpha", "mdyn", "tau_c", "alpha_late", "alpha_early")
 
     def _set_rc(self):
-        return set_rc()
+        return set_rc(fontsize=28, lgsize=18, lgloc="lower left")
 
     def get_data(self):
         mah_data = get_mah(MAH_DIR, cutoff_missing=0.05, cutoff_particle=0.05)
@@ -504,24 +506,23 @@ class InvPredMetrics(Figure):
         cat.add_column(a4, name="a4")
         cat.add_column(mdyn, name="mdyn")
 
-        params = ("a2", "a4", "alpha", "mdyn", "tau_c", "alpha_late", "alpha_early")
-        n_params = len(params)
+        n_params = len(self.params)
         info = {
             "cvir_only": {
                 "x": ("cvir",),
-                "y": params,
+                "y": self.params,
             },
             "x0_only": {
                 "x": ("x0",),
-                "y": params,
+                "y": self.params,
             },
             "tu_only": {
                 "x": ("t/|u|",),
-                "y": params,
+                "y": self.params,
             },
             "all": {
                 "x": ("cvir", "cvir_klypin", "t/|u|", "x0", "spin_bullock", "c_to_a", "b_to_a"),
-                "y": params,
+                "y": self.params,
             },
         }
         datasets, _, cat_test = prepare_datasets(cat, info)
@@ -580,7 +581,6 @@ class InvPredMetrics(Figure):
             output[mdl] = dict(d)
 
         return {
-            "params": params,
             "mdl_names": mdl_names,
             "nice_names": nice_names,
             "output": output,
@@ -588,288 +588,276 @@ class InvPredMetrics(Figure):
 
     def get_figures(self, data: Dict[str, np.ndarray]) -> Dict[str, mpl.figure.Figure]:
         fig, ax = plt.subplots(1, 1)
-        params, mdl_names, nice_names, output = data.values()
+        mdl_names, nice_names, output = data.values()
         x_bias = 0.0
         for ii, (mdl, label) in enumerate(zip(mdl_names, nice_names)):
             m, c = MARKS[ii], CB_COLORS[ii]
             mval, merr = output[mdl]["val"], output[mdl]["err"]
-            rxplots.metrics_plot(ax, mval, merr, params, label, x_bias, m, c)
+            rxplots.metrics_plot(ax, mval, merr, self.params, label, x_bias, m, c)
             x_bias += 0.1
-        ax.set_ylim(0.3, 0.85)
+        ax.set_ylim(0.0, 0.8)
+        ax.legend()
         return {"inv_pred_metrics": fig}
 
 
-def make_pred_plots():
-    set_rc()
-    params = ("cvir", "cvir_klypin", "t/|u|", "x0", "b_to_a", "c_to_a", "spin_bullock")
-    mahdir = root.joinpath("data", "processed", "bolshoi_m12")
-    mah_data = get_mah(mahdir, cutoff_missing=0.05, cutoff_particle=0.05)
+class ForwardPredMetrics(Figure):
+    cache_name = "forward_pred_metrics"
+    params = ("cvir", "cvir_klypin", "t/|u|", "x0", "spin_bullock", "b_to_a", "c_to_a")
 
-    cat = mah_data["cat"]
-    ma = mah_data["ma"]
-    am = mah_data["am"]
-    scales = mah_data["scales"]
-    mass_bins = mah_data["mass_bins"]
+    def _set_rc(self):
+        return set_rc(figsize=(8, 8), fontsize=28, lgsize=20, lgloc="lower left")
 
-    # prepare catalog with all m_a
-    ma_names = [f"ma_{ii}" for ii in range(len(scales))]
-    for ii in range(len(scales)):
-        cat.add_column(ma[:, ii], name=ma_names[ii])
+    def get_data(self):
+        mah_data = get_mah(MAH_DIR, cutoff_missing=0.05, cutoff_particle=0.05)
+        cat = mah_data["cat"]
+        ma = mah_data["ma"]
+        am = mah_data["am"]
+        scales = mah_data["scales"]
+        mass_bins = mah_data["mass_bins"]
+        add_box_indices(cat)
 
-    # prepare catalog with all a_m
-    am_names = [f"am_{ii}" for ii in range(len(mass_bins))]
-    for ii in range(len(mass_bins)):
-        cat.add_column(am[:, ii], name=am_names[ii])
+        # prepare catalog with all m_a
+        ma_names = [f"ma_{ii}" for ii in range(len(scales))]
+        for ii in range(len(scales)):
+            cat.add_column(ma[:, ii], name=ma_names[ii])
 
-    # load alpha fits
-    alpha_file = root.joinpath("data", "processed", "alpha_fits.npy")
-    alphas, _, _ = alpha_analysis(ma, scales, mass_bins, alpha_file=alpha_file)
-    cat.add_column(alphas, name="alpha")
+        # prepare catalog with all a_m
+        am_names = [f"am_{ii}" for ii in range(len(mass_bins))]
+        for ii in range(len(mass_bins)):
+            cat.add_column(am[:, ii], name=am_names[ii])
 
-    # load diffmah parameters of best fits.
-    pars = np.load(root.joinpath("data", "processed", "pbest_diffmah.npy"))
-    logtc, ue, ul = pars[:, 0], pars[:, 1], pars[:, 2]
-    early, late = get_early_late(ue, ul)
-    cat.add_column(10**logtc, name="tau_c")
-    cat.add_column(early, name="alpha_early")
-    cat.add_column(late, name="alpha_late")
+        # load alpha fits
+        alpha_file = ROOT.joinpath("data", "processed", "alpha_fits.npy")
+        alphas, _, _ = alpha_analysis(ma, scales, mass_bins, alpha_file=alpha_file)
+        cat.add_column(alphas, name="alpha")
 
-    # load diffmah fits curves.
-    diffmah_curves = np.load(root.joinpath("data", "processed", "diffmah_fits.npy"))
-    ma_diffmah_names = [f"ma_diffmah_{ii}" for ii in range(len(scales))]
-    for ii in range(len(scales)):
-        cat.add_column(diffmah_curves[:, ii], name=ma_diffmah_names[ii])
+        # load diffmah parameters of best fits.
+        pars = np.load(ROOT.joinpath("data", "processed", "pbest_diffmah.npy"))
+        logtc, ue, ul = pars[:, 0], pars[:, 1], pars[:, 2]
+        early, late = get_early_late(ue, ul)
+        cat.add_column(10**logtc, name="tau_c")
+        cat.add_column(early, name="alpha_early")
+        cat.add_column(late, name="alpha_late")
 
-    # add a_{1/2} also as alternative parametrization
-    cat.add_column(get_an_from_am(am, mass_bins, 0.5), name="a2")
+        # load diffmah fits curves.
+        diffmah_curves = np.load(ROOT.joinpath("data", "processed", "diffmah_fits.npy"))
+        ma_diffmah_names = [f"ma_diffmah_{ii}" for ii in range(len(scales))]
+        for ii in range(len(scales)):
+            cat.add_column(diffmah_curves[:, ii], name=ma_diffmah_names[ii])
 
-    # add savitsky-golay gradients
-    ks = [11, 21, 41, 81, 121, 161]
-    log_a = np.log(scales)
-    delta = abs(log_a[-1] - log_a[0]) / (
-        200 - 1
-    )  # 200 is default number of interpolation points for uniform spacing. (in get_savgol_grads)
-    gamma_k = {k: -get_savgol_grads(scales, ma, k=k) for k in ks}
-    delta_k = {k: delta * (k // 2) for k in ks}
-    grad_names_k = {k: [f"grad_{k}_{jj}" for jj in range(gamma_k[k].shape[1])] for k in ks}
-    all_grad_names = [
-        grad_names_k[k][jj] for k in grad_names_k for jj in range(len(grad_names_k[k]))
-    ]
-    assert delta_k and all_grad_names
+        # add a_{1/2} also as alternative parametrization
+        cat.add_column(get_an_from_am(am, mass_bins, 0.5), name="a2")
 
-    # add gradients to catalog catalog
-    for k in ks:
-        for jj in range(gamma_k[k].shape[1]):
-            name = grad_names_k[k][jj]
-            value = gamma_k[k][:, jj]
-            cat.add_column(value, name=name)
+        # add savitsky-golay gradients
+        ks = [11, 21, 41, 81, 121, 161]
+        log_a = np.log(scales)
+        delta = abs(log_a[-1] - log_a[0]) / (
+            200 - 1
+        )  # 200 is default number of interpolation points for uniform spacing. (in get_savgol_grads)
+        gamma_k = {k: -get_savgol_grads(scales, ma, k=k) for k in ks}
+        delta_k = {k: delta * (k // 2) for k in ks}
+        grad_names_k = {k: [f"grad_{k}_{jj}" for jj in range(gamma_k[k].shape[1])] for k in ks}
+        all_grad_names = [
+            grad_names_k[k][jj] for k in grad_names_k for jj in range(len(grad_names_k[k]))
+        ]
+        assert delta_k and all_grad_names
 
-    info = {
-        "ma": {
-            "x": ma_names,
-            "y": params,
-        },
-        "am": {
-            "x": am_names,
-            "y": params,
-        },
-        "ma_diffmah": {
-            "x": ma_diffmah_names,
-            "y": params,
-        },
-        "params_diffmah": {
-            "x": ("tau_c", "alpha_early", "alpha_late"),
-            "y": params,
-        },
-        "new_params_diffmah": {
-            "x": ("tau_c", "a2", "alpha_late"),
-            "y": params,
-        },
-        "alpha": {
-            "x": ("alpha",),
-            "y": params,
-        },
-        "gradients": {
-            "x": am_names + grad_names_k[11],
-            "y": params,
-        },
-        "overfitting5": {
-            "x": am_names[::5],
-            "y": params,
-        },
-        "overfitting10": {
-            "x": am_names[::10],
-            "y": params,
-        },
-    }
-    datasets, _, cat_test = prepare_datasets(cat, info)
+        # add gradients to catalog catalog
+        for k in ks:
+            for jj in range(gamma_k[k].shape[1]):
+                name = grad_names_k[k][jj]
+                value = gamma_k[k][:, jj]
+                cat.add_column(value, name=name)
 
-    data = {
-        "multicam_ma": {
-            "xy": datasets["ma"]["train"],
-            "n_features": 165,
-            "n_targets": len(params),
-            "model": "linear",
-            "kwargs": {"to_marginal_normal": True, "use_multicam": True},
-        },
-        "multicam_ma_diffmah": {
-            "xy": datasets["ma_diffmah"]["train"],
-            "n_features": 165,
-            "n_targets": len(params),
-            "model": "linear",
-            "kwargs": {"to_marginal_normal": True, "use_multicam": True},
-        },
-        "multicam_params_diffmah": {
-            "xy": datasets["params_diffmah"]["train"],
-            "n_features": 3,
-            "n_targets": len(params),
-            "model": "linear",
-            "kwargs": {"to_marginal_normal": True, "use_multicam": True},
-        },
-        "optcam": {
-            "xy": datasets["am"]["train"],
-            "n_features": 100,
-            "n_targets": len(params),
-            "model": "mixed_cam",
-            "kwargs": {
-                "mass_bins": mass_bins,
-                "opt_mbins": [opcam_dict[param]["mbin"] for param in params],
-                "cam_orders": [opcam_dict[param]["order"] for param in params],
+        info = {
+            "ma": {
+                "x": ma_names,
+                "y": self.params,
             },
-        },
-        # "multicam_diffmah_new": {
-        #     "xy": datasets["diffmah_new"]["train"],
-        #     "n_features": 3,
-        #     "n_targets": len(params),
-        #     "model": "linear",
-        #     "kwargs": {"to_marginal_normal": True, "use_multicam": True},
-        # },
-        # "multicam_alpha": {
-        #     "xy": datasets["alpha"]["train"],
-        #     "n_features": 1,
-        #     "n_targets": len(params),
-        #     "model": "linear",
-        #     "kwargs": {"to_marginal_normal": True, "use_multicam": True},
-        # },
-        # 'gradients': {
-        #     'xy': datasets['gradients']['train'], 'n_features': 100 + 165, 'n_targets':
-        # len(params),
-        #     'model': 'linear', 'kwargs': {'to_marginal_normal':True , 'use_multicam': True},
-        # },
-        # "overfitting5": {
-        #     "xy": datasets["overfitting5"]["train"],
-        #     "n_features": 100 // 5,
-        #     "n_targets": len(params),
-        #     "model": "linear",
-        #     "kwargs": {"to_marginal_normal": True, "use_multicam": True},
-        # },
-        # "overfitting10": {
-        #     "xy": datasets["overfitting10"]["train"],
-        #     "n_features": 100 // 10,
-        #     "n_targets": len(params),
-        #     "model": "linear",
-        #     "kwargs": {"to_marginal_normal": True, "use_multicam": True},
-        # },
-    }
-    models = training_suite(data)
-    metrics_data = {
-        "spear": {"yrange": (0.3, 0.85)},
-        # "rscatter": {"yrange": (0.3, 1.0)},
-        # "sigma_ratio": {"yrange": (0.8, 1.2), "hline": 1.0},
-        # "mu": {"yrange": (-0.2, 0.2), "hline": 0.0},
-    }
+            "am": {
+                "x": am_names,
+                "y": self.params,
+            },
+            "ma_diffmah": {
+                "x": ma_diffmah_names,
+                "y": self.params,
+            },
+            "params_diffmah": {
+                "x": ("tau_c", "alpha_early", "alpha_late"),
+                "y": self.params,
+            },
+            "new_params_diffmah": {
+                "x": ("tau_c", "a2", "alpha_late"),
+                "y": self.params,
+            },
+            "alpha": {
+                "x": ("alpha",),
+                "y": self.params,
+            },
+            "gradients": {
+                "x": am_names + grad_names_k[11],
+                "y": self.params,
+            },
+            "overfitting5": {
+                "x": am_names[::5],
+                "y": self.params,
+            },
+            "overfitting10": {
+                "x": am_names[::10],
+                "y": self.params,
+            },
+        }
+        datasets, _, cat_test = prepare_datasets(cat, info)
+        n_params = len(self.params)
 
-    test_data = {
-        "multicam_ma": (
-            datasets["ma"]["test"][0],
+        data = {
+            "multicam_ma": {
+                "xy": datasets["ma"]["train"],
+                "n_features": 165,
+                "n_targets": n_params,
+                "model": "linear",
+                "kwargs": {"to_marginal_normal": True, "use_multicam": True},
+            },
+            "multicam_ma_diffmah": {
+                "xy": datasets["ma_diffmah"]["train"],
+                "n_features": 165,
+                "n_targets": n_params,
+                "model": "linear",
+                "kwargs": {"to_marginal_normal": True, "use_multicam": True},
+            },
+            "multicam_params_diffmah": {
+                "xy": datasets["params_diffmah"]["train"],
+                "n_features": 3,
+                "n_targets": n_params,
+                "model": "linear",
+                "kwargs": {"to_marginal_normal": True, "use_multicam": True},
+            },
+            "optcam": {
+                "xy": datasets["am"]["train"],
+                "n_features": 100,
+                "n_targets": n_params,
+                "model": "mixed_cam",
+                "kwargs": {
+                    "mass_bins": mass_bins,
+                    "opt_mbins": [opcam_dict[param]["mbin"] for param in self.params],
+                    "cam_orders": [opcam_dict[param]["order"] for param in self.params],
+                },
+            }
+            # "multicam_diffmah_new": {
+            #     "xy": datasets["diffmah_new"]["train"],
+            #     "n_features": 3,
+            #     "n_targets": len(params),
+            #     "model": "linear",
+            #     "kwargs": {"to_marginal_normal": True, "use_multicam": True},
+            # },
+            # "multicam_alpha": {
+            #     "xy": datasets["alpha"]["train"],
+            #     "n_features": 1,
+            #     "n_targets": len(params),
+            #     "model": "linear",
+            #     "kwargs": {"to_marginal_normal": True, "use_multicam": True},
+            # },
+            # 'gradients': {
+            #     'xy': datasets['gradients']['train'], 'n_features': 100 + 165, 'n_targets':
+            # len(params),
+            #     'model': 'linear', 'kwargs': {'to_marginal_normal':True , 'use_multicam': True},
+            # },
+            # "overfitting5": {
+            #     "xy": datasets["overfitting5"]["train"],
+            #     "n_features": 100 // 5,
+            #     "n_targets": len(params),
+            #     "model": "linear",
+            #     "kwargs": {"to_marginal_normal": True, "use_multicam": True},
+            # },
+            # "overfitting10": {
+            #     "xy": datasets["overfitting10"]["train"],
+            #     "n_features": 100 // 10,
+            #     "n_targets": len(params),
+            #     "model": "linear",
+            #     "kwargs": {"to_marginal_normal": True, "use_multicam": True},
+            # },
+        }
+
+        models = training_suite(data)
+
+        mdl_names = ("multicam_ma", "multicam_ma_diffmah", "multicam_params_diffmah", "optcam")
+        ds_names = ("ma", "ma_diffmah", "params_diffmah", "am")
+        nice_names = (
             r"\rm MultiCAM $m(a)$",
-            CB_COLORS[0],
-            MARKS[0],
-        ),
-        "multicam_ma_diffmah": (
-            datasets["ma_diffmah"]["test"][0],
             r"\rm MultiCAM DiffMAH $m(a)$ curves",
-            CB_COLORS[2],
-            MARKS[2],
-        ),
-        "multicam_params_diffmah": (
-            datasets["params_diffmah"]["test"][0],
             r"\rm MultiCAM DiffMAH parameters",
-            CB_COLORS[1],
-            MARKS[1],
-        ),
-        "optcam": (
-            datasets["am"]["test"][0],
             r"\rm CAM $a_{\rm opt}$",
-            CB_COLORS[3],
-            MARKS[3],
-        ),
-        # "overfitting5": (
-        #     datasets["overfitting5"]["test"][0],
-        #     r"\rm MultiCAM subsampled every 5",
-        #     "g",
-        #     "D",
-        # ),
-        # "multicam_alpha": (
-        #     datasets["alpha"]["test"][0],
-        #     r"\rm MultiCAM $\alpha$ only",
-        #     rxplots.CB_COLORS[1],
-        #     MARKS[1],
-        # ),
-        # "overfitting10": (
-        #     datasets["overfitting10"]["test"][0],
-        #     r"\rm MultiCAM subsampled every 10",
-        #     "k",
-        #     "*",
-        # ),
-        # 'gradients': (datasets['gradients']['test'][0], r"\rm MultiCAM Gradients + MAH", 'k',
-        # '*'),
-    }
-    fig = rxplots.metrics_plot(metrics_data, test_data, models, cat_test, params=params)
-    figfile = figsdir.joinpath("pred_plots.png")
-    fig.savefig(figfile)
+            # r"\rm MultiCAM subsampled every 5",
+            # r"\rm MultiCAM subsampled every 10",
+            # r"\rm MultiCAM $\alpha$ only",
+        )
+
+        output = {}
+        ibox = cat_test["ibox"]
+        for ds, mdl in zip(ds_names, mdl_names):
+            d = defaultdict(lambda: np.zeros(n_params))
+            x_test, y_test = datasets[ds]["test"]
+            y_est = models[mdl].predict(x_test)
+            for jj in range(n_params):
+                y1, y2 = y_test[:, jj], y_est[:, jj]
+                d["val"][jj] = spearmanr(y1, y2)
+                d["err"][jj] = vol_jacknife_err(y1, y2, ibox, spearmanr)
+            output[mdl] = dict(d)
+
+        return {
+            "mdl_names": mdl_names,
+            "nice_names": nice_names,
+            "output": output,
+        }
+
+    def get_figures(self, data: Dict[str, np.ndarray]) -> Dict[str, mpl.figure.Figure]:
+        fig, ax = plt.subplots(1, 1)
+        mdl_names, nice_names, output = data.values()
+        x_bias = 0.0
+        for ii, (mdl, label) in enumerate(zip(mdl_names, nice_names)):
+            m, c = MARKS[ii], CB_COLORS[ii]
+            mval, merr = output[mdl]["val"], output[mdl]["err"]
+            rxplots.metrics_plot(ax, mval, merr, self.params, label, x_bias, m, c)
+            x_bias += 0.1
+        ax.set_ylim(0.2, 0.85)
+        ax.legend()
+        return {"forward_pred_metrics": fig}
 
 
-def make_covariance_am_plot():
-    mahdir = root.joinpath("data", "processed", "bolshoi_m12")
-    mah_data = get_mah(mahdir, cutoff_missing=0.05, cutoff_particle=0.05)
-    mass_bins = mah_data["mass_bins"]
-    am = mah_data["am"]
-    corr_matrix = [
-        [spearmanr(am[:, ii], am[:, jj]) for ii in range(am.shape[1])] for jj in range(am.shape[1])
-    ]
-    corr_matrix = np.array(corr_matrix).reshape(am.shape[1], am.shape[1])
+# def make_covariance_am_plot():
+#     mahdir = root.joinpath("data", "processed", "bolshoi_m12")
+#     mah_data = get_mah(mahdir, cutoff_missing=0.05, cutoff_particle=0.05)
+#     mass_bins = mah_data["mass_bins"]
+#     am = mah_data["am"]
+#     corr_matrix = [
+#         [spearmanr(am[:, ii], am[:, jj]) for ii in range(am.shape[1])] for jj in range(am.shape[1])
+#     ]
+#     corr_matrix = np.array(corr_matrix).reshape(am.shape[1], am.shape[1])
 
-    fig, ax = plt.subplots(1, 1)
-    ax.set_xlabel(r"$m$")
-    ax.set_ylabel(r"$m$")
-    ax.set_title(r"$\rho_{\rm spearman} \left( a(m), a(m) \right)$")
-    n_ticks = len(ax.get_xticklabels())
-    mass_bin_labels = mass_bins[:: (len(mass_bins) + 2) // n_ticks]
-    mass_bin_labels = [f"{label:.2f}" for label in mass_bin_labels]
-    print(len(mass_bins), n_ticks, len(mass_bin_labels))
-    assert n_ticks == len(mass_bin_labels)
-    ax.set_xticklabels(mass_bin_labels)
-    ax.set_yticklabels(mass_bin_labels)
-    ax.matshow(corr_matrix)
+#     fig, ax = plt.subplots(1, 1)
+#     ax.set_xlabel(r"$m$")
+#     ax.set_ylabel(r"$m$")
+#     ax.set_title(r"$\rho_{\rm spearman} \left( a(m), a(m) \right)$")
+#     n_ticks = len(ax.get_xticklabels())
+#     mass_bin_labels = mass_bins[:: (len(mass_bins) + 2) // n_ticks]
+#     mass_bin_labels = [f"{label:.2f}" for label in mass_bin_labels]
+#     print(len(mass_bins), n_ticks, len(mass_bin_labels))
+#     assert n_ticks == len(mass_bin_labels)
+#     ax.set_xticklabels(mass_bin_labels)
+#     ax.set_yticklabels(mass_bin_labels)
+#     ax.matshow(corr_matrix)
 
-    figfile = figsdir.joinpath("am_corr.png")
-    fig.savefig(figfile)
+#     figfile = figsdir.joinpath("am_corr.png")
+#     fig.savefig(figfile)
 
 
 def main():
     ext = "png"
-    # CorrelationMAH(overwrite=False, ext=ext).save()
-    # TriangleSamples(overwrite=False, ext=ext).save()
-    # PredictMAH(overwrite=False, ext=ext).save()
+    CorrelationMAH(overwrite=False, ext=ext).save()
+    TriangleSamples(overwrite=False, ext=ext).save()
+    PredictMAH(overwrite=False, ext=ext).save()
     InvPredMetrics(overwrite=False, ext=ext).save()
-    # make_correlation_mah_plots()
-    # make_triangle_plots()
-    # make_mah_pred_plots()
-    # make_inv_pred_plots()
-    # make_pred_plots()
-    # make_covariance_am_plot()
-    pass
+    ForwardPredMetrics(overwrite=False, ext=ext).save()
 
 
 if __name__ == "__main__":
