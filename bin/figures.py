@@ -1,15 +1,22 @@
 #!/usr/bin/env python3
+from abc import ABC
+from abc import abstractmethod
+from collections import defaultdict
 from pathlib import Path
+from typing import Dict
 
 import corner
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 from astropy import units as u
-from scipy.stats import spearmanr
 
 from relaxed import plotting as rxplots
+from relaxed.correlations import add_box_indices
 from relaxed.correlations import get_am_corrs
 from relaxed.correlations import get_ma_corrs
+from relaxed.correlations import spearmanr
+from relaxed.correlations import vol_jacknife_err
 from relaxed.cosmo import get_a_from_t
 from relaxed.cosmo import get_fractional_tdyn
 from relaxed.cosmo import get_t_from_a
@@ -27,455 +34,569 @@ from relaxed.plotting import set_rc
 
 plt.ioff()
 
+# directories
+ROOT = Path(__file__).absolute().parent.parent
+FIGS_DIR = ROOT.joinpath("results", "figs")
+CACHE_DIR = ROOT.joinpath("results", "figs", "cache")
+MAH_DIR = ROOT.joinpath("data", "processed", "bolshoi_m12")
 
-root = Path(__file__).absolute().parent.parent
-figsdir = root.joinpath("results", "figs")
-figsdir.mkdir(exist_ok=True, parents=False)
+# create if necessary
+FIGS_DIR.mkdir(exist_ok=True, parents=False)
+CACHE_DIR.mkdir(exist_ok=True, parents=False)
 
 
-def make_correlation_mah_plots():
-    set_rc(figsize=(7, 7), fontsize=24, lgsize=14)
+class Figure(ABC):
+    cache_name = ""
+    rc_params = dict()
+
+    def __init__(self, overwrite=False, ext="png") -> None:
+        self.cache_file = CACHE_DIR.joinpath(self.cache_name).with_suffix(".npy")
+        self.ext = "." + ext
+        self.overwrite = overwrite
+
+    def _set_rc(self):
+        set_rc()
+
+    @abstractmethod
+    def get_data(self):
+        """Return data as  for plotting."""
+
+    @abstractmethod
+    def get_figures(self, data: Dict[str, np.ndarray]) -> Dict[str, mpl.figure.Figure]:
+        """Return dictionary with matplotlib figures."""
+
+    def save(self):
+        if self.overwrite or not self.cache_file.exists():
+            data = self.get_data()
+            np.save(self.cache_file, data)
+        data = np.load(self.cache_file, allow_pickle=True)
+        self._set_rc()
+        figs = self.get_figures(data.item())
+        for name, fig in figs.items():
+            fig.savefig(FIGS_DIR.joinpath(name).with_suffix(self.ext))
+
+
+class CorrelationMAH(Figure):
+    cache_name = "correlations_mah"
     params = ["cvir", "cvir_klypin", "x0", "t/|u|", "spin_bullock", "b_to_a", "c_to_a"]
-    lss = np.array(["-", ":"])
+    lss = np.array(["-", ":"])  # pos vs neg correlations
 
-    # load data
-    mahdir = root.joinpath("data", "processed", "bolshoi_m12")
-    mah_data = get_mah(mahdir, cutoff_missing=0.05, cutoff_particle=0.05)
-    cat = mah_data["cat"]
-    scales = mah_data["scales"]
-    am = mah_data["am"]
-    ma = mah_data["ma"]
-    mass_bins = mah_data["mass_bins"]
+    def _set_rc(self):
+        set_rc(figsize=(7, 7), fontsize=24, lgsize=14, lgloc="upper right")
 
-    # remove last index to avoid correlation warning.
-    ma = ma[:, :-1]
-    scales = scales[:-1]
-    am = am[:, :-1]
-    mass_bins = mass_bins[:-1]
+    def get_data(self):
+        mah_data = get_mah(MAH_DIR, cutoff_missing=0.05, cutoff_particle=0.05)
 
-    # (1) Correlation with m(a)
-    fig, ax = plt.subplots(1, 1)
-    tdyn = np.mean(cat["tdyn"]) / 10**9  # Gyr which astropy also returns by default
-    max_dict = {}
+        # load data
+        cat = mah_data["cat"]
+        scales = mah_data["scales"]
+        am = mah_data["am"]
+        ma = mah_data["ma"]
+        mass_bins = mah_data["mass_bins"]
 
-    for j, param in enumerate(params):
-        latex_param = rxplots.latex_params[param]
-        color = CB_COLORS[j]
-        corrs = get_ma_corrs(cat, param, ma)
-        pos = corrs > 0
-        neg = ~pos
-        _corrs = abs(corrs)
-        max_indx = np.nanargmax(_corrs)
-        max_dict[param] = corrs[max_indx], scales[max_indx]
+        # remove last index to avoid correlation warning.
+        ma = ma[:, :-1]
+        scales = scales[:-1]
+        am = am[:, :-1]
+        mass_bins = mass_bins[:-1]
 
-        # plot positive corr and negative corr with different markers.
-        if sum(pos) > 0:
-            label = f"${latex_param}$" if sum(pos) > sum(neg) else None
-            ax.plot(scales[pos], _corrs[pos], color=color, ls=lss[0], label=label)
+        tdyn = np.mean(cat["tdyn"]) / 10**9  # Gyr which astropy also returns by default
+        ma_corrs = {}
+        am_corrs = {}
+        ma_max_dict = {}
+        am_max_dict = {}
+        for param in self.params:
+            # ma
+            ma_corr = get_ma_corrs(cat, param, ma)
+            ma_corrs[param] = ma_corr
+            _corr = abs(ma_corr)
+            max_indx = np.nanargmax(_corr)
+            ma_max_dict[param] = scales[max_indx], ma_corr[max_indx]
 
-        if sum(neg) > 0:
-            label = f"${latex_param}$" if sum(pos) < sum(neg) else None
-            ax.plot(scales[neg], _corrs[neg], color=color, ls=lss[1], label=label)
+            # am
+            am_corr = get_am_corrs(cat, param, am)
+            am_corrs[param] = am_corr
+            _corr = abs(am_corr)
+            max_indx = np.nanargmax(_corr)
+            am_max_dict[param] = mass_bins[max_indx], am_corr[max_indx]
+        return {
+            "tdyn": tdyn,
+            "ma_corrs": ma_corrs,
+            "am_corrs": am_corrs,
+            "ma_max_dict": ma_max_dict,
+            "am_max_dict": am_max_dict,
+            "scales": scales,
+            "mass_bins": mass_bins,
+        }
 
-    # draw a vertical line at max scales
-    text = ""
-    for j, param in enumerate(params):
-        corr, scale = max_dict[param]
-        color = CB_COLORS[j]
-        ax.axvline(scale, linestyle="--", color=color)
-        text += f"{param}: Max corr is {corr:.3f} at scale {scale:.3f}\n"
+    def get_ma_figure(self, data):
+        """Get correlations with m(a) figure"""
+        scales = data["scales"]
+        tdyn = data["tdyn"]
+        corrs = data["ma_corrs"]
+        max_dict = data["ma_max_dict"]
 
-    with open(figsdir.joinpath("corrs_ma.txt"), "w") as fp:
-        print(text.strip(), file=fp)
+        fig, ax = plt.subplots(1, 1)
 
-    ax.set_ylim(0, 1.0)
-    ax.set_xlim(0, 1.0)
-    ax.set_ylabel("$\\rho(\\cdot, m(a))$")
-    ax.set_xlabel("$a$")
+        for j, param in enumerate(self.params):
+            corr = corrs[param]
+            latex_param = rxplots.latex_params[param]
+            color = CB_COLORS[j]
+            pos = corr > 0
+            neg = ~pos
+            _corr = abs(corr)
 
-    # add additional x-axis with tydn fractional scale
-    ax2 = ax.twiny()
-    ax2.set_xlim(ax.get_xlim())
-    ax2.set_xticks(ax.get_xticks())
+            # plot positive corr and negative corr with different markers.
+            if sum(pos) > 0:
+                label = f"${latex_param}$" if sum(pos) > sum(neg) else None
+                ax.plot(scales[pos], _corr[pos], color=color, ls=self.lss[0], label=label)
 
-    xticks = ax.get_xticks()[1:]
-    fractional_tdyn = get_fractional_tdyn(xticks, tdyn, sim_name="Bolshoi")
-    fractional_tdyn = [f"${x/10**9:.2g}$" for x in fractional_tdyn]
-    ax2.set_xticklabels([np.nan] + fractional_tdyn)
-    ax2.set_xlabel("$\\tau_{\\rm dyn} \\, {\\rm [Gyrs]}$", labelpad=10)
+            if sum(neg) > 0:
+                label = f"${latex_param}$" if sum(pos) < sum(neg) else None
+                ax.plot(scales[neg], _corr[neg], color=color, ls=self.lss[1], label=label)
 
-    ax.legend(loc="upper right")
+        # draw a vertical line at max scales
+        text = ""
+        for j, param in enumerate(self.params):
+            scale, corr = max_dict[param]
+            color = CB_COLORS[j]
+            ax.axvline(scale, linestyle="--", color=color)
+            text += f"{param}: Max corr is {corr:.3f} at scale {scale:.3f}\n"
 
-    ax.set_xlim(0.15, 1)
-    ax2.set_xlim(0.15, 1)
+        # additional saving of max correlations for table
+        with open(FIGS_DIR.joinpath("corrs_ma.txt"), "w") as fp:
+            print(text.strip(), file=fp)
 
-    fig.savefig(figsdir.joinpath("corrs_ma.png"))
+        ax.set_ylim(0, 1.0)
+        ax.set_xlim(0, 1.0)
+        ax.set_ylabel("$\\rho(X, m(a))$")
+        ax.set_xlabel("$a$")
 
-    ###############################################################################################
-    # (2) Correlations with a(m)
-    fig, ax = plt.subplots(1, 1)
-    max_dict = {}
+        # add additional x-axis with tydn fractional scale
+        ax2 = ax.twiny()
+        ax2.set_xlim(ax.get_xlim())
+        ax2.set_xticks(ax.get_xticks())
 
-    for j, param in enumerate(params):
-        latex_param = rxplots.latex_params[param]
-        color = CB_COLORS[j]
-        corrs = get_am_corrs(cat, param, am)
-        pos = corrs >= 0
-        neg = ~pos
-        _corrs = abs(corrs)
-        max_dict[param] = corrs[np.nanargmax(_corrs)], mass_bins[np.nanargmax(_corrs)]
+        xticks = ax.get_xticks()[1:]
+        fractional_tdyn = get_fractional_tdyn(xticks, tdyn, sim_name="Bolshoi")
+        fractional_tdyn = [f"${x/10**9:.2g}$" for x in fractional_tdyn]
+        ax2.set_xticklabels([np.nan] + fractional_tdyn)
+        ax2.set_xlabel("$\\tau_{\\rm dyn} \\, {\\rm [Gyrs]}$", labelpad=10)
 
-        # plot positive corr and negative corr with different markers.
-        if sum(pos) > 0:
-            label = f"${latex_param}$" if sum(pos) > sum(neg) else None
-            ax.plot(mass_bins[pos], _corrs[pos], color=color, ls=lss[0], label=label)
+        ax.legend(loc="upper right")
 
-        if sum(neg) > 0:
-            label = f"${latex_param}$" if sum(pos) < sum(neg) else None
-            ax.plot(mass_bins[neg], _corrs[neg], color=color, ls=lss[1], label=label)
+        ax.set_xlim(0.15, 1)
+        ax2.set_xlim(0.15, 1)
+        return fig
 
-    # draw a vertical line at max scales, output table.
-    text = ""
-    for j, param in enumerate(params):
-        color = CB_COLORS[j]
-        corr, mbin = max_dict[param]
-        ax.axvline(mbin, linestyle="--", color=color)
-        text += f"{param}: Max corr is {corr:.3f} at mass bin {mbin:.3f}\n"
-    with open(figsdir.joinpath("corrs_am.txt"), "w") as fp:
-        print(text.strip(), file=fp)
+    def get_am_figure(self, data):
+        """Get correlations with a(m) figure"""
+        mass_bins = data["mass_bins"]
+        corrs = data["am_corrs"]
+        max_dict = data["am_max_dict"]
 
-    ax.set_ylim(0, 1.0)
-    ax.set_xlim(0.01, 1.0)
-    ax.set_ylabel("$\\rho(\\cdot, a(m))$")
-    ax.set_xlabel("$m$")
-    ax.tick_params(axis="both", which="major")
-    ax.tick_params(axis="x", which="minor")
-    ax.legend(loc="upper right")
-    fig.savefig(figsdir.joinpath("corrs_am.png"))
+        fig, ax = plt.subplots(1, 1)
+
+        for j, param in enumerate(self.params):
+            corr = corrs[param]
+            latex_param = rxplots.latex_params[param]
+            color = CB_COLORS[j]
+            pos = corr >= 0
+            neg = ~pos
+            _corr = abs(corr)
+
+            # plot positive corr and negative corr with different markers.
+            if sum(pos) > 0:
+                label = f"${latex_param}$" if sum(pos) > sum(neg) else None
+                ax.plot(mass_bins[pos], _corr[pos], color=color, ls=self.lss[0], label=label)
+
+            if sum(neg) > 0:
+                label = f"${latex_param}$" if sum(pos) < sum(neg) else None
+                ax.plot(mass_bins[neg], _corr[neg], color=color, ls=self.lss[1], label=label)
+
+        # draw a vertical line at max scales, output table.
+        text = ""
+        for j, param in enumerate(self.params):
+            color = CB_COLORS[j]
+            mbin, corr = max_dict[param]
+            ax.axvline(mbin, linestyle="--", color=color)
+            text += f"{param}: Max corr is {corr:.3f} at mass bin {mbin:.3f}\n"
+
+        with open(FIGS_DIR.joinpath("corrs_am.txt"), "w") as fp:
+            print(text.strip(), file=fp)
+
+        ax.set_ylim(0, 1.0)
+        ax.set_xlim(0.01, 1.0)
+        ax.set_ylabel("$\\rho(X, a(m))$")
+        ax.set_xlabel("$m$")
+        ax.tick_params(axis="both", which="major")
+        ax.tick_params(axis="x", which="minor")
+        ax.legend(loc="upper right")
+
+        return fig
+
+    def get_figures(self, data: Dict[str, np.ndarray]) -> Dict[str, mpl.figure.Figure]:
+        return {"ma_corr": self.get_ma_figure(data), "am_corr": self.get_am_figure(data)}
 
 
-def make_triangle(model_name, params, trained_models, datasets, sample_fn, figfile):
-    x_test = datasets["all"]["test"][0]
-    model = trained_models[model_name]
-    y_true = datasets["all"]["test"][1]
-    y_samples = sample_fn(model, x_test)
+class TriangleSamples(Figure):
+    cache_name = "triangle"
+    params = ("cvir", "cvir_klypin", "t/|u|", "x0", "spin_bullock", "b_to_a", "c_to_a")
+    which_log = [True, True, True, True, True, False, False]
 
-    # ellipticty parameters look better not logged
-    y1 = np.log(y_true)
-    y1[:, -3:] = np.exp(y1[:, -3:])
+    def get_data(self):
+        mah_data = get_mah(MAH_DIR, cutoff_missing=0.05, cutoff_particle=0.05)
 
-    y2 = np.log(y_samples)
-    y2[:, -3:] = np.exp(y2[:, -3:])
+        cat = mah_data["cat"]
+        am = mah_data["am"]
+        mass_bins = mah_data["mass_bins"]
 
-    labels = [rxplots.latex_params[param] for param in params]
-    fig = corner.corner(y1, labels=labels, max_n_ticks=3, color="C1", labelpad=0.05)
-    fig = corner.corner(y2, labels=labels, max_n_ticks=3, fig=fig, color="C2", labelpad=0.05)
-    fig.savefig(figfile)
+        # prepare catalog with all a_m
+        am_names = [f"am_{ii}" for ii in range(len(mass_bins))]
+        for ii in range(len(mass_bins)):
+            cat.add_column(am[:, ii], name=am_names[ii])
 
+        # dataset preparation
+        info = {"all": {"x": am_names, "y": self.params}}
+        datasets, _, _ = prepare_datasets(cat, info)
 
-def make_triangle_plots():
-    params = ("cvir", "cvir_klypin", "t/|u|", "x0", "spin", "spin_bullock", "q", "b_to_a", "c_to_a")
-    mahdir = root.joinpath("data", "processed", "bolshoi_m12")
-    mah_data = get_mah(mahdir, cutoff_missing=0.05, cutoff_particle=0.05)
-
-    cat = mah_data["cat"]
-    am = mah_data["am"]
-    mass_bins = mah_data["mass_bins"]
-
-    # prepare catalog with all a_m
-    am_names = [f"am_{ii}" for ii in range(len(mass_bins))]
-    for ii in range(len(mass_bins)):
-        cat.add_column(am[:, ii], name=am_names[ii])
-
-    # dataset preparation
-    info = {"all": {"x": am_names, "y": params}}
-    datasets, _, _ = prepare_datasets(cat, info)
-
-    # models to use
-
-    data = {
-        "multicam": {
-            "xy": datasets["all"]["train"],
-            "n_features": 100,
-            "n_targets": len(params),
-            "model": "gaussian",
-            "kwargs": {"to_marginal_normal": True, "use_multicam": True},
-        },
-        "optcam": {
-            "xy": datasets["all"]["train"],
-            "n_features": 100,
-            "n_targets": len(params),
-            "model": "mixed_cam",
-            "kwargs": {
-                "mass_bins": mass_bins,
-                "opt_mbins": [opcam_dict[param]["mbin"] for param in params],
-                "cam_orders": [opcam_dict[param]["order"] for param in params],
+        # models to use
+        n_targets = len(self.params)
+        data = {
+            "multicam": {
+                "xy": datasets["all"]["train"],
+                "n_features": 100,
+                "n_targets": n_targets,
+                "model": "gaussian",
+                "kwargs": {"to_marginal_normal": True, "use_multicam": True},
             },
-        },
-    }
-    joint_models = training_suite(data)
+            "optcam": {
+                "xy": datasets["all"]["train"],
+                "n_features": 100,
+                "n_targets": n_targets,
+                "model": "mixed_cam",
+                "kwargs": {
+                    "mass_bins": mass_bins,
+                    "opt_mbins": [opcam_dict[param]["mbin"] for param in self.params],
+                    "cam_orders": [opcam_dict[param]["order"] for param in self.params],
+                },
+            },
+        }
+        joint_models = training_suite(data)
 
-    # (1) MultiGaussian sample triangle
-    figfile = figsdir.joinpath("triangle_multigaussian.png")
-    sample_fn = lambda model, x: model.sample(x, 1).reshape(-1, model.n_targets)  # noqa: E731
-    make_triangle("multicam", params, joint_models, datasets, sample_fn, figfile)
+        x_test = datasets["all"]["test"][0]
+        samples_multigauss = joint_models["multicam"].sample(x_test, 1).reshape(-1, n_targets)
+        samples_linear = joint_models["multicam"].predict(x_test).reshape(-1, n_targets)
+        samples_cam = joint_models["optcam"].predict(x_test).reshape(-1, n_targets)
 
-    # (2) LR pred triangle
-    figfile = figsdir.joinpath("triangle_lr.png")
-    sample_fn = lambda model, x: model.predict(x).reshape(-1, model.n_targets)  # noqa: E731
-    make_triangle("multicam", params, joint_models, datasets, sample_fn, figfile)
+        return {
+            "truth": datasets["all"]["test"][1],
+            "multigauss": samples_multigauss,
+            "lr": samples_linear,
+            "cam": samples_cam,
+        }
 
-    # (3) OptCAM pred triangle
-    figfile = figsdir.joinpath("triangle_cam.png")
-    sample_fn = lambda model, x: model.predict(x).reshape(-1, model.n_targets)  # noqa: E731
-    make_triangle("optcam", params, joint_models, datasets, sample_fn, figfile)
+    def transform(self, y):
+        y_new = np.zeros_like(y)
+        for ii in range(y.shape[1]):
+            y_new[:, ii] = np.log10(y[:, ii]) if self.which_log[ii] else y[:, ii]
+        return y_new
 
-
-def make_mah_pred_plots():
-    set_rc(fontsize=28, lgsize=18, figsize=(9, 6))
-    mahdir = root.joinpath("data", "processed", "bolshoi_m12")
-    mah_data = get_mah(mahdir, cutoff_missing=0.05, cutoff_particle=0.05)
-
-    cat = mah_data["cat"]
-    ma = mah_data["ma"]
-    am = mah_data["am"]
-    mass_bins = mah_data["mass_bins"][:-1]  # remove last bin to avoid spearman error.
-    scales = mah_data["scales"][:-1]  # same for scales.
-    n_mbins = len(mass_bins)
-    n_scales = len(scales)
-
-    # prepare catalog with all m_a
-    ma_names = [f"ma_{ii}" for ii in range(len(scales))]
-    for ii in range(len(scales)):
-        cat.add_column(ma[:, ii], name=ma_names[ii])
-
-    # prepare catalog with all a(m)
-    am_names = [f"am_{ii}" for ii in range(len(mass_bins))]
-    for ii in range(len(mass_bins)):
-        cat.add_column(am[:, ii], name=am_names[ii])
-
-    # prepare datasets
-    info = {
-        "cvir_only": {"x": ("cvir",), "y": am_names + ma_names},
-        "x0_only": {"x": ("x0",), "y": am_names + ma_names},
-        "tu_only": {"x": ("t/|u|",), "y": am_names + ma_names},
-        "all": {
-            "x": ("cvir", "cvir_klypin", "t/|u|", "x0", "spin_bullock", "c_to_a", "b_to_a"),
-            "y": am_names + ma_names,
-        },
-    }
-    datasets, _, _ = prepare_datasets(cat, info)
-
-    # train models
-    data = {
-        "linear_cvir": {
-            "xy": datasets["cvir_only"]["train"],
-            "n_features": 1,
-            "n_targets": n_mbins + n_scales,
-            "model": "linear",
-            "kwargs": {"to_marginal_normal": True, "use_multicam": True},
-        },
-        "linear_x0": {
-            "xy": datasets["x0_only"]["train"],
-            "n_features": 1,
-            "n_targets": n_mbins + n_scales,
-            "model": "linear",
-            "kwargs": {"to_marginal_normal": True, "use_multicam": True},
-        },
-        "linear_tu": {
-            "xy": datasets["tu_only"]["train"],
-            "n_features": 1,
-            "n_targets": n_mbins + n_scales,
-            "model": "linear",
-            "kwargs": {"to_marginal_normal": True, "use_multicam": True},
-        },
-        "linear_all": {
-            "xy": datasets["all"]["train"],
-            "n_features": 7,
-            "n_targets": n_mbins + n_scales,
-            "model": "linear",
-            "kwargs": {"to_marginal_normal": True, "use_multicam": True},
-        },
-    }
-    models = training_suite(data)
-
-    corrs_am = {}
-    corrs_ma = {}
-    dataset_names = ["cvir_only", "x0_only", "tu_only", "all"]
-    mdl_names = ["linear_cvir", "linear_x0", "linear_tu", "linear_all"]
-    for dataset_names, mdl_name in zip(dataset_names, mdl_names):
-        model = models[mdl_name]
-        x_test, y_test = datasets[dataset_names]["test"]
-        y_pred = model.predict(x_test)
-        corrs_am[mdl_name] = np.array(
-            [spearmanr(y_pred[:, jj], y_test[:, jj]).correlation for jj in range(n_mbins)]
-        )
-        corrs_ma[mdl_name] = np.array(
-            [
-                spearmanr(y_pred[:, jj + n_mbins], y_test[:, jj + n_mbins]).correlation
-                for jj in range(n_scales)
-            ]
-        )
-
-    # (1) Correlation a(m) vs a_pred(m) figure
-    fig, ax = plt.subplots(1, 1)
-    nice_names = [
-        r"\rm MultiCAM $c_{\rm vir}$ only",
-        r"\rm MultiCAM $x_{\rm off}$ only",
-        r"\rm MultiCAM $2T / \vert U \vert$ only",
-        r"\rm MultiCAM all parameters",
-    ]
-    for nice_name, mdl_name in zip(nice_names, mdl_names):
-        ax.plot(mass_bins, corrs_am[mdl_name], label=nice_name)
-    ax.set_xlabel("$m$")
-    ax.set_ylabel(r"$\rho(a_{m}, a_{m, \rm{pred}})$")
-    ax.set_yticks([0.2, 0.4, 0.6, 0.8])
-    ax.set_yticklabels(f"${x:.1f}$" for x in ax.get_yticks())
-    ax.legend()
-    figfile = figsdir.joinpath("corr_pred_mah_am.png")
-    fig.savefig(figfile)
-
-    # (2) Correlation m(a) vs m_pred(a) figure
-    fig, ax = plt.subplots(1, 1)
-    for nice_name, mdl_name in zip(nice_names, mdl_names):
-        ax.plot(scales, corrs_ma[mdl_name], label=nice_name)
-    ax.set_xlabel("$a$")
-    ax.set_ylabel(r"$\rho(m_{a}, m_{a, \rm{pred}})$")
-    ax.legend()
-    figfile = figsdir.joinpath("corr_pred_mah_ma.png")
-    fig.savefig(figfile)
+    def get_figures(self, data: Dict[str, np.ndarray]) -> Dict[str, mpl.figure.Figure]:
+        figs = {}
+        labels = [rxplots.latex_params[param] for param in self.params]
+        y_true = data.pop("truth")
+        y1 = self.transform(y_true)
+        for name, y_est in data.items():
+            y2 = self.transform(y_est)
+            fig = corner.corner(y1, labels=labels, max_n_ticks=3, color="C1", labelpad=0.05)
+            fig = corner.corner(
+                y2, labels=labels, max_n_ticks=3, fig=fig, color="C2", labelpad=0.05
+            )
+            figs[name + "_triangle"] = fig
+        return figs
 
 
-def make_inv_pred_plots():
-    set_rc()
-    mahdir = root.joinpath("data", "processed", "bolshoi_m12")
-    mah_data = get_mah(mahdir, cutoff_missing=0.05, cutoff_particle=0.05)
+class PredictMAH(Figure):
+    cache_name = "predict_mah"
 
-    cat = mah_data["cat"]
-    ma = mah_data["ma"]
-    am = mah_data["am"]
-    scales = mah_data["scales"]
-    mass_bins = mah_data["mass_bins"]
+    def _set_rc(self):
+        set_rc(fontsize=28, lgsize=18, figsize=(9, 6))
 
-    # extract m(a_{tdyn}) = \dot{M}_dynamical
-    t0 = get_t_from_a(1)
-    tdyn = np.mean(cat["tdyn"])
-    t = (t0 - tdyn) * u.Gyr
-    a_dyn = get_a_from_t(t)
-    indx_dyn = np.where(scales > a_dyn)[0][0]
-    mdyn = ma[:, indx_dyn].reshape(-1, 1)
+    def get_data(self):
+        mah_data = get_mah(MAH_DIR, cutoff_missing=0.05, cutoff_particle=0.05)
+        cat = mah_data["cat"]
+        ma = mah_data["ma"]
+        am = mah_data["am"]
+        mass_bins = mah_data["mass_bins"][:-1]  # remove last bin to avoid spearman error.
+        scales = mah_data["scales"][:-1]  # same for scales.
+        n_mbins = len(mass_bins)
+        n_scales = len(scales)
+        add_box_indices(cat)
 
-    # extract alpha fits
-    alpha_file = root.joinpath("data", "processed", "alpha_fits.npy")
-    alphas, _, _ = alpha_analysis(ma, scales, mass_bins, alpha_file=alpha_file)
+        # prepare catalog with all m_a
+        ma_names = [f"ma_{ii}" for ii in range(len(scales))]
+        for ii in range(len(scales)):
+            cat.add_column(ma[:, ii], name=ma_names[ii])
 
-    # extract a_{1/2} and a_{3/4}
-    a2 = get_an_from_am(am, mass_bins, mbin=0.5)
-    a4 = get_an_from_am(am, mass_bins, mbin=0.75)
+        # prepare catalog with all a(m)
+        am_names = [f"am_{ii}" for ii in range(len(mass_bins))]
+        for ii in range(len(mass_bins)):
+            cat.add_column(am[:, ii], name=am_names[ii])
 
-    pars = np.load(root.joinpath("data", "processed", "pbest_diffmah.npy"))
-    logtc, ue, ul = pars[:, 0], pars[:, 1], pars[:, 2]
-    early, late = get_early_late(ue, ul)
+        # prepare datasets
+        info = {
+            "cvir_only": {"x": ("cvir",), "y": am_names + ma_names},
+            "x0_only": {"x": ("x0",), "y": am_names + ma_names},
+            "tu_only": {"x": ("t/|u|",), "y": am_names + ma_names},
+            "all": {
+                "x": ("cvir", "cvir_klypin", "t/|u|", "x0", "spin_bullock", "c_to_a", "b_to_a"),
+                "y": am_names + ma_names,
+            },
+        }
+        datasets, _, cat_test = prepare_datasets(cat, info)
 
-    # add everything extracted to catalog
-    cat.add_column(10**logtc, name="tau_c")
-    cat.add_column(early, name="alpha_early")
-    cat.add_column(late, name="alpha_late")
-    cat.add_column(alphas, name="alpha")
-    cat.add_column(a2, name="a2")
-    cat.add_column(a4, name="a4")
-    cat.add_column(mdyn, name="mdyn")
+        # train models
+        data = {
+            "linear_cvir": {
+                "xy": datasets["cvir_only"]["train"],
+                "n_features": 1,
+                "n_targets": n_mbins + n_scales,
+                "model": "linear",
+                "kwargs": {"to_marginal_normal": True, "use_multicam": True},
+            },
+            "linear_x0": {
+                "xy": datasets["x0_only"]["train"],
+                "n_features": 1,
+                "n_targets": n_mbins + n_scales,
+                "model": "linear",
+                "kwargs": {"to_marginal_normal": True, "use_multicam": True},
+            },
+            "linear_tu": {
+                "xy": datasets["tu_only"]["train"],
+                "n_features": 1,
+                "n_targets": n_mbins + n_scales,
+                "model": "linear",
+                "kwargs": {"to_marginal_normal": True, "use_multicam": True},
+            },
+            "linear_all": {
+                "xy": datasets["all"]["train"],
+                "n_features": 7,
+                "n_targets": n_mbins + n_scales,
+                "model": "linear",
+                "kwargs": {"to_marginal_normal": True, "use_multicam": True},
+            },
+        }
+        models = training_suite(data)
 
-    params = ("a2", "a4", "alpha", "mdyn", "tau_c", "alpha_late", "alpha_early")
-    info = {
-        "cvir_only": {
-            "x": ("cvir",),
-            "y": params,
-        },
-        "x0_only": {
-            "x": ("x0",),
-            "y": params,
-        },
-        "tu_only": {
-            "x": ("t/|u|",),
-            "y": params,
-        },
-        "all": {
-            "x": ("cvir", "cvir_klypin", "t/|u|", "x0", "spin_bullock", "c_to_a", "b_to_a"),
-            "y": params,
-        },
-    }
-    datasets, _, cat_test = prepare_datasets(cat, info)
+        corrs_am = defaultdict(lambda: np.zeros(n_mbins))
+        errs_am = defaultdict(lambda: np.zeros(n_mbins))
+        corrs_ma = defaultdict(lambda: np.zeros(n_scales))
+        errs_ma = defaultdict(lambda: np.zeros(n_scales))
+        dataset_names = ["cvir_only", "x0_only", "tu_only", "all"]
+        mdl_names = ["linear_cvir", "linear_x0", "linear_tu", "linear_all"]
+        ibox = cat_test["ibox"]  # need it for errors.
+        for dataset_names, mdl_name in zip(dataset_names, mdl_names):
+            model = models[mdl_name]
+            x_test, y_test = datasets[dataset_names]["test"]
+            y_pred = model.predict(x_test)
 
-    data = {
-        "linear_cvir": {
-            "xy": datasets["cvir_only"]["train"],
-            "n_features": 1,
-            "n_targets": 7,
-            "model": "linear",
-            "kwargs": {"to_marginal_normal": True, "use_multicam": True},
-        },
-        "linear_x0": {
-            "xy": datasets["x0_only"]["train"],
-            "n_features": 1,
-            "n_targets": 7,
-            "model": "linear",
-            "kwargs": {"to_marginal_normal": True, "use_multicam": True},
-        },
-        "linear_tu": {
-            "xy": datasets["tu_only"]["train"],
-            "n_features": 1,
-            "n_targets": 7,
-            "model": "linear",
-            "kwargs": {"to_marginal_normal": True, "use_multicam": True},
-        },
-        "linear_all": {
-            "xy": datasets["all"]["train"],
-            "n_features": 7,
-            "n_targets": 7,
-            "model": "linear",
-            "kwargs": {"to_marginal_normal": True, "use_multicam": True},
-        },
-    }
-    models = training_suite(data)
+            for jj in range(n_mbins):
+                y1 = y_pred[:, jj]
+                y2 = y_test[:, jj]
+                corrs_am[mdl_name][jj] = spearmanr(y1, y2)
+                errs_am[mdl_name][jj] = vol_jacknife_err(y1, y2, ibox, spearmanr)
 
-    # make metrics plot
-    metrics_data = {
-        "spear": {"yrange": (0, 0.85)},
-        # "rscatter": {},
-        # "sigma_ratio": {"yrange": (0.8, 1.2), "hline": 1.0},
-        # "mu": {"yrange": (-0.1, 0.1), "hline": 0.0},
-    }
+            for jj in range(n_scales):
+                y1 = y_pred[:, jj + n_mbins]
+                y2 = y_test[:, jj + n_mbins]
+                corrs_ma[mdl_name][jj] = spearmanr(y1, y2)
+                errs_ma[mdl_name][jj] = vol_jacknife_err(y1, y2, ibox, spearmanr)
 
-    test_data = {
-        "linear_all": (
-            datasets["all"]["test"][0],
-            r"\rm MultiCAM",
-            CB_COLORS[0],
-            MARKS[0],
-        ),
-        "linear_cvir": (
-            datasets["cvir_only"]["test"][0],
+        return {
+            "corrs_am": dict(corrs_am),
+            "errs_am": dict(errs_am),
+            "corrs_ma": dict(corrs_ma),
+            "errs_ma": dict(errs_ma),
+            "mass_bins": mass_bins,
+            "scales": scales,
+        }
+
+    def get_figures(self, data: Dict[str, np.ndarray]) -> Dict[str, mpl.figure.Figure]:
+        corrs_am, errs_am, corrs_ma, errs_ma, mass_bins, scales = data.values()
+        mdl_names = list(corrs_am.keys())
+
+        # (1) Correlation a(m) vs a_pred(m) figure
+        fig1, ax = plt.subplots(1, 1)
+        nice_names = [
             r"\rm MultiCAM $c_{\rm vir}$ only",
-            CB_COLORS[1],
-            MARKS[1],
-        ),
-        "linear_x0": (
-            datasets["x0_only"]["test"][0],
             r"\rm MultiCAM $x_{\rm off}$ only",
-            CB_COLORS[2],
-            MARKS[2],
-        ),
-        "linear_tu": (
-            datasets["tu_only"]["test"][0],
+            r"\rm MultiCAM $T / \vert U \vert$ only",
+            r"\rm MultiCAM all parameters",
+        ]
+        for jj, (nice_name, mdl_name) in enumerate(zip(nice_names, mdl_names)):
+            corr = corrs_am[mdl_name]
+            err = errs_am[mdl_name]
+            ax.plot(mass_bins, corr, label=nice_name, color=CB_COLORS[jj])
+            ax.fill_between(mass_bins, corr - err, corr + err, color=CB_COLORS[jj], alpha=0.5)
+        ax.set_xlabel("$m$")
+        ax.set_ylabel(r"$\rho(a_{m}, a_{m, \rm{pred}})$")
+        ax.set_yticks([0.2, 0.4, 0.6, 0.8])
+        ax.set_yticklabels(f"${x:.1f}$" for x in ax.get_yticks())
+        ax.legend()
+
+        # (2) Correlation m(a) vs m_pred(a) figure
+        fig2, ax = plt.subplots(1, 1)
+        for jj, (nice_name, mdl_name) in enumerate(zip(nice_names, mdl_names)):
+            corr = corrs_ma[mdl_name]
+            err = errs_ma[mdl_name]
+            ax.plot(scales, corr, label=nice_name, color=CB_COLORS[jj])
+            ax.fill_between(scales, corr - err, corr + err, color=CB_COLORS[jj], alpha=0.5)
+        ax.set_xlabel("$a$")
+        ax.set_ylabel(r"$\rho(m_{a}, m_{a, \rm{pred}})$")
+        ax.legend()
+
+        return {"corr_pred_mah_am": fig1, "corr_pred_mah_ma": fig2}
+
+
+class InvPredMetrics(Figure):
+    cache_name = "inv_pred_metrics"
+
+    def _set_rc(self):
+        return set_rc()
+
+    def get_data(self):
+        mah_data = get_mah(MAH_DIR, cutoff_missing=0.05, cutoff_particle=0.05)
+        cat = mah_data["cat"]
+        ma = mah_data["ma"]
+        am = mah_data["am"]
+        scales = mah_data["scales"]
+        mass_bins = mah_data["mass_bins"]
+        add_box_indices(cat)
+
+        # extract m(a_{tdyn}) = \dot{M}_dynamical
+        t0 = get_t_from_a(1)
+        tdyn = np.mean(cat["tdyn"])
+        t = (t0 - tdyn) * u.Gyr
+        a_dyn = get_a_from_t(t)
+        indx_dyn = np.where(scales > a_dyn)[0][0]
+        mdyn = ma[:, indx_dyn].reshape(-1, 1)
+
+        # extract alpha fits
+        alpha_file = ROOT.joinpath("data", "processed", "alpha_fits.npy")
+        alphas, _, _ = alpha_analysis(ma, scales, mass_bins, alpha_file=alpha_file)
+
+        # extract a_{1/2} and a_{3/4}
+        a2 = get_an_from_am(am, mass_bins, mbin=0.5)
+        a4 = get_an_from_am(am, mass_bins, mbin=0.75)
+
+        # Ddiffmah parameters
+        pars = np.load(ROOT.joinpath("data", "processed", "pbest_diffmah.npy"))
+        logtc, ue, ul = pars[:, 0], pars[:, 1], pars[:, 2]
+        early, late = get_early_late(ue, ul)
+
+        # add everything extracted to catalog
+        cat.add_column(10**logtc, name="tau_c")
+        cat.add_column(early, name="alpha_early")
+        cat.add_column(late, name="alpha_late")
+        cat.add_column(alphas, name="alpha")
+        cat.add_column(a2, name="a2")
+        cat.add_column(a4, name="a4")
+        cat.add_column(mdyn, name="mdyn")
+
+        params = ("a2", "a4", "alpha", "mdyn", "tau_c", "alpha_late", "alpha_early")
+        n_params = len(params)
+        info = {
+            "cvir_only": {
+                "x": ("cvir",),
+                "y": params,
+            },
+            "x0_only": {
+                "x": ("x0",),
+                "y": params,
+            },
+            "tu_only": {
+                "x": ("t/|u|",),
+                "y": params,
+            },
+            "all": {
+                "x": ("cvir", "cvir_klypin", "t/|u|", "x0", "spin_bullock", "c_to_a", "b_to_a"),
+                "y": params,
+            },
+        }
+        datasets, _, cat_test = prepare_datasets(cat, info)
+
+        data = {
+            "linear_cvir": {
+                "xy": datasets["cvir_only"]["train"],
+                "n_features": 1,
+                "n_targets": 7,
+                "model": "linear",
+                "kwargs": {"to_marginal_normal": True, "use_multicam": True},
+            },
+            "linear_x0": {
+                "xy": datasets["x0_only"]["train"],
+                "n_features": 1,
+                "n_targets": 7,
+                "model": "linear",
+                "kwargs": {"to_marginal_normal": True, "use_multicam": True},
+            },
+            "linear_tu": {
+                "xy": datasets["tu_only"]["train"],
+                "n_features": 1,
+                "n_targets": 7,
+                "model": "linear",
+                "kwargs": {"to_marginal_normal": True, "use_multicam": True},
+            },
+            "linear_all": {
+                "xy": datasets["all"]["train"],
+                "n_features": 7,
+                "n_targets": 7,
+                "model": "linear",
+                "kwargs": {"to_marginal_normal": True, "use_multicam": True},
+            },
+        }
+        models = training_suite(data)
+
+        mdl_names = ["linear_cvir", "linear_x0", "linear_tu", "linear_all"]
+        ds_names = ["cvir_only", "x0_only", "tu_only", "all"]
+        nice_names = [
+            r"\rm MultiCAM $c_{\rm vir}$ only",
+            r"\rm MultiCAM $x_{\rm off}$ only",
             r"\rm MultiCAM $T/\vert U \vert$ only",
-            CB_COLORS[3],
-            MARKS[3],
-        ),
-    }
-    fig = rxplots.metrics_plot(metrics_data, test_data, models, cat_test, params)
-    figfile = figsdir.joinpath("inv_pred.png")
-    fig.savefig(figfile)
+            r"\rm MultiCAM",
+        ]
+
+        output = {}
+        ibox = cat_test["ibox"]
+        for ds, mdl in zip(ds_names, mdl_names):
+            d = defaultdict(lambda: np.zeros(n_params))
+            x_test, y_test = datasets[ds]["test"]
+            y_est = models[mdl].predict(x_test)
+            for jj in range(n_params):
+                y1, y2 = y_test[:, jj], y_est[:, jj]
+                d["val"][jj] = spearmanr(y1, y2)
+                d["err"][jj] = vol_jacknife_err(y1, y2, ibox, spearmanr)
+            output[mdl] = dict(d)
+
+        return {
+            "params": params,
+            "mdl_names": mdl_names,
+            "nice_names": nice_names,
+            "output": output,
+        }
+
+    def get_figures(self, data: Dict[str, np.ndarray]) -> Dict[str, mpl.figure.Figure]:
+        fig, ax = plt.subplots(1, 1)
+        params, mdl_names, nice_names, output = data.values()
+        x_bias = 0.0
+        for ii, (mdl, label) in enumerate(zip(mdl_names, nice_names)):
+            m, c = MARKS[ii], CB_COLORS[ii]
+            mval, merr = output[mdl]["val"], output[mdl]["err"]
+            rxplots.metrics_plot(ax, mval, merr, params, label, x_bias, m, c)
+            x_bias += 0.1
+        ax.set_ylim(0.3, 0.85)
+        return {"inv_pred_metrics": fig}
 
 
 def make_pred_plots():
@@ -715,8 +836,7 @@ def make_covariance_am_plot():
     mass_bins = mah_data["mass_bins"]
     am = mah_data["am"]
     corr_matrix = [
-        [spearmanr(am[:, ii], am[:, jj])[0] for ii in range(am.shape[1])]
-        for jj in range(am.shape[1])
+        [spearmanr(am[:, ii], am[:, jj]) for ii in range(am.shape[1])] for jj in range(am.shape[1])
     ]
     corr_matrix = np.array(corr_matrix).reshape(am.shape[1], am.shape[1])
 
@@ -738,9 +858,14 @@ def make_covariance_am_plot():
 
 
 def main():
+    ext = "png"
+    # CorrelationMAH(overwrite=False, ext=ext).save()
+    # TriangleSamples(overwrite=False, ext=ext).save()
+    # PredictMAH(overwrite=False, ext=ext).save()
+    InvPredMetrics(overwrite=False, ext=ext).save()
     # make_correlation_mah_plots()
     # make_triangle_plots()
-    make_mah_pred_plots()
+    # make_mah_pred_plots()
     # make_inv_pred_plots()
     # make_pred_plots()
     # make_covariance_am_plot()
