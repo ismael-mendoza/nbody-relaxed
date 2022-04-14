@@ -3,6 +3,10 @@ import numpy as np
 from scipy import stats
 
 
+def spearmanr(*args, **kwargs):
+    return stats.spearmanr(*args, **kwargs).correlation
+
+
 def get_ma_corrs(cat, param, ma):
     corrs = []
     n_scales = ma.shape[1]
@@ -12,7 +16,7 @@ def get_ma_corrs(cat, param, ma):
 
         # get correlation.
         assert np.all(ma_k > 0) and np.all(~np.isnan(ma_k))
-        corr = stats.spearmanr(ma_k, cat[param][keep])[0]
+        corr = spearmanr(ma_k, cat[param][keep])
         corrs.append(corr)
 
     return np.array(corrs)
@@ -25,13 +29,11 @@ def get_am_corrs(cat, param, am, box_keep=None):
     corrs = []
     n_mass_bins = am.shape[1]
     for k in range(n_mass_bins):
-        corrs.append(
-            stats.spearmanr(cat[param][box_keep], am[:, k][box_keep], nan_policy="omit")[0]
-        )
+        corrs.append(spearmanr(cat[param][box_keep], am[:, k][box_keep], nan_policy="omit"))
     return np.array(corrs)
 
 
-def _add_box_indices(cat, boxes=8, box_size=250):
+def add_box_indices(cat, boxes=8, box_size=250):
     # box_size is in Mpc
     # create a new row add it to the catalogue for which box it is in.
     assert int(boxes ** (1.0 / 3)) == boxes ** (1.0 / 3)
@@ -43,29 +45,14 @@ def _add_box_indices(cat, boxes=8, box_size=250):
             cat["ibox"] += 2**k * (d < cat[dim])
 
 
-def vol_jacknife_err(cat, fn, *args, mode="dict"):
-    # assumes cat has had its box indices added with the function above.
-    if "ibox" not in cat.colnames:
-        _add_box_indices(cat)
-
-    n_boxes = int(np.max(cat["ibox"]) + 1)
+def vol_jacknife_err(y_true, y_est, ibox, fn):
+    n_boxes = int(np.max(ibox) + 1)
     values = []
     for b in range(n_boxes):
-        box_keep = cat["ibox"] != b
-        value = fn(*args, box_keep=box_keep)
+        box_keep = ibox != b
+        y1 = y_est[box_keep]
+        y2 = y_true[box_keep]
+        value = fn(y1, y2)
         values.append(value)
-
-    if mode == "dict":
-        d = {}
-        for val in values:
-            for k, v in val.items():
-                d[k] = d[k] + [v] if d.get(k, None) is not None else [v]
-
-        d = {k: np.array(v) for k, v in d.items()}
-        return {k: np.sqrt(v.var(axis=0) * (n_boxes - 1)) for k, v in d.items()}
-
-    if mode == "array":
-        values = np.array(values)
-        return np.sqrt(values.var(axis=0) * (n_boxes - 1))
-
-    raise NotImplementedError()
+    values = np.array(values)
+    return np.sqrt(values.var(axis=0) * (n_boxes - 1))
