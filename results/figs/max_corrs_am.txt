@@ -1,7 +1,7 @@
-cvir: Max corr is -0.698 at mass bin 0.495
-cvir_klypin: Max corr is -0.700 at mass bin 0.397
-x0: Max corr is 0.599 at mass bin 0.735
-t/|u|: Max corr is 0.623 at mass bin 0.673
-spin_bullock: Max corr is 0.473 at mass bin 0.541
-b_to_a: Max corr is -0.505 at mass bin 0.673
-c_to_a: Max corr is -0.510 at mass bin 0.644
+cvir: Max corr is -0.698 +- 0.006 at mass bin 0.495
+cvir_klypin: Max corr is -0.700 +- 0.006 at mass bin 0.397
+x0: Max corr is 0.599 +- 0.012 at mass bin 0.735
+t/|u|: Max corr is 0.623 +- 0.011 at mass bin 0.673
+spin_bullock: Max corr is 0.473 +- 0.007 at mass bin 0.541
+b_to_a: Max corr is -0.505 +- 0.008 at mass bin 0.673
+c_to_a: Max corr is -0.510 +- 0.006 at mass bin 0.644

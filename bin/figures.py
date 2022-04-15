@@ -113,14 +113,14 @@ class CorrelationMAH(Figure):
             ma_data[param] = (ma_corr, ma_err)
             _corr = abs(ma_corr)
             max_indx = np.nanargmax(_corr)
-            ma_max_dict[param] = (scales[max_indx], ma_corr[max_indx])
+            ma_max_dict[param] = scales[max_indx], ma_corr[max_indx], ma_err[max_indx]
 
             # am
             am_corr, am_err = get_2d_corr(am, pvalue, ibox)
             am_data[param] = am_corr, am_err
             _corr = abs(am_corr)
             max_indx = np.nanargmax(_corr)
-            am_max_dict[param] = mass_bins[max_indx], am_corr[max_indx]
+            am_max_dict[param] = mass_bins[max_indx], am_corr[max_indx], am_err[max_indx]
         return {
             "tdyn": tdyn,
             "ma_data": ma_data,
@@ -130,6 +130,29 @@ class CorrelationMAH(Figure):
             "scales": scales,
             "mass_bins": mass_bins,
         }
+
+    def get_latex_table(self, data):
+        table = (
+            r"\begin{table}[ht]" + "\n"
+            r"\centering" + "\n"
+            r"\begin{tabular}{|c|c|c|c|c|}" + "\n"
+            r"\hline" + "\n"
+            r"$X$ & $a_{\rm opt}$ & $\rho\left(X, m_{a_{\rm opt}}\right)$"
+            r" & $m_{\rm opt}$ & $\rho\left(X, a_{m_{\rm opt}}\right)$ \\ [0.5ex]" + "\n"
+            r"\hline\hline" + "\n"
+        )
+        for param in self.params:
+            latex_param = rxplots.LATEX_PARAMS[param]
+            scale, val_ma, err_ma = data["ma_max_dict"][param]
+            mass_bin, val_am, err_am = data["am_max_dict"][param]
+            table += rf"{latex_param} & ${scale:.3f}$ & ${val_ma:.3f} \pm {err_ma:.3f}$"
+            table += rf" & ${mass_bin:.3f}$ & ${val_am:.3f} \pm {err_am:.3f}$ \\ \hline"
+            table += "\n"
+
+        table += r"\end{tabular}" + "\n" + r"\caption{}" + "\n" + r"\end{table}"
+
+        with open(FIGS_DIR.joinpath("max_corrs_table.txt"), "w") as fp:
+            print(table.strip(), file=fp)
 
     def get_ma_figure(self, data):
         """Get correlations with m(a) figure"""
@@ -162,10 +185,10 @@ class CorrelationMAH(Figure):
         # draw a vertical line at max scales
         text = ""
         for j, param in enumerate(self.params):
-            scale, corr = max_dict[param]
+            scale, corr, err = max_dict[param]
             color = CB_COLORS[j]
             ax.axvline(scale, linestyle="--", color=color)
-            text += f"{param}: Max corr is {corr:.3f} at scale {scale:.3f}\n"
+            text += f"{param}: Max corr is {corr:.3f} +- {err:.3f} at scale {scale:.3f}\n"
 
         # additional saving of max correlations for table
         with open(FIGS_DIR.joinpath("max_corrs_ma.txt"), "w") as fp:
@@ -224,9 +247,9 @@ class CorrelationMAH(Figure):
         text = ""
         for j, param in enumerate(self.params):
             color = CB_COLORS[j]
-            mbin, corr = max_dict[param]
+            mbin, corr, err = max_dict[param]
             ax.axvline(mbin, linestyle="--", color=color)
-            text += f"{param}: Max corr is {corr:.3f} at mass bin {mbin:.3f}\n"
+            text += f"{param}: Max corr is {corr:.3f} +- {err:.3f} at mass bin {mbin:.3f}\n"
 
         with open(FIGS_DIR.joinpath("max_corrs_am.txt"), "w") as fp:
             print(text.strip(), file=fp)
@@ -242,6 +265,7 @@ class CorrelationMAH(Figure):
         return fig
 
     def get_figures(self, data: Dict[str, np.ndarray]) -> Dict[str, mpl.figure.Figure]:
+        self.get_latex_table(data)
         return {"ma_corr": self.get_ma_figure(data), "am_corr": self.get_am_figure(data)}
 
 
@@ -319,9 +343,7 @@ class TriangleSamples(Figure):
         for name, y_est in data.items():
             y2 = self.transform(y_est)
             fig = corner.corner(y1, labels=labels, max_n_ticks=3, color="C1", labelpad=0.05)
-            fig = corner.corner(
-                y2, labels=labels, max_n_ticks=3, fig=fig, color="C2", labelpad=0.05
-            )
+            fig = corner.corner(y2, labels=labels, max_n_ticks=3, fig=fig, color="C2", labelpad=0.05)
             figs[name + "_triangle"] = fig
         return figs
 
@@ -664,9 +686,7 @@ class ForwardPredMetrics(Figure):
         gamma_k = {k: -get_savgol_grads(scales, ma, k=k) for k in ks}
         delta_k = {k: delta * (k // 2) for k in ks}
         grad_names_k = {k: [f"grad_{k}_{jj}" for jj in range(gamma_k[k].shape[1])] for k in ks}
-        all_grad_names = [
-            grad_names_k[k][jj] for k in grad_names_k for jj in range(len(grad_names_k[k]))
-        ]
+        all_grad_names = [grad_names_k[k][jj] for k in grad_names_k for jj in range(len(grad_names_k[k]))]
         assert delta_k and all_grad_names
 
         # add gradients to catalog catalog

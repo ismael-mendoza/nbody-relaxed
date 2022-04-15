@@ -145,9 +145,7 @@ def get_am(ma, scales, min_mass_bin, n_bins=100):
 
         _scales = np.array([pair[0] for pair in pairs])
         _m_peaks = np.array([pair[1] for pair in pairs])
-        fs.append(
-            interp1d(np.log(_m_peaks), np.log(_scales), bounds_error=False, fill_value=np.nan)
-        )
+        fs.append(interp1d(np.log(_m_peaks), np.log(_scales), bounds_error=False, fill_value=np.nan))
 
     # 6.
     am = np.array([np.exp(f(mass_bins)) for f in fs])

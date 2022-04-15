@@ -12,8 +12,7 @@ def get_next_progenitor(pf):
         line = line.rstrip()  # remove trailing whitespace
         if line:  # not empty
             top_match = re.match(
-                r"Order is: \(id, mvir, scale, scale_of_last_MM, coprog_id, coprog_mvir, "
-                r"coprog_scale\)",
+                r"Order is: \(id, mvir, scale, scale_of_last_MM, coprog_id, coprog_mvir, " r"coprog_scale\)",
                 line,
             )
             tree_root_match = re.match(r"# tree root id: (\d+) #", line)
