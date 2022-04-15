@@ -113,14 +113,14 @@ class CorrelationMAH(Figure):
             ma_data[param] = (ma_corr, ma_err)
             _corr = abs(ma_corr)
             max_indx = np.nanargmax(_corr)
-            ma_max_dict[param] = (scales[max_indx], ma_corr[max_indx])
+            ma_max_dict[param] = scales[max_indx], ma_corr[max_indx], ma_err[max_indx]
 
             # am
             am_corr, am_err = get_2d_corr(am, pvalue, ibox)
             am_data[param] = am_corr, am_err
             _corr = abs(am_corr)
             max_indx = np.nanargmax(_corr)
-            am_max_dict[param] = mass_bins[max_indx], am_corr[max_indx]
+            am_max_dict[param] = mass_bins[max_indx], am_corr[max_indx], am_err[max_indx]
         return {
             "tdyn": tdyn,
             "ma_data": ma_data,
@@ -162,10 +162,10 @@ class CorrelationMAH(Figure):
         # draw a vertical line at max scales
         text = ""
         for j, param in enumerate(self.params):
-            scale, corr = max_dict[param]
+            scale, corr, err = max_dict[param]
             color = CB_COLORS[j]
             ax.axvline(scale, linestyle="--", color=color)
-            text += f"{param}: Max corr is {corr:.3f} at scale {scale:.3f}\n"
+            text += f"{param}: Max corr is {corr:.3f} +- {err:.3f} at scale {scale:.3f}\n"
 
         # additional saving of max correlations for table
         with open(FIGS_DIR.joinpath("max_corrs_ma.txt"), "w") as fp:
@@ -224,9 +224,9 @@ class CorrelationMAH(Figure):
         text = ""
         for j, param in enumerate(self.params):
             color = CB_COLORS[j]
-            mbin, corr = max_dict[param]
+            mbin, corr, err = max_dict[param]
             ax.axvline(mbin, linestyle="--", color=color)
-            text += f"{param}: Max corr is {corr:.3f} at mass bin {mbin:.3f}\n"
+            text += f"{param}: Max corr is {corr:.3f} +- {err:.3f} at mass bin {mbin:.3f}\n"
 
         with open(FIGS_DIR.joinpath("max_corrs_am.txt"), "w") as fp:
             print(text.strip(), file=fp)
@@ -861,7 +861,7 @@ class ForwardPredMetrics(Figure):
 
 def main():
     ext = "png"
-    CorrelationMAH(overwrite=False, ext=ext).save()
+    CorrelationMAH(overwrite=True, ext=ext).save()
     TriangleSamples(overwrite=False, ext=ext).save()
     PredictMAH(overwrite=False, ext=ext).save()
     InvPredMetrics(overwrite=False, ext=ext).save()
