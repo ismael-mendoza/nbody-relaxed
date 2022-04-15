@@ -131,6 +131,28 @@ class CorrelationMAH(Figure):
             "mass_bins": mass_bins,
         }
 
+    def get_latex_table(self, data):
+        table = (
+            r"\begin{table}[ht]" + "\n"
+            r"\centering" + "\n"
+            r"\begin{tabular}{|c|c|c|c|c|}" + "\n"
+            r"\hline" + "\n"
+            r"$X$ & $a_{\rm opt}$ & $\rho\left(X, m_{a_{\rm opt}}\right)$ & $m_{\rm opt}$ & $\rho\left(X, a_{m_{\rm opt}}\right)$ \\ [0.5ex]"
+            + "\n"
+            r"\hline\hline" + "\n"
+        )
+        for param in self.params:
+            latex_param = rxplots.LATEX_PARAMS[param]
+            scale, val_ma, err_ma = data["ma_max_dict"][param]
+            mass_bin, val_am, err_am = data["am_max_dict"][param]
+            table += rf"{latex_param} & ${scale:.3f}$ & ${val_ma:.3f} \pm {err_ma:.3f}$ & ${mass_bin:.3f}$ & ${val_am:.3f} \pm {err_am:.3f}$ \\ \hline"
+            table += "\n"
+
+        table += r"\end{tabular}" + "\n" + r"\caption{}" + "\n" + r"\end{table}"
+
+        with open(FIGS_DIR.joinpath("max_corrs_table.txt"), "w") as fp:
+            print(table.strip(), file=fp)
+
     def get_ma_figure(self, data):
         """Get correlations with m(a) figure"""
         scales = data["scales"]
@@ -242,6 +264,7 @@ class CorrelationMAH(Figure):
         return fig
 
     def get_figures(self, data: Dict[str, np.ndarray]) -> Dict[str, mpl.figure.Figure]:
+        self.get_latex_table(data)
         return {"ma_corr": self.get_ma_figure(data), "am_corr": self.get_am_figure(data)}
 
 
@@ -861,11 +884,11 @@ class ForwardPredMetrics(Figure):
 
 def main():
     ext = "png"
-    CorrelationMAH(overwrite=True, ext=ext).save()
-    TriangleSamples(overwrite=False, ext=ext).save()
-    PredictMAH(overwrite=False, ext=ext).save()
-    InvPredMetrics(overwrite=False, ext=ext).save()
-    ForwardPredMetrics(overwrite=False, ext=ext).save()
+    CorrelationMAH(overwrite=False, ext=ext).save()
+    # TriangleSamples(overwrite=False, ext=ext).save()
+    # PredictMAH(overwrite=False, ext=ext).save()
+    # InvPredMetrics(overwrite=False, ext=ext).save()
+    # ForwardPredMetrics(overwrite=False, ext=ext).save()
 
 
 if __name__ == "__main__":
