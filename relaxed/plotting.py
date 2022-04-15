@@ -45,8 +45,6 @@ LATEX_METRICS = {
     "mad": r"\rm MAD",
 }
 
-plt.style.use("seaborn-darkgrid")
-
 
 def set_rc(
     figsize=(7, 7),
@@ -63,6 +61,7 @@ def set_rc(
     lgsize="small",
 ):
     # relative to fontsize options: 'xx-small', 'x-small', 'small', 'medium', 'large', 'x-large'
+    plt.style.use("seaborn-darkgrid")
     rc_params = {
         # figure
         "figure.figsize": figsize,  # default single axis
