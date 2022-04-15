@@ -58,18 +58,16 @@ def get_mah(
     ma = ma.T[keep_scale].T
     ma_peak = ma_peak.T[keep_scale].T
 
-    assert np.sum(np.isnan(ma)) == 0
-
-    # FIXME: Need to filter some f_subs using a similar criteria as with m(a), a(m)
-    # and f_sub(a)
-    # f_sub = np.array([cat[f"f_sub_a{i}"].data for i in indices]).T
-
     # remove haloes with np.nan in a(m)
     keep_am = ~np.isnan(np.sum(am, axis=1))
     cat = cat[keep_am]
     ma = ma[keep_am]
     ma_peak = ma_peak[keep_am]
     am = am[keep_am]
+
+    assert np.sum(np.isnan(ma)) == 0
+    assert np.all(ma > 0)
+    assert np.sum(np.isnan(am)) == 0
 
     return {
         "cat": cat,

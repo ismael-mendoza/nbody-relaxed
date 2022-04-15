@@ -13,8 +13,7 @@ from astropy import units as u
 
 from relaxed import plotting as rxplots
 from relaxed.correlations import add_box_indices
-from relaxed.correlations import get_am_corrs
-from relaxed.correlations import get_ma_corrs
+from relaxed.correlations import get_2d_corr
 from relaxed.correlations import spearmanr
 from relaxed.correlations import vol_jacknife_err
 from relaxed.cosmo import get_a_from_t
@@ -94,6 +93,7 @@ class CorrelationMAH(Figure):
         am = mah_data["am"]
         ma = mah_data["ma"]
         mass_bins = mah_data["mass_bins"]
+        add_box_indices(cat)
 
         # remove last index to avoid correlation warning.
         ma = ma[:, :-1]
@@ -102,28 +102,29 @@ class CorrelationMAH(Figure):
         mass_bins = mass_bins[:-1]
 
         tdyn = np.mean(cat["tdyn"]) / 10**9  # Gyr which astropy also returns by default
-        ma_corrs = {}
-        am_corrs = {}
+        ibox = cat["ibox"]
+        ma_data = {}
+        am_data = {}
         ma_max_dict = {}
         am_max_dict = {}
         for param in self.params:
-            # ma
-            ma_corr = get_ma_corrs(cat, param, ma)
-            ma_corrs[param] = ma_corr
+            pvalue = cat[param]
+            ma_corr, ma_err = get_2d_corr(ma, pvalue, ibox)
+            ma_data[param] = (ma_corr, ma_err)
             _corr = abs(ma_corr)
             max_indx = np.nanargmax(_corr)
-            ma_max_dict[param] = scales[max_indx], ma_corr[max_indx]
+            ma_max_dict[param] = (scales[max_indx], ma_corr[max_indx])
 
             # am
-            am_corr = get_am_corrs(cat, param, am)
-            am_corrs[param] = am_corr
+            am_corr, am_err = get_2d_corr(am, pvalue, ibox)
+            am_data[param] = am_corr, am_err
             _corr = abs(am_corr)
             max_indx = np.nanargmax(_corr)
             am_max_dict[param] = mass_bins[max_indx], am_corr[max_indx]
         return {
             "tdyn": tdyn,
-            "ma_corrs": ma_corrs,
-            "am_corrs": am_corrs,
+            "ma_data": ma_data,
+            "am_data": am_data,
             "ma_max_dict": ma_max_dict,
             "am_max_dict": am_max_dict,
             "scales": scales,
@@ -134,13 +135,13 @@ class CorrelationMAH(Figure):
         """Get correlations with m(a) figure"""
         scales = data["scales"]
         tdyn = data["tdyn"]
-        corrs = data["ma_corrs"]
+        ma_data = data["ma_data"]
         max_dict = data["ma_max_dict"]
 
         fig, ax = plt.subplots(1, 1)
 
         for j, param in enumerate(self.params):
-            corr = corrs[param]
+            corr, err = ma_data[param]
             latex_param = rxplots.LATEX_PARAMS[param]
             color = CB_COLORS[j]
             pos = corr > 0
@@ -155,6 +156,8 @@ class CorrelationMAH(Figure):
             if sum(neg) > 0:
                 label = f"${latex_param}$" if sum(pos) < sum(neg) else None
                 ax.plot(scales[neg], _corr[neg], color=color, ls=self.lss[1], label=label)
+
+            ax.fill_between(scales, _corr - err, _corr + err, color=color, alpha=0.5)
 
         # draw a vertical line at max scales
         text = ""
@@ -193,13 +196,13 @@ class CorrelationMAH(Figure):
     def get_am_figure(self, data):
         """Get correlations with a(m) figure"""
         mass_bins = data["mass_bins"]
-        corrs = data["am_corrs"]
+        am_data = data["am_data"]
         max_dict = data["am_max_dict"]
 
         fig, ax = plt.subplots(1, 1)
 
         for j, param in enumerate(self.params):
-            corr = corrs[param]
+            corr, err = am_data[param]
             latex_param = rxplots.LATEX_PARAMS[param]
             color = CB_COLORS[j]
             pos = corr >= 0
@@ -214,6 +217,8 @@ class CorrelationMAH(Figure):
             if sum(neg) > 0:
                 label = f"${latex_param}$" if sum(pos) < sum(neg) else None
                 ax.plot(mass_bins[neg], _corr[neg], color=color, ls=self.lss[1], label=label)
+
+            ax.fill_between(mass_bins, _corr - err, _corr + err, alpha=0.5)
 
         # draw a vertical line at max scales, output table.
         text = ""
@@ -857,10 +862,10 @@ class ForwardPredMetrics(Figure):
 def main():
     ext = "png"
     CorrelationMAH(overwrite=False, ext=ext).save()
-    TriangleSamples(overwrite=False, ext=ext).save()
-    PredictMAH(overwrite=False, ext=ext).save()
-    InvPredMetrics(overwrite=False, ext=ext).save()
-    ForwardPredMetrics(overwrite=False, ext=ext).save()
+    # TriangleSamples(overwrite=False, ext=ext).save()
+    # PredictMAH(overwrite=False, ext=ext).save()
+    # InvPredMetrics(overwrite=False, ext=ext).save()
+    # ForwardPredMetrics(overwrite=False, ext=ext).save()
 
 
 if __name__ == "__main__":

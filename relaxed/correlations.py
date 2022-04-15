@@ -7,30 +7,18 @@ def spearmanr(*args, **kwargs):
     return stats.spearmanr(*args, **kwargs).correlation
 
 
-def get_ma_corrs(cat, param, ma):
-    corrs = []
-    n_scales = ma.shape[1]
-    for k in range(n_scales):
-        keep = (~np.isnan(ma[:, k])) & (ma[:, k] > 0)
-        ma_k = ma[:, k][keep]
+def get_2d_corr(x, y, ibox):
+    assert len(x.shape) == 2 and len(y.shape) == 1
+    assert x.shape[0] == y.shape[0]
+    m = x.shape[1]
+    corrs = np.zeros(m)
+    errs = np.zeros(m)
+    for jj in range(m):
+        x_j = x[:, jj]
+        corrs[jj] = spearmanr(x_j, y)
+        errs[jj] = vol_jacknife_err(x_j, y, ibox, spearmanr)
 
-        # get correlation.
-        assert np.all(ma_k > 0) and np.all(~np.isnan(ma_k))
-        corr = spearmanr(ma_k, cat[param][keep])
-        corrs.append(corr)
-
-    return np.array(corrs)
-
-
-def get_am_corrs(cat, param, am, box_keep=None):
-    if box_keep is None:
-        box_keep = np.ones(am.shape[0]).astype(bool)
-
-    corrs = []
-    n_mass_bins = am.shape[1]
-    for k in range(n_mass_bins):
-        corrs.append(spearmanr(cat[param][box_keep], am[:, k][box_keep], nan_policy="omit"))
-    return np.array(corrs)
+    return corrs, errs
 
 
 def add_box_indices(cat, boxes=8, box_size=250):
@@ -45,14 +33,14 @@ def add_box_indices(cat, boxes=8, box_size=250):
             cat["ibox"] += 2**k * (d < cat[dim])
 
 
-def vol_jacknife_err(y_true, y_est, ibox, fn):
+def vol_jacknife_err(x, y, ibox, fn):
     n_boxes = int(np.max(ibox) + 1)
     values = []
     for b in range(n_boxes):
         box_keep = ibox != b
-        y1 = y_est[box_keep]
-        y2 = y_true[box_keep]
-        value = fn(y1, y2)
+        xb = x[box_keep]
+        yb = y[box_keep]
+        value = fn(xb, yb)
         values.append(value)
     values = np.array(values)
     return np.sqrt(values.var(axis=0) * (n_boxes - 1))
