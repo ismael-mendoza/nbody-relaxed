@@ -49,7 +49,10 @@ def create_subhalo_cat(host_ids, minh_file, threshold=1.0 / 1000, log=None):
 
     unfilled = host_cat["mvir"] == 0
     if sum(unfilled) > 0:
-        msg = f"{sum(unfilled)} host IDs out of {len(host_cat)} are not contained in minh catalog " f"loaded from file {minh_file.stem}."
+        msg = (
+            f"{sum(unfilled)} host IDs out of {len(host_cat)} are not contained in minh catalog "
+            f"loaded from file {minh_file.stem}."
+        )
         if log:
             print(msg, file=open(log, "a"))
         else:
@@ -69,7 +72,9 @@ def create_subhalo_cat(host_ids, minh_file, threshold=1.0 / 1000, log=None):
 
             # first calculate total subhalo mass
             # NOTE: If ID in host_cat but not in sub_pids then 0 is returned.
-            host_cat["f_sub"] += quantities.m_sub(host_cat["id"], host_cat["mvir"], sub_pids, sub_mvir, threshold=threshold)
+            host_cat["f_sub"] += quantities.m_sub(
+                host_cat["id"], host_cat["mvir"], sub_pids, sub_mvir, threshold=threshold
+            )
 
             # and most massive subhalo mass
             m2_curr = quantities.m2_sub(host_cat["id"], sub_pids, sub_mvir).reshape(-1, 1)

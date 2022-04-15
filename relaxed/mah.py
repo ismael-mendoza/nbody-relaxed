@@ -39,7 +39,9 @@ def get_mah(
     ma_peak = ma_info["ma_peak"]
 
     # get relevant cutoff on scales and mass bins (defined on m(a)).
-    min_scale, min_mass_bin = determine_cutoffs(ma_info["Mvir"], scales, cutoff_missing, cutoff_particle, particle_mass, particle_res)
+    min_scale, min_mass_bin = determine_cutoffs(
+        ma_info["Mvir"], scales, cutoff_missing, cutoff_particle, particle_mass, particle_res
+    )
 
     # fill nan's with average `m` value of 1 particle
     avg_mass = np.nanmean(cat["mvir"])
