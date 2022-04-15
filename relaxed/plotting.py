@@ -1,4 +1,5 @@
 import matplotlib as mpl
+import matplotlib.pyplot as plt
 import numpy as np
 
 
@@ -43,6 +44,8 @@ LATEX_METRICS = {
     "rscatter": r"$\frac{\sigma(y_{\rm pred} - y_{\rm true})}{ \sigma(y_{\rm true}) \sqrt{2}}$",
     "mad": r"\rm MAD",
 }
+
+plt.style.use("seaborn-darkgrid")
 
 
 def set_rc(
@@ -93,10 +96,15 @@ def set_rc(
         # colors
         "axes.prop_cycle": mpl.cycler(color=CB_COLORS),
         # images
-        "image.cmap": "bwr",
+        "image.cmap": "Greys",
+        "image.interpolation": None,
         # legend
         "legend.loc": lgloc,
         "legend.fontsize": lgsize,
+        "legend.frameon": True,
+        "legend.framealpha": 0.8,
+        "legend.facecolor": "white",
+        "legend.edgecolor": "gray",
         # figures
         "figure.autolayout": True,  # same as 'tight_layout'
     }
