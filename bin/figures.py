@@ -659,9 +659,8 @@ class ForwardPredMetrics(Figure):
         # add savitsky-golay gradients
         ks = [11, 21, 41, 81, 121, 161]
         log_a = np.log(scales)
-        delta = abs(log_a[-1] - log_a[0]) / (
-            200 - 1
-        )  # 200 is default number of interpolation points for uniform spacing. (in get_savgol_grads)
+        # 200 is default number of interpolation points for uniform spacing. (in get_savgol_grads)
+        delta = abs(log_a[-1] - log_a[0]) / (200 - 1)
         gamma_k = {k: -get_savgol_grads(scales, ma, k=k) for k in ks}
         delta_k = {k: delta * (k // 2) for k in ks}
         grad_names_k = {k: [f"grad_{k}_{jj}" for jj in range(gamma_k[k].shape[1])] for k in ks}
@@ -838,7 +837,8 @@ class ForwardPredMetrics(Figure):
 #     mass_bins = mah_data["mass_bins"]
 #     am = mah_data["am"]
 #     corr_matrix = [
-#         [spearmanr(am[:, ii], am[:, jj]) for ii in range(am.shape[1])] for jj in range(am.shape[1])
+#
+# [spearmanr(am[:, ii], am[:, jj]) for ii in range(am.shape[1])] for jj in range(am.shape[1])
 #     ]
 #     corr_matrix = np.array(corr_matrix).reshape(am.shape[1], am.shape[1])
 
