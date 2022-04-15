@@ -35,9 +35,7 @@ NAN_INTEGER = -5555
 @click.option("--outdir", type=str, required=True, help="wrt output")
 @click.option("--minh-file", help="./data", type=str, default=bolshoi_minh, show_default=True)
 @click.option("--catalog-name", default="Bolshoi", type=str, show_default=True)
-@click.option(
-    "--all-minh-files", default="bolshoi_catalogs_minh", type=str, show_default=True, help="./data"
-)
+@click.option("--all-minh-files", default="bolshoi_catalogs_minh", type=str, show_default=True, help="./data")
 @click.pass_context
 def pipeline(ctx, root, outdir, minh_file, catalog_name, all_minh_files):
     catname = catname_map[catalog_name]
@@ -357,9 +355,7 @@ def make_subhaloes(ctx, threshold):
         curr_dfids = curr_dfids[curr_sort]
         curr_mvir = curr_mvir[curr_sort]
 
-        sub_keep = get_central_subhaloes(
-            prev_pids, prev_dfids, curr_ids, curr_pids, curr_dfids, log_file=log_file
-        )
+        sub_keep = get_central_subhaloes(prev_pids, prev_dfids, curr_ids, curr_pids, curr_dfids, log_file=log_file)
 
         sub_pids = curr_pids[sub_keep]
         sub_mvir = curr_mvir[sub_keep]
@@ -376,9 +372,7 @@ def make_subhaloes(ctx, threshold):
 
         # extract subhalo information for each halo in `host_ids` using each halo in `curr_ids`
         # satisfying `sub_keep`
-        f_sub = sub_quantities.m_sub(
-            host_ids[host_keep], host_mvir[host_keep], sub_pids, sub_mvir, threshold=threshold
-        )
+        f_sub = sub_quantities.m_sub(host_ids[host_keep], host_mvir[host_keep], sub_pids, sub_mvir, threshold=threshold)
         m2_sub = sub_quantities.m2_sub(host_ids[host_keep], sub_pids, sub_mvir).reshape(-1)
 
         fcat[f"f_sub_a{curr_scale_idx}"][host_keep] = f_sub

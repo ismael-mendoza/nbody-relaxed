@@ -138,9 +138,7 @@ def draw_histogram(
         pass
 
     else:
-        raise NotImplementedError(
-            f"vline type {type(vline)} is not compatible with current implementation."
-        )
+        raise NotImplementedError(f"vline type {type(vline)} is not compatible with current implementation.")
 
 
 def metrics_plot(ax, mval, merr, params, label="", x_bias=0.0, m="o", c="r"):

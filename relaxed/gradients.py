@@ -48,9 +48,7 @@ def get_savgol_grads(scales, ma, k=5, deriv=1, n_samples=200):
     log_a_unif = np.linspace(log_a[0], log_a[-1], n_samples)
     log_ma_unif = f_log_ma(log_a_unif)
     d_log_a = abs(log_a_unif[-1] - log_a_unif[0]) / (len(log_a_unif) - 1)
-    gamma_unif = savgol_filter(
-        log_ma_unif, polyorder=4, window_length=k, deriv=deriv, delta=d_log_a
-    )
+    gamma_unif = savgol_filter(log_ma_unif, polyorder=4, window_length=k, deriv=deriv, delta=d_log_a)
     f_gamma = interp1d(log_a_unif, gamma_unif, bounds_error=False, fill_value=np.nan)
     gamma_a = f_gamma(log_a)
     return gamma_a
