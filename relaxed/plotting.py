@@ -1,4 +1,5 @@
 import matplotlib as mpl
+import matplotlib.pyplot as plt
 import numpy as np
 
 
@@ -60,6 +61,7 @@ def set_rc(
     lgsize="small",
 ):
     # relative to fontsize options: 'xx-small', 'x-small', 'small', 'medium', 'large', 'x-large'
+    plt.style.use("seaborn-darkgrid")
     rc_params = {
         # figure
         "figure.figsize": figsize,  # default single axis
@@ -93,10 +95,15 @@ def set_rc(
         # colors
         "axes.prop_cycle": mpl.cycler(color=CB_COLORS),
         # images
-        "image.cmap": "bwr",
+        "image.cmap": "Greys",
+        "image.interpolation": None,
         # legend
         "legend.loc": lgloc,
         "legend.fontsize": lgsize,
+        "legend.frameon": True,
+        "legend.framealpha": 0.8,
+        "legend.facecolor": "white",
+        "legend.edgecolor": "gray",
         # figures
         "figure.autolayout": True,  # same as 'tight_layout'
     }
