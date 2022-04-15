@@ -862,10 +862,10 @@ class ForwardPredMetrics(Figure):
 def main():
     ext = "png"
     CorrelationMAH(overwrite=False, ext=ext).save()
-    # TriangleSamples(overwrite=False, ext=ext).save()
-    # PredictMAH(overwrite=False, ext=ext).save()
-    # InvPredMetrics(overwrite=False, ext=ext).save()
-    # ForwardPredMetrics(overwrite=False, ext=ext).save()
+    TriangleSamples(overwrite=False, ext=ext).save()
+    PredictMAH(overwrite=False, ext=ext).save()
+    InvPredMetrics(overwrite=False, ext=ext).save()
+    ForwardPredMetrics(overwrite=False, ext=ext).save()
 
 
 if __name__ == "__main__":
