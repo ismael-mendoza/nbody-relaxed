@@ -10,6 +10,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 from astropy import units as u
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from relaxed import plotting as rxplots
 from relaxed.correlations import add_box_indices
@@ -851,41 +852,54 @@ class ForwardPredMetrics(Figure):
         return {"forward_pred_metrics": fig}
 
 
-# def make_covariance_am_plot():
-#     mahdir = root.joinpath("data", "processed", "bolshoi_m12")
-#     mah_data = get_mah(mahdir, cutoff_missing=0.05, cutoff_particle=0.05)
-#     mass_bins = mah_data["mass_bins"]
-#     am = mah_data["am"]
-#     corr_matrix = [
-#
-# [spearmanr(am[:, ii], am[:, jj]) for ii in range(am.shape[1])] for jj in range(am.shape[1])
-#     ]
-#     corr_matrix = np.array(corr_matrix).reshape(am.shape[1], am.shape[1])
+class CovarianceAm(Figure):
+    cache_name = "covariance_am"
 
-#     fig, ax = plt.subplots(1, 1)
-#     ax.set_xlabel(r"$m$")
-#     ax.set_ylabel(r"$m$")
-#     ax.set_title(r"$\rho_{\rm spearman} \left( a(m), a(m) \right)$")
-#     n_ticks = len(ax.get_xticklabels())
-#     mass_bin_labels = mass_bins[:: (len(mass_bins) + 2) // n_ticks]
-#     mass_bin_labels = [f"{label:.2f}" for label in mass_bin_labels]
-#     print(len(mass_bins), n_ticks, len(mass_bin_labels))
-#     assert n_ticks == len(mass_bin_labels)
-#     ax.set_xticklabels(mass_bin_labels)
-#     ax.set_yticklabels(mass_bin_labels)
-#     ax.matshow(corr_matrix)
+    def _set_rc(self):
+        return set_rc(fontsize=24, cmap="Greys")
 
-#     figfile = figsdir.joinpath("am_corr.png")
-#     fig.savefig(figfile)
+    def get_data(self):
+        mahdir = ROOT.joinpath("data", "processed", "bolshoi_m12")
+        mah_data = get_mah(mahdir, cutoff_missing=0.05, cutoff_particle=0.05, log_mbin_spacing=False)
+        mass_bins = mah_data["mass_bins"]
+        am = mah_data["am"]
+
+        corr_matrix = [[spearmanr(am[:, ii], am[:, jj]) for ii in range(am.shape[1])] for jj in range(am.shape[1])]
+        corr_matrix = np.array(corr_matrix).reshape(am.shape[1], am.shape[1])
+
+        return {"corr": corr_matrix, "mass_bins": mass_bins}
+
+    def get_figures(self, data: Dict[str, np.ndarray]) -> Dict[str, mpl.figure.Figure]:
+        corr = data["corr"]
+        mass_bins = data["mass_bins"]
+        mass_bin_labels = np.round(np.linspace(mass_bins.min(), mass_bins.max(), 6), 1)
+        mass_bin_labels = [rf"${x:.2f}$" for x in mass_bin_labels]
+
+        fig, ax = plt.subplots(1, 1)
+        im = ax.imshow(corr)
+
+        ax.set_xlabel(r"$m$")
+        ax.set_ylabel(r"$m$")
+        ax.set_title(r"$\rho_{\rm spearman} \left( a_{m}, a_{m} \right)$", pad=15.0)
+        ax.set_xticks(ticks=ax.get_xticks()[1:], labels=mass_bin_labels)
+        ax.set_yticks(ticks=ax.get_yticks()[1:], labels=mass_bin_labels)
+
+        # colorbar
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("right", size="5%", pad=0.10)
+        fig.colorbar(im, cax=cax, orientation="vertical")
+
+        return {"am_corr_matrix": fig}
 
 
 def main():
     ext = "png"
-    CorrelationMAH(overwrite=False, ext=ext).save()
-    TriangleSamples(overwrite=False, ext=ext).save()
-    PredictMAH(overwrite=False, ext=ext).save()
-    InvPredMetrics(overwrite=False, ext=ext).save()
-    ForwardPredMetrics(overwrite=False, ext=ext).save()
+    # CorrelationMAH(overwrite=False, ext=ext).save()
+    # TriangleSamples(overwrite=False, ext=ext).save()
+    # PredictMAH(overwrite=False, ext=ext).save()
+    # InvPredMetrics(overwrite=False, ext=ext).save()
+    # ForwardPredMetrics(overwrite=False, ext=ext).save()
+    CovarianceAm(overwrite=False, ext=ext).save()
 
 
 if __name__ == "__main__":

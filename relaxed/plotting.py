@@ -59,6 +59,7 @@ def set_rc(
     capsize=2.0,
     lgloc="best",
     lgsize="small",
+    cmap="Greys",
 ):
     # relative to fontsize options: 'xx-small', 'x-small', 'small', 'medium', 'large', 'x-large'
     plt.style.use("seaborn-darkgrid")
@@ -95,7 +96,7 @@ def set_rc(
         # colors
         "axes.prop_cycle": mpl.cycler(color=CB_COLORS),
         # images
-        "image.cmap": "Greys",
+        "image.cmap": cmap,
         "image.interpolation": None,
         # legend
         "legend.loc": lgloc,
