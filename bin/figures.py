@@ -894,11 +894,11 @@ class CovarianceAm(Figure):
 
 def main():
     ext = "png"
-    # CorrelationMAH(overwrite=False, ext=ext).save()
-    # TriangleSamples(overwrite=False, ext=ext).save()
-    # PredictMAH(overwrite=False, ext=ext).save()
-    # InvPredMetrics(overwrite=False, ext=ext).save()
-    # ForwardPredMetrics(overwrite=False, ext=ext).save()
+    CorrelationMAH(overwrite=False, ext=ext).save()
+    TriangleSamples(overwrite=False, ext=ext).save()
+    PredictMAH(overwrite=False, ext=ext).save()
+    InvPredMetrics(overwrite=False, ext=ext).save()
+    ForwardPredMetrics(overwrite=False, ext=ext).save()
     CovarianceAm(overwrite=False, ext=ext).save()
 
 
