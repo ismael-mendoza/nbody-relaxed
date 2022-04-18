@@ -15,6 +15,7 @@ def get_mah(
     particle_mass=1.35e8,  # Bolshoi
     particle_res=50,
     n_mass_bins=100,
+    log_mbin_spacing=True,
 ):
     """Get catalog, indices, scales from given catalog pipeline outdir path."""
     outdir = Path(outdir)
@@ -49,7 +50,7 @@ def get_mah(
     ma_peak[np.isnan(ma_peak)] = particle_mass / avg_mass
 
     # obtain a(m) and corresponding mass_bins
-    am, mass_bins = get_am(ma, scales, min_mass_bin, n_mass_bins)
+    am, mass_bins = get_am(ma, scales, min_mass_bin, n_mass_bins, log_spacing=log_mbin_spacing)
 
     # filter scales, indices, m(a) based on `min_scale`.
     keep_scale = scales > min_scale
@@ -97,7 +98,7 @@ def get_ma_info(cat, indices):
     return {"ma_vir": ma_vir, "ma_peak": ma_peak, "ma_mix": ma_mix, "Mvir": Mvir, "Mpeak": Mpeak}
 
 
-def get_am(ma, scales, min_mass_bin, n_bins=100):
+def get_am(ma, scales, min_mass_bin, n_bins=100, log_spacing=True):
     """
     1. Inversion is only a well-defined process for monotonic functions, and m(a) for an
     individual halo isn't necessarily monotonic. To solve this, the standard redefinition of a(m0)
@@ -123,7 +124,10 @@ def get_am(ma, scales, min_mass_bin, n_bins=100):
     assert np.sum(np.isnan(ma)) == 0, "m(a) needs to be filled with `fill_value` previously."
 
     # 1. + 2.
-    mass_bins = np.linspace(np.log(min_mass_bin), np.log(1.0), n_bins)
+    if log_spacing:
+        mass_bins = np.linspace(np.log(min_mass_bin), np.log(1.0), n_bins)
+    else:
+        mass_bins = np.log(np.linspace(min_mass_bin, 1.0, n_bins))
 
     # 3.
     # NOTE: Make function monotonic. We assume start is early -> late ordering.
