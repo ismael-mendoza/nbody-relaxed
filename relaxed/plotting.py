@@ -30,7 +30,7 @@ LATEX_PARAMS = {
     "a2": r"$a_{1/2}$",
     "a4": r"$a_{3/4}$",
     "alpha": r"$\alpha$",
-    "mdyn": r"$m(a_{\rm dyn})$",
+    "mdyn": r"$m_{a_{\rm dyn}}$",
     "tau_c": r"$\tau_{c}$",
     "alpha_early": r"$\alpha_{\rm early}$",
     "alpha_late": r"$\alpha_{\rm late}$",

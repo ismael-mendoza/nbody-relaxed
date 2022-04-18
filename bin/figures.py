@@ -197,7 +197,7 @@ class CorrelationMAH(Figure):
 
         ax.set_ylim(0, 1.0)
         ax.set_xlim(0, 1.0)
-        ax.set_ylabel("$\\rho(X, m(a))$")
+        ax.set_ylabel(r"$\rho(X, m_{a})$")
         ax.set_xlabel("$a$")
 
         # add additional x-axis with tydn fractional scale
@@ -257,7 +257,7 @@ class CorrelationMAH(Figure):
 
         ax.set_ylim(0, 1.0)
         ax.set_xlim(0.01, 1.0)
-        ax.set_ylabel("$\\rho(X, a(m))$")
+        ax.set_ylabel(r"$\rho(X, a_{m})$")
         ax.set_xlabel("$m$")
         ax.tick_params(axis="both", which="major")
         ax.tick_params(axis="x", which="minor")
@@ -496,7 +496,7 @@ class InvPredMetrics(Figure):
     params = ("a2", "a4", "alpha", "mdyn", "tau_c", "alpha_late", "alpha_early")
 
     def _set_rc(self):
-        return set_rc(fontsize=28, lgsize=18, lgloc="lower left")
+        return set_rc(fontsize=28, lgsize=16, lgloc="lower left")
 
     def get_data(self):
         mah_data = get_mah(MAH_DIR, cutoff_missing=0.05, cutoff_particle=0.05)
@@ -627,6 +627,7 @@ class InvPredMetrics(Figure):
             rxplots.metrics_plot(ax, mval, merr, self.params, label, x_bias, m, c)
             x_bias += 0.1
         ax.set_ylim(0.0, 0.8)
+        ax.set_ylabel(r"$\rho_{\rm  spearman}\left(y_{\rm pred}, y_{\rm true}\right)$")
         ax.legend()
         return {"inv_pred_metrics": fig}
 
@@ -636,7 +637,7 @@ class ForwardPredMetrics(Figure):
     params = ("cvir", "cvir_klypin", "t/|u|", "x0", "spin_bullock", "b_to_a", "c_to_a")
 
     def _set_rc(self):
-        return set_rc(figsize=(8, 8), fontsize=28, lgsize=20, lgloc="lower left")
+        return set_rc(figsize=(8, 8), fontsize=28, lgsize=18, lgloc="lower left")
 
     def get_data(self):
         mah_data = get_mah(MAH_DIR, cutoff_missing=0.05, cutoff_particle=0.05)
@@ -848,6 +849,7 @@ class ForwardPredMetrics(Figure):
             rxplots.metrics_plot(ax, mval, merr, self.params, label, x_bias, m, c)
             x_bias += 0.1
         ax.set_ylim(0.2, 0.85)
+        ax.set_ylabel(r"$\rho_{\rm spearman}\left(y_{\rm pred}, y_{\rm true}\right)$")
         ax.legend()
         return {"forward_pred_metrics": fig}
 
