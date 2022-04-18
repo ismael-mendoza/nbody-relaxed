@@ -74,7 +74,7 @@ class Figure(ABC):
         self._set_rc()
         figs = self.get_figures(data.item())
         for name, fig in figs.items():
-            fig.savefig(FIGS_DIR.joinpath(name).with_suffix(self.ext))
+            fig.savefig(FIGS_DIR.joinpath(name).with_suffix(self.ext), bbox_inches="tight")
 
 
 class CorrelationMAH(Figure):
