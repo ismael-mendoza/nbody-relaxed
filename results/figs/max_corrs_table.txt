@@ -2,7 +2,7 @@
 \centering
 \begin{tabular}{|c|c|c|c|c|}
 \hline
-$X$ & $a_{\rm opt}$ & $\rho\left(X, m_{a_{\rm opt}}\right)$ & $m_{\rm opt}$ & $\rho\left(X, a_{m_{\rm opt}}\right)$ \\ [0.5ex]
+$X$ & $a_{\rm opt}$ & $\rho_{s}\left(X, m_{a_{\rm opt}}\right)$ & $m_{\rm opt}$ & $\rho_{s}\left(X, a_{m_{\rm opt}}\right)$ \\ [0.5ex]
 \hline\hline
 $c_{\rm vir}$ & $0.420$ & $0.679 \pm 0.005$ & $0.495$ & $-0.698 \pm 0.006$ \\ \hline
 $c_{\rm vir, k}$ & $0.378$ & $0.687 \pm 0.005$ & $0.397$ & $-0.700 \pm 0.006$ \\ \hline

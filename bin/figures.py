@@ -45,7 +45,7 @@ MAH_DIR = ROOT.joinpath("data", "processed", "bolshoi_m12")
 FIGS_DIR.mkdir(exist_ok=True, parents=False)
 CACHE_DIR.mkdir(exist_ok=True, parents=False)
 
-rho_latex = r"\rho_{\rm spearman}"
+rho_latex = r"\rho_{s}"
 
 
 class Figure(ABC):
@@ -141,8 +141,8 @@ class CorrelationMAH(Figure):
             r"\centering" + "\n"
             r"\begin{tabular}{|c|c|c|c|c|}" + "\n"
             r"\hline" + "\n"
-            rf"$X$ & $a_{{\rm opt}}$ & $\rho\left(X, m_{{a_{{\rm opt}}}}\right)$"
-            rf" & $m_{{\rm opt}}$ & $\rho\left(X, a_{{m_{{\rm opt}}}}\right)$ \\ [0.5ex]" + "\n"
+            rf"$X$ & $a_{{\rm opt}}$ & ${rho_latex}\left(X, m_{{a_{{\rm opt}}}}\right)$"
+            rf" & $m_{{\rm opt}}$ & ${rho_latex}\left(X, a_{{m_{{\rm opt}}}}\right)$ \\ [0.5ex]" + "\n"
             r"\hline\hline" + "\n"
         )
         for param in self.params:
@@ -197,7 +197,7 @@ class CorrelationMAH(Figure):
         with open(FIGS_DIR.joinpath("max_corrs_ma.txt"), "w") as fp:
             print(text.strip(), file=fp)
 
-        ax.set_ylim(0, 1.0)
+        ax.set_ylim(0, 0.8)
         ax.set_xlim(0, 1.0)
         ax.set_ylabel(rf"${rho_latex}\left(X, m_{{a}}\right)$")
         ax.set_xlabel("$a$")
@@ -257,7 +257,7 @@ class CorrelationMAH(Figure):
         with open(FIGS_DIR.joinpath("max_corrs_am.txt"), "w") as fp:
             print(text.strip(), file=fp)
 
-        ax.set_ylim(0, 1.0)
+        ax.set_ylim(0, 0.8)
         ax.set_xlim(0.01, 1.0)
         ax.set_ylabel(rf"${rho_latex}\left(X, a_{{m}}\right)$")
         ax.set_xlabel("$m$")
@@ -497,7 +497,7 @@ class InvPredMetrics(Figure):
     params = ("a2", "alpha", "mdyn", "tau_c", "alpha_late", "alpha_early")
 
     def _set_rc(self):
-        return set_rc(fontsize=28, lgsize=16, lgloc="lower left", figsize=(8, 8))
+        return set_rc(fontsize=28, lgsize=20, lgloc="lower left", figsize=(8, 8))
 
     def get_data(self):
         mah_data = get_mah(MAH_DIR, cutoff_missing=0.05, cutoff_particle=0.05)
