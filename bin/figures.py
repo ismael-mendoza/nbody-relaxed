@@ -858,7 +858,7 @@ class CovarianceAm(Figure):
     cache_name = "covariance_am"
 
     def _set_rc(self):
-        return set_rc(fontsize=24, cmap="Greys")
+        return set_rc(fontsize=24, cmap="tab10")
 
     def get_data(self):
         mahdir = ROOT.joinpath("data", "processed", "bolshoi_m12")
