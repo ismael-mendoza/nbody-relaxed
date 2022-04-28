@@ -62,7 +62,7 @@ def set_rc(
     cmap="Greys",
 ):
     # relative to fontsize options: 'xx-small', 'x-small', 'small', 'medium', 'large', 'x-large'
-    plt.style.use("seaborn-darkgrid")
+    plt.style.use("seaborn-whitegrid")
     rc_params = {
         # figure
         "figure.figsize": figsize,  # default single axis
@@ -76,6 +76,7 @@ def set_rc(
         # axes
         "axes.labelsize": "medium",
         "axes.titlesize": "large",
+        "axes.axisbelow": True,
         # ticks
         "xtick.labelsize": "small",
         "ytick.labelsize": "small",

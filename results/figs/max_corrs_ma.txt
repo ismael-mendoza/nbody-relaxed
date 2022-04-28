@@ -3,5 +3,4 @@ cvir_klypin: Max corr is 0.687 +- 0.005 at scale 0.378
 x0: Max corr is -0.558 +- 0.010 at scale 0.634
 t/|u|: Max corr is -0.594 +- 0.011 at scale 0.562
 spin_bullock: Max corr is -0.435 +- 0.007 at scale 0.504
-b_to_a: Max corr is 0.466 +- 0.010 at scale 0.592
 c_to_a: Max corr is 0.478 +- 0.007 at scale 0.592

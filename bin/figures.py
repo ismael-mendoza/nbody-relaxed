@@ -5,6 +5,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Dict
 
+import click
 import corner
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -44,6 +45,8 @@ MAH_DIR = ROOT.joinpath("data", "processed", "bolshoi_m12")
 FIGS_DIR.mkdir(exist_ok=True, parents=False)
 CACHE_DIR.mkdir(exist_ok=True, parents=False)
 
+rho_latex = r"\rho_{\rm spearman}"
+
 
 class Figure(ABC):
     cache_name = ""
@@ -79,7 +82,7 @@ class Figure(ABC):
 
 class CorrelationMAH(Figure):
     cache_name = "correlations_mah"
-    params = ("cvir", "cvir_klypin", "x0", "t/|u|", "spin_bullock", "b_to_a", "c_to_a")
+    params = ("cvir", "cvir_klypin", "x0", "t/|u|", "spin_bullock", "c_to_a")
     lss = np.array(["-", ":"])  # pos vs neg correlations
 
     def _set_rc(self):
@@ -138,8 +141,8 @@ class CorrelationMAH(Figure):
             r"\centering" + "\n"
             r"\begin{tabular}{|c|c|c|c|c|}" + "\n"
             r"\hline" + "\n"
-            r"$X$ & $a_{\rm opt}$ & $\rho\left(X, m_{a_{\rm opt}}\right)$"
-            r" & $m_{\rm opt}$ & $\rho\left(X, a_{m_{\rm opt}}\right)$ \\ [0.5ex]" + "\n"
+            rf"$X$ & $a_{{\rm opt}}$ & $\rho\left(X, m_{{a_{{\rm opt}}}}\right)$"
+            rf" & $m_{{\rm opt}}$ & $\rho\left(X, a_{{m_{{\rm opt}}}}\right)$ \\ [0.5ex]" + "\n"
             r"\hline\hline" + "\n"
         )
         for param in self.params:
@@ -188,7 +191,6 @@ class CorrelationMAH(Figure):
         for j, param in enumerate(self.params):
             scale, corr, err = max_dict[param]
             color = CB_COLORS[j]
-            ax.axvline(scale, linestyle="--", color=color)
             text += f"{param}: Max corr is {corr:.3f} +- {err:.3f} at scale {scale:.3f}\n"
 
         # additional saving of max correlations for table
@@ -197,7 +199,7 @@ class CorrelationMAH(Figure):
 
         ax.set_ylim(0, 1.0)
         ax.set_xlim(0, 1.0)
-        ax.set_ylabel(r"$\rho(X, m_{a})$")
+        ax.set_ylabel(rf"${rho_latex}\left(X, m_{{a}}\right)$")
         ax.set_xlabel("$a$")
 
         # add additional x-axis with tydn fractional scale
@@ -209,12 +211,13 @@ class CorrelationMAH(Figure):
         fractional_tdyn = get_fractional_tdyn(xticks, tdyn, sim_name="Bolshoi")
         fractional_tdyn = [f"${x/10**9:.2g}$" for x in fractional_tdyn]
         ax2.set_xticklabels([np.nan] + fractional_tdyn)
-        ax2.set_xlabel("$\\tau_{\\rm dyn} \\, {\\rm [Gyrs]}$", labelpad=10)
+        ax2.set_xlabel(r"$ \Delta \tau_{\rm dyn} / \tau_{\rm dyn}$", labelpad=10)
 
         ax.legend(loc="upper right")
 
         ax.set_xlim(0.15, 1)
         ax2.set_xlim(0.15, 1)
+        ax2.grid(None)
         return fig
 
     def get_am_figure(self, data):
@@ -249,7 +252,6 @@ class CorrelationMAH(Figure):
         for j, param in enumerate(self.params):
             color = CB_COLORS[j]
             mbin, corr, err = max_dict[param]
-            ax.axvline(mbin, linestyle="--", color=color)
             text += f"{param}: Max corr is {corr:.3f} +- {err:.3f} at mass bin {mbin:.3f}\n"
 
         with open(FIGS_DIR.joinpath("max_corrs_am.txt"), "w") as fp:
@@ -257,11 +259,10 @@ class CorrelationMAH(Figure):
 
         ax.set_ylim(0, 1.0)
         ax.set_xlim(0.01, 1.0)
-        ax.set_ylabel(r"$\rho(X, a_{m})$")
+        ax.set_ylabel(rf"${rho_latex}\left(X, a_{{m}}\right)$")
         ax.set_xlabel("$m$")
         ax.tick_params(axis="both", which="major")
         ax.tick_params(axis="x", which="minor")
-        ax.legend(loc="upper right")
 
         return fig
 
@@ -272,7 +273,7 @@ class CorrelationMAH(Figure):
 
 class TriangleSamples(Figure):
     cache_name = "triangle"
-    params = ("cvir", "cvir_klypin", "t/|u|", "x0", "spin_bullock", "b_to_a", "c_to_a")
+    params = ("cvir", "t/|u|", "x0", "spin_bullock", "c_to_a")
     which_log = [True, True, True, True, True, False, False]
 
     def _set_rc(self):
@@ -351,9 +352,10 @@ class TriangleSamples(Figure):
 
 class PredictMAH(Figure):
     cache_name = "predict_mah"
+    params = ("cvir", "t/|u|", "x0", "spin_bullock", "c_to_a")
 
     def _set_rc(self):
-        set_rc(fontsize=28, lgsize=18, figsize=(9, 6))
+        set_rc(fontsize=28, lgsize=18, figsize=(8, 8))
 
     def get_data(self):
         mah_data = get_mah(MAH_DIR, cutoff_missing=0.05, cutoff_particle=0.05)
@@ -381,10 +383,7 @@ class PredictMAH(Figure):
             "cvir_only": {"x": ("cvir",), "y": am_names + ma_names},
             "x0_only": {"x": ("x0",), "y": am_names + ma_names},
             "tu_only": {"x": ("t/|u|",), "y": am_names + ma_names},
-            "all": {
-                "x": ("cvir", "cvir_klypin", "t/|u|", "x0", "spin_bullock", "c_to_a", "b_to_a"),
-                "y": am_names + ma_names,
-            },
+            "all": {"x": self.params, "y": am_names + ma_names},
         }
         datasets, _, cat_test = prepare_datasets(cat, info)
 
@@ -413,7 +412,7 @@ class PredictMAH(Figure):
             },
             "linear_all": {
                 "xy": datasets["all"]["train"],
-                "n_features": 7,
+                "n_features": len(self.params),
                 "n_targets": n_mbins + n_scales,
                 "model": "linear",
                 "kwargs": {"to_marginal_normal": True, "use_multicam": True},
@@ -457,46 +456,48 @@ class PredictMAH(Figure):
     def get_figures(self, data: Dict[str, np.ndarray]) -> Dict[str, mpl.figure.Figure]:
         corrs_am, errs_am, corrs_ma, errs_ma, mass_bins, scales = data.values()
         mdl_names = list(corrs_am.keys())
-
-        # (1) Correlation a(m) vs a_pred(m) figure
-        fig1, ax = plt.subplots(1, 1)
         nice_names = [
-            r"\rm MultiCAM $c_{\rm vir}$ only",
-            r"\rm MultiCAM $x_{\rm off}$ only",
-            r"\rm MultiCAM $T / \vert U \vert$ only",
-            r"\rm MultiCAM all parameters",
+            r"\rm $c_{\rm vir}$ only",
+            r"\rm $x_{\rm off}$ only",
+            r"\rm $T / \vert U \vert$ only",
+            r"\rm All parameters",
         ]
-        for jj, (nice_name, mdl_name) in enumerate(zip(nice_names, mdl_names)):
-            corr = corrs_am[mdl_name]
-            err = errs_am[mdl_name]
-            ax.plot(mass_bins, corr, label=nice_name, color=CB_COLORS[jj])
-            ax.fill_between(mass_bins, corr - err, corr + err, color=CB_COLORS[jj], alpha=0.5)
-        ax.set_xlabel("$m$")
-        ax.set_ylabel(r"$\rho(a_{m}, a_{m, \rm{pred}})$")
-        ax.set_yticks([0.2, 0.4, 0.6, 0.8])
-        ax.set_yticklabels(f"${x:.1f}$" for x in ax.get_yticks())
-        ax.legend()
 
-        # (2) Correlation m(a) vs m_pred(a) figure
-        fig2, ax = plt.subplots(1, 1)
+        # (1) Correlation m(a) vs m_pred(a) figure
+        fig1, ax = plt.subplots(1, 1)
         for jj, (nice_name, mdl_name) in enumerate(zip(nice_names, mdl_names)):
             corr = corrs_ma[mdl_name]
             err = errs_ma[mdl_name]
             ax.plot(scales, corr, label=nice_name, color=CB_COLORS[jj])
             ax.fill_between(scales, corr - err, corr + err, color=CB_COLORS[jj], alpha=0.5)
         ax.set_xlabel("$a$")
-        ax.set_ylabel(r"$\rho(m_{a}, m_{a, \rm{pred}})$")
+        ax.set_ylabel(rf"${rho_latex}\left(m_{{a}}, m_{{a, \rm{{pred}}}}\right)$")
+        ax.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8])
+        ax.set_ylim(0.0, 0.8)
         ax.legend()
 
-        return {"corr_pred_mah_am": fig1, "corr_pred_mah_ma": fig2}
+        # (2) Correlation a(m) vs a_pred(m) figure
+        fig2, ax = plt.subplots(1, 1)
+        for jj, (nice_name, mdl_name) in enumerate(zip(nice_names, mdl_names)):
+            corr = corrs_am[mdl_name]
+            err = errs_am[mdl_name]
+            ax.plot(mass_bins, corr, label=nice_name, color=CB_COLORS[jj])
+            ax.fill_between(mass_bins, corr - err, corr + err, color=CB_COLORS[jj], alpha=0.5)
+        ax.set_xlabel("$m$")
+        ax.set_ylabel(rf"${rho_latex}\left(a_{{m}}, a_{{m, \rm{{pred}}}}\right)$")
+        ax.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8])
+        ax.set_ylim(0.0, 0.8)
+        ax.set_yticklabels(f"${x:.1f}$" for x in ax.get_yticks())
+
+        return {"corr_pred_mah_ma": fig1, "corr_pred_mah_am": fig2}
 
 
 class InvPredMetrics(Figure):
     cache_name = "inv_pred_metrics"
-    params = ("a2", "a4", "alpha", "mdyn", "tau_c", "alpha_late", "alpha_early")
+    params = ("a2", "alpha", "mdyn", "tau_c", "alpha_late", "alpha_early")
 
     def _set_rc(self):
-        return set_rc(fontsize=28, lgsize=16, lgloc="lower left")
+        return set_rc(fontsize=28, lgsize=16, lgloc="lower left", figsize=(8, 8))
 
     def get_data(self):
         mah_data = get_mah(MAH_DIR, cutoff_missing=0.05, cutoff_particle=0.05)
@@ -537,6 +538,7 @@ class InvPredMetrics(Figure):
         cat.add_column(a4, name="a4")
         cat.add_column(mdyn, name="mdyn")
 
+        x_params = ("cvir", "t/|u|", "x0", "spin_bullock", "c_to_a")
         n_params = len(self.params)
         info = {
             "cvir_only": {
@@ -552,7 +554,7 @@ class InvPredMetrics(Figure):
                 "y": self.params,
             },
             "all": {
-                "x": ("cvir", "cvir_klypin", "t/|u|", "x0", "spin_bullock", "c_to_a", "b_to_a"),
+                "x": x_params,
                 "y": self.params,
             },
         }
@@ -562,28 +564,28 @@ class InvPredMetrics(Figure):
             "linear_cvir": {
                 "xy": datasets["cvir_only"]["train"],
                 "n_features": 1,
-                "n_targets": 7,
+                "n_targets": len(self.params),
                 "model": "linear",
                 "kwargs": {"to_marginal_normal": True, "use_multicam": True},
             },
             "linear_x0": {
                 "xy": datasets["x0_only"]["train"],
                 "n_features": 1,
-                "n_targets": 7,
+                "n_targets": len(self.params),
                 "model": "linear",
                 "kwargs": {"to_marginal_normal": True, "use_multicam": True},
             },
             "linear_tu": {
                 "xy": datasets["tu_only"]["train"],
                 "n_features": 1,
-                "n_targets": 7,
+                "n_targets": len(self.params),
                 "model": "linear",
                 "kwargs": {"to_marginal_normal": True, "use_multicam": True},
             },
             "linear_all": {
                 "xy": datasets["all"]["train"],
-                "n_features": 7,
-                "n_targets": 7,
+                "n_features": len(x_params),
+                "n_targets": len(self.params),
                 "model": "linear",
                 "kwargs": {"to_marginal_normal": True, "use_multicam": True},
             },
@@ -593,10 +595,10 @@ class InvPredMetrics(Figure):
         mdl_names = ["linear_cvir", "linear_x0", "linear_tu", "linear_all"]
         ds_names = ["cvir_only", "x0_only", "tu_only", "all"]
         nice_names = [
-            r"\rm MultiCAM $c_{\rm vir}$ only",
-            r"\rm MultiCAM $x_{\rm off}$ only",
-            r"\rm MultiCAM $T/\vert U \vert$ only",
-            r"\rm MultiCAM",
+            r"\rm $c_{\rm vir}$ only",
+            r"\rm $x_{\rm off}$ only",
+            r"\rm $T/\vert U \vert$ only",
+            r"\rm All parameters",
         ]
 
         output = {}
@@ -620,24 +622,25 @@ class InvPredMetrics(Figure):
     def get_figures(self, data: Dict[str, np.ndarray]) -> Dict[str, mpl.figure.Figure]:
         fig, ax = plt.subplots(1, 1)
         mdl_names, nice_names, output = data.values()
-        x_bias = 0.0
+        x_bias = -0.2
         for ii, (mdl, label) in enumerate(zip(mdl_names, nice_names)):
             m, c = MARKS[ii], CB_COLORS[ii]
             mval, merr = output[mdl]["val"], output[mdl]["err"]
             rxplots.metrics_plot(ax, mval, merr, self.params, label, x_bias, m, c)
             x_bias += 0.1
-        ax.set_ylim(0.0, 0.8)
-        ax.set_ylabel(r"$\rho_{\rm  spearman}\left(y_{\rm pred}, y_{\rm true}\right)$")
+        ax.set_ylim(-0.05, 0.80)
+        ax.set_xlim(-0.5, len(self.params) - 0.5)
+        ax.set_ylabel(rf"${rho_latex}\left(y_{{\rm pred}}, y_{{\rm true}}\right)$")
         ax.legend()
         return {"inv_pred_metrics": fig}
 
 
 class ForwardPredMetrics(Figure):
     cache_name = "forward_pred_metrics"
-    params = ("cvir", "cvir_klypin", "t/|u|", "x0", "spin_bullock", "b_to_a", "c_to_a")
+    params = ("cvir", "t/|u|", "x0", "spin_bullock", "c_to_a")
 
     def _set_rc(self):
-        return set_rc(figsize=(8, 8), fontsize=28, lgsize=18, lgloc="lower left")
+        return set_rc(figsize=(8, 8), fontsize=28, lgsize=16, lgloc="lower left")
 
     def get_data(self):
         mah_data = get_mah(MAH_DIR, cutoff_missing=0.05, cutoff_particle=0.05)
@@ -813,8 +816,8 @@ class ForwardPredMetrics(Figure):
         ds_names = ("ma", "ma_diffmah", "params_diffmah", "am")
         nice_names = (
             r"\rm MultiCAM $m(a)$",
-            r"\rm MultiCAM DiffMAH $m(a)$ curves",
-            r"\rm MultiCAM DiffMAH parameters",
+            r"\rm MultiCAM Diffmah $m(a)$ curves",
+            r"\rm MultiCAM Diffmah parameters",
             r"\rm CAM $a_{\rm opt}$",
             # r"\rm MultiCAM subsampled every 5",
             # r"\rm MultiCAM subsampled every 10",
@@ -842,14 +845,15 @@ class ForwardPredMetrics(Figure):
     def get_figures(self, data: Dict[str, np.ndarray]) -> Dict[str, mpl.figure.Figure]:
         fig, ax = plt.subplots(1, 1)
         mdl_names, nice_names, output = data.values()
-        x_bias = 0.0
+        x_bias = -0.2
         for ii, (mdl, label) in enumerate(zip(mdl_names, nice_names)):
             m, c = MARKS[ii], CB_COLORS[ii]
             mval, merr = output[mdl]["val"], output[mdl]["err"]
             rxplots.metrics_plot(ax, mval, merr, self.params, label, x_bias, m, c)
             x_bias += 0.1
-        ax.set_ylim(0.2, 0.85)
-        ax.set_ylabel(r"$\rho_{\rm spearman}\left(y_{\rm pred}, y_{\rm true}\right)$")
+        ax.set_ylim(0.3, 0.85)
+        ax.set_xlim(-0.5, len(self.params) - 0.5)
+        ax.set_ylabel(rf"${rho_latex}\left(y_{{\rm pred}}, y_{{\rm true}}\right)$")
         ax.legend()
         return {"forward_pred_metrics": fig}
 
@@ -875,14 +879,14 @@ class CovarianceAm(Figure):
         corr = data["corr"]
         mass_bins = data["mass_bins"]
         mass_bin_labels = np.round(np.linspace(mass_bins.min(), mass_bins.max(), 6), 1)
-        mass_bin_labels = [rf"${x:.2f}$" for x in mass_bin_labels]
+        mass_bin_labels = [rf"${x:.1f}$" for x in mass_bin_labels]
 
         fig, ax = plt.subplots(1, 1)
-        im = ax.imshow(corr)
+        im = ax.imshow(corr, vmin=0, vmax=1)
 
         ax.set_xlabel(r"$m$")
         ax.set_ylabel(r"$m$")
-        ax.set_title(r"$\rho_{\rm spearman} \left( a_{m}, a_{m} \right)$", pad=15.0)
+        ax.set_title(rf"${rho_latex}\left( a_{{m}}, a_{{m}} \right)$", pad=15.0)
         ax.set_xticks(ticks=ax.get_xticks()[1:], labels=mass_bin_labels)
         ax.set_yticks(ticks=ax.get_yticks()[1:], labels=mass_bin_labels)
 
@@ -894,14 +898,16 @@ class CovarianceAm(Figure):
         return {"am_corr_matrix": fig}
 
 
-def main():
-    ext = "png"
-    CorrelationMAH(overwrite=False, ext=ext).save()
-    TriangleSamples(overwrite=False, ext=ext).save()
-    PredictMAH(overwrite=False, ext=ext).save()
-    InvPredMetrics(overwrite=False, ext=ext).save()
-    ForwardPredMetrics(overwrite=False, ext=ext).save()
-    CovarianceAm(overwrite=False, ext=ext).save()
+@click.command()
+@click.option("--overwrite", "-o", is_flag=True, default=False)
+@click.option("--ext", default="png", type=str)
+def main(overwrite, ext):
+    CorrelationMAH(overwrite, ext).save()
+    TriangleSamples(overwrite, ext).save()
+    PredictMAH(overwrite, ext).save()
+    InvPredMetrics(overwrite, ext).save()
+    ForwardPredMetrics(overwrite, ext).save()
+    CovarianceAm(overwrite, ext).save()
 
 
 if __name__ == "__main__":
