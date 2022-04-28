@@ -141,8 +141,8 @@ class CorrelationMAH(Figure):
             r"\centering" + "\n"
             r"\begin{tabular}{|c|c|c|c|c|}" + "\n"
             r"\hline" + "\n"
-            rf"$X$ & $a_{{\rm opt}}$ & ${rho_latex}\left(X, m_{{a_{{\rm opt}}}}\right)$"
-            rf" & $m_{{\rm opt}}$ & ${rho_latex}\left(X, a_{{m_{{\rm opt}}}}\right)$ \\ [0.5ex]" + "\n"
+            rf"$X$ & $a_{{\rm opt}}$ & $\rho\left(X, m_{{a_{{\rm opt}}}}\right)$"
+            rf" & $m_{{\rm opt}}$ & $\rho\left(X, a_{{m_{{\rm opt}}}}\right)$ \\ [0.5ex]" + "\n"
             r"\hline\hline" + "\n"
         )
         for param in self.params:
