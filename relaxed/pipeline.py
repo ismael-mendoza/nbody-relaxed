@@ -33,7 +33,7 @@ NAN_INTEGER = -5555
 
 @click.group()
 @click.option("--root", default=the_root.as_posix(), type=str, show_default=True)
-@click.option("--outdir", type=str, required=True, help="wrt output")
+@click.option("--outdir", type=str, required=True)
 @click.option("--minh-file", type=str, default=bolshoi_minh, show_default=True)
 @click.option("--catalog-name", default="Bolshoi", type=str, show_default=True)
 @click.option("--all-minh-files", default="bolshoi_catalogs_minh", type=str, show_default=True, help="./data")
@@ -43,7 +43,7 @@ def pipeline(ctx, root, outdir, minh_file, catalog_name, all_minh_files):
 
     ctx.ensure_object(dict)
     params_dir = Path(root).joinpath("data/params")
-    output = Path(root).joinpath("data/processed/bolshoi_m12", outdir)
+    output = Path(root).joinpath(f"data/processed/{outdir}")
     ids_file = output.joinpath("ids.json")
     exist_ok = True if ids_file.exists() else False
     output.mkdir(exist_ok=exist_ok, parents=False)
