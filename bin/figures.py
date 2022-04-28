@@ -45,7 +45,7 @@ MAH_DIR = ROOT.joinpath("data", "processed", "bolshoi_m12")
 FIGS_DIR.mkdir(exist_ok=True, parents=False)
 CACHE_DIR.mkdir(exist_ok=True, parents=False)
 
-rho_latex = r"\rho_{s}"
+rho_latex = r"\rho_{\rm sp}"
 
 
 class Figure(ABC):
