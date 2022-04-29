@@ -82,7 +82,7 @@ class Figure(ABC):
 
 class CorrelationMAH(Figure):
     cache_name = "correlations_mah"
-    params = ("cvir", "cvir_klypin", "x0", "t/|u|", "spin_bullock", "c_to_a")
+    params = ("cvir", "vmax/vvir", "x0", "t/|u|", "spin_bullock", "c_to_a")
     lss = np.array(["-", ":"])  # pos vs neg correlations
 
     def _set_rc(self):
