@@ -40,11 +40,10 @@ def get_id_filter(ids):
     return {"id": lambda x: intersect(np.array(x), ids)}
 
 
-def filter_cat(cat, filters):
+def filter_cat(cat, filters:dict):
     # Always do filtering in real space NOT log space.
-    for param, filt in filters:
-        hparam = parameters.get_hparam(param, log=False)
-        cat = cat[filt(hparam.get_values(cat))]
+    for param, filt in filters.items():
+        cat = cat[filt(cat[param])]
     return cat
 
 
@@ -79,7 +78,7 @@ def load_cat_minh(minh_file: str, params: list, filters: dict, verbose=False):
         with np.errstate(divide="ignore", invalid="ignore"):
             for param in params:
                 if param in mcat.names:
-                    value = mcat.block(b, [param])
+                    [value] = mcat.block(b, [param])
                 else:
                     value = parameters.derive(param, mcat, b)
                 cat.add_column(value, name=param)
