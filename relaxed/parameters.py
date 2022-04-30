@@ -20,7 +20,6 @@ default_params = {
     "gamma_tdyn",
     "tdyn",
     "vmax/vvir",
-    "cvir_klypin",
     "gamma_tdyn",
     "tdyn",
     "scale_of_last_mm",
@@ -62,13 +61,13 @@ def derive_vvir(mcat, b):
 def derive(pname: str, mcat, b):
     """Derive additional useful halo properties that are not in .minh catalog."""
     available = {"phi_l", "x0", "v0", "tdyn", "eta", "q", "vvir", "cvir", "vmax/vvir"}
-    assert pname in available
+    assert pname in available, f"{pname} is not available."
 
     if pname == "phi_l":
         ax, ay, az, jx, jy, jz = mcat.block(b, ["ax", "ay", "az", "jx", "jy", "jz"])
-        a = np.array([ax, ay, az])
-        j = np.array([jx, jy, jz])
-        return np.arccos(a.dot(j) / (norm(a) * norm(j)))
+        num = ax*jx + ay*jy + az*jz
+        denom = np.sqrt(ax**2 + ay**2 + az**2) * np.sqrt(jx**2 + jy**2 + jz**2)
+        return np.arccos(num / denom)
 
     if pname == "x0":
         xoff, rvir = mcat.block(b, ["xoff", "rvir"])
@@ -76,11 +75,11 @@ def derive(pname: str, mcat, b):
 
     if pname == "v0":
         vvir = derive_vvir(mcat, b)
-        voff = mcat.block(b, ["voff"])  # km /s
+        [voff] = mcat.block(b, ["voff"])  # km /s
         return voff / vvir
 
     if pname == "tdyn":
-        rvir = mcat.block(b, ["rvir"])
+        [rvir] = mcat.block(b, ["rvir"])
         vvir = derive_vvir(mcat, b)
         rvir_mks = rvir * 3.086e19  # rvir in kpc/h not Mpc/h
         vvir_mks = vvir * 1e3
@@ -100,7 +99,7 @@ def derive(pname: str, mcat, b):
 
     if pname == "vmax/vvir":
         vvir = derive_vvir(mcat, b)
-        vmax = mcat.block(b, ["vmax"])
+        [vmax] = mcat.block(b, ["vmax"])
         return vmax / vvir
 
     else:

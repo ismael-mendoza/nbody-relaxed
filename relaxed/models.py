@@ -13,7 +13,7 @@ from relaxed.mah import get_an_from_am
 # dictionary of max correlations mass bin of present-day halo properties with a(m).
 opcam_dict = {
     "cvir": {"mbin": 0.5, "order": -1},
-    "cvir_klypin": {"mbin": 0.397, "order": -1},
+    "vmax/vvir": {"mbin": 0.397, "order": -1},
     "t/|u|": {"mbin": 0.67, "order": +1},
     "x0": {"mbin": 0.738, "order": +1},
     "q": {"mbin": 0.67, "order": -1},

@@ -21,7 +21,8 @@ from relaxed.sims import all_sims
 from relaxed.subhaloes import quantities as sub_quantities
 
 the_root = Path(__file__).absolute().parent.parent
-bolshoi_minh = "Bolshoi/minh/hlist_1.00035.minh"
+raw_catalogs = the_root.joinpath("catalogs")
+bolshoi_minh = raw_catalogs.joinpath("Bolshoi/minh/hlist_1.00035.minh")
 catname_map = {
     "Bolshoi": "bolshoi",
     "BolshoiP": "bolshoi_p",
@@ -32,8 +33,8 @@ NAN_INTEGER = -5555
 
 @click.group()
 @click.option("--root", default=the_root.as_posix(), type=str, show_default=True)
-@click.option("--outdir", type=str, required=True, help="wrt output")
-@click.option("--minh-file", help="./data", type=str, default=bolshoi_minh, show_default=True)
+@click.option("--outdir", type=str, required=True)
+@click.option("--minh-file", type=str, default=bolshoi_minh, show_default=True)
 @click.option("--catalog-name", default="Bolshoi", type=str, show_default=True)
 @click.option("--all-minh-files", default="bolshoi_catalogs_minh", type=str, show_default=True, help="./data")
 @click.pass_context
@@ -41,16 +42,15 @@ def pipeline(ctx, root, outdir, minh_file, catalog_name, all_minh_files):
     catname = catname_map[catalog_name]
 
     ctx.ensure_object(dict)
-    output = Path(root).joinpath("output", outdir)
+    params_dir = Path(root).joinpath("data/params")
+    output = Path(root).joinpath(f"data/processed/{outdir}")
     ids_file = output.joinpath("ids.json")
     exist_ok = True if ids_file.exists() else False
     output.mkdir(exist_ok=exist_ok, parents=False)
-    data = Path(root).joinpath("data")
-    minh_file = data.joinpath(minh_file)
 
-    progenitor_file = Path(root).joinpath("output", f"{catname}_progenitors.txt")
-    lookup_file = Path(root).joinpath("output", f"lookup_{catname}.json")
-    z_map_file_global = Path(root).joinpath(f"output/{catname}_z_map.json")
+    progenitor_file = output.joinpath(f"{catname}_progenitors.txt")
+    lookup_file = params_dir.joinpath(f"lookup_{catname}.json")
+    z_map_file_global = params_dir.joinpath(f"{catname}_z_map.json")
     z_map_file = output.joinpath("z_map.json")
 
     # write z_map file to output if not already there.
@@ -61,7 +61,7 @@ def pipeline(ctx, root, outdir, minh_file, catalog_name, all_minh_files):
     ctx.obj.update(
         dict(
             root=Path(root),
-            data=data,
+            data=raw_catalogs,
             output=output,
             catalog_name=catalog_name,
             minh_file=minh_file,
@@ -71,7 +71,7 @@ def pipeline(ctx, root, outdir, minh_file, catalog_name, all_minh_files):
             lookup_file=lookup_file,
             progenitor_table_file=output.joinpath("progenitor_table.csv"),
             subhalo_file=output.joinpath("subhaloes.csv"),
-            all_minh=data.joinpath(all_minh_files),
+            all_minh=raw_catalogs.joinpath(all_minh_files),
             lookup_index=output.joinpath("lookup.csv"),
             z_map=z_map_file,
         )

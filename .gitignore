@@ -16,3 +16,10 @@ consistent-trees/
 *temp/
 bin/temp.py
 data/raw_data
+catalogs
+data/processed/**/dm_cat.csv
+data/processed/**/ids.json
+data/processed/**/lookup.csv
+data/processed/**/progenitor_table.csv
+data/processed/**/subhaloes.csv
+data/processed/*progenitors.txt

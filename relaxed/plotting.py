@@ -26,7 +26,7 @@ LATEX_PARAMS = {
     "spin_bullock": r"$\lambda_{\rm bullock}$",
     "b_to_a": r"$b/a$",
     "c_to_a": r"$c/a$",
-    "cvir_klypin": r"$c_{\rm vir, k}$",
+    "vmax/vvir": r"$\vert V_{\rm max} \vert / \vert V_{\rm vir} \vert$",
     "a2": r"$a_{1/2}$",
     "a4": r"$a_{3/4}$",
     "alpha": r"$\alpha$",
@@ -140,7 +140,9 @@ def draw_histogram(
         pass
 
     else:
-        raise NotImplementedError(f"vline type {type(vline)} is not compatible with current implementation.")
+        raise NotImplementedError(
+            f"vline type {type(vline)} is not compatible with current implementation."
+        )
 
 
 def metrics_plot(ax, mval, merr, params, label="", x_bias=0.0, m="o", c="r"):
