@@ -477,7 +477,6 @@ class PredictMAH(Figure):
         ax.set_ylabel(rf"${rho_latex}\left(m_{{a}}, m_{{a, \rm{{pred}}}}\right)$")
         ax.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8])
         ax.set_ylim(0.0, 0.8)
-        ax.legend()
 
         # (2) Correlation a(m) vs a_pred(m) figure
         fig2, ax = plt.subplots(1, 1)
@@ -491,6 +490,7 @@ class PredictMAH(Figure):
         ax.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8])
         ax.set_ylim(0.0, 0.8)
         ax.set_yticklabels(f"${x:.1f}$" for x in ax.get_yticks())
+        ax.legend(loc="best")
 
         return {"corr_pred_mah_ma": fig1, "corr_pred_mah_am": fig2}
 
