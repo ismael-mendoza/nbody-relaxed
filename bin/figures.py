@@ -142,7 +142,8 @@ class CorrelationMAH(Figure):
             r"\begin{tabular}{|c|c|c|c|c|}" + "\n"
             r"\hline" + "\n"
             rf"$X$ & $a_{{\rm opt}}$ & ${rho_latex}\left(X, m_{{a_{{\rm opt}}}}\right)$"
-            rf" & $m_{{\rm opt}}$ & ${rho_latex}\left(X, a_{{m_{{\rm opt}}}}\right)$ \\ [0.5ex]" + "\n"
+            rf" & $m_{{\rm opt}}$ & ${rho_latex}\left(X, a_{{m_{{\rm opt}}}}\right)$ \\ [0.5ex]"
+            + "\n"
             r"\hline\hline" + "\n"
         )
         for param in self.params:
@@ -213,7 +214,7 @@ class CorrelationMAH(Figure):
         ax2.set_xticklabels([np.nan] + fractional_tdyn)
         ax2.set_xlabel(r"$ \Delta \tau_{\rm dyn} / \tau_{\rm dyn}$", labelpad=10)
 
-        ax.legend(loc="upper right")
+        ax.legend(loc="best")
 
         ax.set_xlim(0.15, 1)
         ax2.set_xlim(0.15, 1)
@@ -345,7 +346,9 @@ class TriangleSamples(Figure):
         for name, y_est in data.items():
             y2 = self.transform(y_est)
             fig = corner.corner(y1, labels=labels, max_n_ticks=3, color="C1", labelpad=0.05)
-            fig = corner.corner(y2, labels=labels, max_n_ticks=3, fig=fig, color="C2", labelpad=0.05)
+            fig = corner.corner(
+                y2, labels=labels, max_n_ticks=3, fig=fig, color="C2", labelpad=0.05
+            )
             figs[name + "_triangle"] = fig
         return figs
 
@@ -355,7 +358,7 @@ class PredictMAH(Figure):
     params = ("cvir", "t/|u|", "x0", "spin_bullock", "c_to_a")
 
     def _set_rc(self):
-        set_rc(fontsize=28, lgsize=18, figsize=(8, 8))
+        set_rc(fontsize=28, lgsize=22, figsize=(8, 8))
 
     def get_data(self):
         mah_data = get_mah(MAH_DIR, cutoff_missing=0.05, cutoff_particle=0.05)
@@ -691,7 +694,9 @@ class ForwardPredMetrics(Figure):
         gamma_k = {k: -get_savgol_grads(scales, ma, k=k) for k in ks}
         delta_k = {k: delta * (k // 2) for k in ks}
         grad_names_k = {k: [f"grad_{k}_{jj}" for jj in range(gamma_k[k].shape[1])] for k in ks}
-        all_grad_names = [grad_names_k[k][jj] for k in grad_names_k for jj in range(len(grad_names_k[k]))]
+        all_grad_names = [
+            grad_names_k[k][jj] for k in grad_names_k for jj in range(len(grad_names_k[k]))
+        ]
         assert delta_k and all_grad_names
 
         # add gradients to catalog catalog
@@ -866,11 +871,16 @@ class CovarianceAm(Figure):
 
     def get_data(self):
         mahdir = ROOT.joinpath("data", "processed", "bolshoi_m12")
-        mah_data = get_mah(mahdir, cutoff_missing=0.05, cutoff_particle=0.05, log_mbin_spacing=False)
+        mah_data = get_mah(
+            mahdir, cutoff_missing=0.05, cutoff_particle=0.05, log_mbin_spacing=False
+        )
         mass_bins = mah_data["mass_bins"]
         am = mah_data["am"]
 
-        corr_matrix = [[spearmanr(am[:, ii], am[:, jj]) for ii in range(am.shape[1])] for jj in range(am.shape[1])]
+        corr_matrix = [
+            [spearmanr(am[:, ii], am[:, jj]) for ii in range(am.shape[1])]
+            for jj in range(am.shape[1])
+        ]
         corr_matrix = np.array(corr_matrix).reshape(am.shape[1], am.shape[1])
 
         return {"corr": corr_matrix, "mass_bins": mass_bins}
