@@ -86,7 +86,7 @@ class CorrelationMAH(Figure):
     lss = np.array(["-", ":"])  # pos vs neg correlations
 
     def _set_rc(self):
-        set_rc(figsize=(7, 7), fontsize=24, lgsize=14, lgloc="upper right")
+        set_rc(figsize=(7, 7), fontsize=24, lgsize=18, lgloc="upper right")
 
     def get_data(self):
         mah_data = get_mah(MAH_DIR, cutoff_missing=0.05, cutoff_particle=0.05)
@@ -214,8 +214,6 @@ class CorrelationMAH(Figure):
         ax2.set_xticklabels([np.nan] + fractional_tdyn)
         ax2.set_xlabel(r"$ \Delta \tau_{\rm dyn} / \tau_{\rm dyn}$", labelpad=10)
 
-        ax.legend(loc="best")
-
         ax.set_xlim(0.15, 1)
         ax2.set_xlim(0.15, 1)
         ax2.grid(None)
@@ -264,6 +262,7 @@ class CorrelationMAH(Figure):
         ax.set_xlabel("$m$")
         ax.tick_params(axis="both", which="major")
         ax.tick_params(axis="x", which="minor")
+        ax.legend(loc="best")
 
         return fig
 
