@@ -52,10 +52,11 @@ class Figure(ABC):
     cache_name = ""
     params = ()
 
-    def __init__(self, overwrite=False, ext="png") -> None:
+    def __init__(self, overwrite=False, ext="png", style="seaborn-whitegrid") -> None:
         self.cache_file = CACHE_DIR.joinpath(self.cache_name).with_suffix(".npy")
         self.ext = "." + ext
         self.overwrite = overwrite
+        self.style = style
 
     @abstractmethod
     def _set_rc(self):
@@ -74,10 +75,13 @@ class Figure(ABC):
             data = self.get_data()
             np.save(self.cache_file, data)
         data = np.load(self.cache_file, allow_pickle=True)
+        plt.style.use(self.style)
         self._set_rc()
         figs = self.get_figures(data.item())
         for name, fig in figs.items():
-            fig.savefig(FIGS_DIR.joinpath(name).with_suffix(self.ext), bbox_inches="tight")
+            fig.savefig(
+                FIGS_DIR.joinpath(name).with_suffix(self.ext), bbox_inches="tight", pad_inches=0
+            )
 
 
 class CorrelationMAH(Figure):
@@ -274,10 +278,11 @@ class CorrelationMAH(Figure):
 class TriangleSamples(Figure):
     cache_name = "triangle"
     params = ("cvir", "t/|u|", "x0", "spin_bullock", "c_to_a")
-    which_log = [True, True, True, True, True, False, False]
+    which_log = [True, True, True, True, False]
+    subset_params = [2, 3, 4]
 
     def _set_rc(self):
-        return set_rc()
+        set_rc(fontsize=24)
 
     def get_data(self):
         mah_data = get_mah(MAH_DIR, cutoff_missing=0.05, cutoff_particle=0.05)
@@ -339,16 +344,62 @@ class TriangleSamples(Figure):
 
     def get_figures(self, data: Dict[str, np.ndarray]) -> Dict[str, mpl.figure.Figure]:
         figs = {}
+
+        # (1) multicam gaussian samples on all params.
         labels = [rxplots.LATEX_PARAMS[param] for param in self.params]
+        labels = [
+            rf"$\log_{{10}} \left({label[1:-1]}\right)$" if self.which_log[ii] else label
+            for ii, label in enumerate(labels)
+        ]
         y_true = data.pop("truth")
         y1 = self.transform(y_true)
-        for name, y_est in data.items():
-            y2 = self.transform(y_est)
-            fig = corner.corner(y1, labels=labels, max_n_ticks=3, color="C1", labelpad=0.05)
+        y2 = self.transform(data["multigauss"])
+        fig = corner.corner(
+            y1, labels=labels, max_n_ticks=4, color="C1", labelpad=0.2, plot_datapoints=False
+        )
+        fig = corner.corner(
+            y2,
+            labels=labels,
+            max_n_ticks=4,
+            fig=fig,
+            color="C2",
+            labelpad=0.2,
+            plot_datapoints=False,
+        )
+        figs["multigauss_triangle"] = fig
+
+        # (2) Now a subset set of 3 triangle plots without histograms.
+        ndim = len(self.subset_params)
+        for name, yest in data.items():
+            y2 = self.transform(yest)
+            _y1 = y1[:, self.subset_params]
+            _y2 = y2[:, self.subset_params]
+            _labels = [labels[ii] for ii in self.subset_params]
             fig = corner.corner(
-                y2, labels=labels, max_n_ticks=3, fig=fig, color="C2", labelpad=0.05
+                _y1, labels=_labels, color="C1", labelpad=0.05, max_n_ticks=4, plot_datapoints=False
             )
-            figs[name + "_triangle"] = fig
+            fig = corner.corner(
+                _y2,
+                labels=_labels,
+                fig=fig,
+                color="C2",
+                labelpad=0.05,
+                max_n_ticks=4,
+                plot_datapoints=False,
+            )
+
+            # remove histograms
+            axes = np.array(fig.axes).reshape((ndim, ndim))
+            for ii in range(ndim):
+                ax: plt.Axes = axes[ii, ii]
+                ax.set_xmargin(0)
+                ax.set_ymargin(0)
+                ax.set_axes_locator(plt.NullLocator())
+                ax.set_axis_off()
+                ax.remove()
+            plt.subplots_adjust(top=1, bottom=0, right=1, left=0, hspace=0, wspace=0)
+            figs[f"{name}_subset_triangle"] = fig
+
         return figs
 
 
@@ -499,7 +550,7 @@ class InvPredMetrics(Figure):
     params = ("a2", "alpha", "mdyn", "tau_c", "alpha_late", "alpha_early")
 
     def _set_rc(self):
-        return set_rc(fontsize=28, lgsize=20, lgloc="lower left", figsize=(8, 8))
+        set_rc(fontsize=28, lgsize=20, lgloc="lower left", figsize=(8, 8))
 
     def get_data(self):
         mah_data = get_mah(MAH_DIR, cutoff_missing=0.05, cutoff_particle=0.05)
@@ -866,7 +917,7 @@ class CovarianceAm(Figure):
     cache_name = "covariance_am"
 
     def _set_rc(self):
-        return set_rc(fontsize=24, cmap="tab10")
+        set_rc(fontsize=24, cmap="tab10")
 
     def get_data(self):
         mahdir = ROOT.joinpath("data", "processed", "bolshoi_m12")
@@ -911,12 +962,12 @@ class CovarianceAm(Figure):
 @click.option("--overwrite", "-o", is_flag=True, default=False)
 @click.option("--ext", default="png", type=str)
 def main(overwrite, ext):
-    CorrelationMAH(overwrite, ext).save()
-    TriangleSamples(overwrite, ext).save()
-    PredictMAH(overwrite, ext).save()
-    InvPredMetrics(overwrite, ext).save()
-    ForwardPredMetrics(overwrite, ext).save()
-    CovarianceAm(overwrite, ext).save()
+    # CorrelationMAH(overwrite, ext).save()
+    TriangleSamples(overwrite, ext, style="classic").save()
+    # PredictMAH(overwrite, ext).save()
+    # InvPredMetrics(overwrite, ext).save()
+    # ForwardPredMetrics(overwrite, ext).save()
+    # CovarianceAm(overwrite, ext).save()
 
 
 if __name__ == "__main__":
