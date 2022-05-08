@@ -65,7 +65,7 @@ def derive(pname: str, mcat, b):
 
     if pname == "phi_l":
         ax, ay, az, jx, jy, jz = mcat.block(b, ["ax", "ay", "az", "jx", "jy", "jz"])
-        num = ax*jx + ay*jy + az*jz
+        num = ax * jx + ay * jy + az * jz
         denom = np.sqrt(ax**2 + ay**2 + az**2) * np.sqrt(jx**2 + jy**2 + jz**2)
         return np.arccos(num / denom)
 
