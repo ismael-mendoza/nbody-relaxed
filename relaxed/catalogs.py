@@ -40,7 +40,7 @@ def get_id_filter(ids):
     return {"id": lambda x: intersect(np.array(x), ids)}
 
 
-def filter_cat(cat, filters:dict):
+def filter_cat(cat, filters: dict):
     # Always do filtering in real space NOT log space.
     for param, filt in filters.items():
         cat = cat[filt(cat[param])]
