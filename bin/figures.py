@@ -142,7 +142,7 @@ class CorrelationMAH(Figure):
 
     def get_latex_table(self, data):
         table = (
-            r"\begin{table}[ht]" + "\n"
+            r"\begin{table*}[ht]" + "\n"
             r"\centering" + "\n"
             r"\begin{tabular}{|c|c|c|c|c|}" + "\n"
             r"\hline" + "\n"
@@ -159,7 +159,7 @@ class CorrelationMAH(Figure):
             table += rf" & ${mass_bin:.3f}$ & ${val_am:.3f} \pm {err_am:.3f}$ \\ \hline"
             table += "\n"
 
-        table += r"\end{tabular}" + "\n" + r"\caption{}" + "\n" + r"\end{table}"
+        table += r"\end{tabular}" + "\n" + r"\caption{}" + "\n" + r"\end{table*}"
 
         with open(FIGS_DIR.joinpath("max_corrs_table.txt"), "w") as fp:
             print(table.strip(), file=fp)
