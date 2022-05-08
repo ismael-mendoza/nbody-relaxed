@@ -1010,11 +1010,11 @@ class CovarianceAm(Figure):
 @click.option("--overwrite", "-o", is_flag=True, default=False)
 @click.option("--ext", default="png", type=str)
 def main(overwrite, ext):
-    # CorrelationMAH(overwrite, ext).save()
-    # TriangleSamples(overwrite, ext, style="classic").save()
-    # PredictMAH(overwrite, ext).save()
-    # InvPredMetrics(overwrite, ext).save()
-    # ForwardPredMetrics(overwrite, ext).save()
+    CorrelationMAH(overwrite, ext).save()
+    TriangleSamples(overwrite, ext, style="classic").save()
+    PredictMAH(overwrite, ext).save()
+    InvPredMetrics(overwrite, ext).save()
+    ForwardPredMetrics(overwrite, ext).save()
     CovarianceAm(overwrite, ext).save()
 
 

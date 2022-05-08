@@ -26,7 +26,7 @@ LATEX_PARAMS = {
     "spin_bullock": r"$\lambda_{\rm bullock}$",
     "b_to_a": r"$b/a$",
     "c_to_a": r"$c/a$",
-    "vmax/vvir": r"$\vert V_{\rm max} \vert / \vert V_{\rm vir} \vert$",
+    "vmax/vvir": r"$V_{\rm max}/ V_{\rm vir}$",
     "a2": r"$a_{1/2}$",
     "a4": r"$a_{3/4}$",
     "alpha": r"$\alpha$",
