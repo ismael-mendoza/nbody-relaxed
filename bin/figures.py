@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from astropy import units as u
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from scipy.interpolate import interp1d
 
 from relaxed import plotting as rxplots
 from relaxed.correlations import add_box_indices
@@ -924,38 +925,84 @@ class CovarianceAm(Figure):
         mah_data = get_mah(
             mahdir, cutoff_missing=0.05, cutoff_particle=0.05, log_mbin_spacing=False
         )
+        scales = mah_data["scales"][:-1]
+        ma = mah_data["ma"][:, :-1]
         mass_bins = mah_data["mass_bins"]
         am = mah_data["am"]
+        n_mbins = mass_bins.shape[0]
+        n_haloes = ma.shape[0]
 
-        corr_matrix = [
-            [spearmanr(am[:, ii], am[:, jj]) for ii in range(am.shape[1])]
-            for jj in range(am.shape[1])
-        ]
-        corr_matrix = np.array(corr_matrix).reshape(am.shape[1], am.shape[1])
+        # use interpolation to ensure linear spacing in m(a)
+        new_scales = np.linspace(min(scales), max(scales), 100)
+        new_ma = np.zeros((ma.shape[0], len(new_scales)))
+        n_scales = new_scales.shape[0]
+        for ii in range(n_haloes):
+            f = interp1d(scales, ma[ii, :], bounds_error=False, fill_value=np.nan)
+            new_ma[ii, :] = f(new_scales)
 
-        return {"corr": corr_matrix, "mass_bins": mass_bins}
+        assert np.sum(np.isnan(new_ma)) == 0
+
+        corr_matrix_ma = np.zeros((n_scales, n_scales))
+        for ii in range(n_scales):
+            for jj in range(n_scales):
+                corr_matrix_ma[ii, jj] = spearmanr(new_ma[:, -ii - 1], new_ma[:, jj])
+
+        corr_matrix_am = np.zeros((n_mbins, n_mbins))
+        for ii in range(n_scales):
+            for jj in range(n_scales):
+                corr_matrix_am[ii, jj] = spearmanr(am[:, -ii - 1], am[:, jj])
+
+        return {
+            "corr_am": corr_matrix_am,
+            "corr_ma": corr_matrix_ma,
+            "mass_bins": mass_bins,
+            "scales": new_scales,
+        }
 
     def get_figures(self, data: Dict[str, np.ndarray]) -> Dict[str, mpl.figure.Figure]:
-        corr = data["corr"]
-        mass_bins = data["mass_bins"]
-        mass_bin_labels = np.round(np.linspace(mass_bins.min(), mass_bins.max(), 6), 1)
-        mass_bin_labels = [rf"${x:.1f}$" for x in mass_bin_labels]
+        # (1) ma covariance figure
+        corr = data["corr_ma"]
+        scales = data["scales"]
+        scale_labels = np.linspace(min(scales), max(scales), 5)
+        scale_bin_labels = [rf"${x:.1f}$" for x in scale_labels]
 
-        fig, ax = plt.subplots(1, 1)
+        fig1, ax = plt.subplots(1, 1)
         im = ax.imshow(corr, vmin=0, vmax=1)
 
-        ax.set_xlabel(r"$m$")
-        ax.set_ylabel(r"$m$")
-        ax.set_title(rf"${rho_latex}\left( a_{{m}}, a_{{m}} \right)$", pad=15.0)
-        ax.set_xticks(ticks=ax.get_xticks()[1:], labels=mass_bin_labels)
-        ax.set_yticks(ticks=ax.get_yticks()[1:], labels=mass_bin_labels)
+        ax.set_xlabel(r"$a$")
+        ax.set_ylabel(r"$a$")
+        ax.set_title(rf"${rho_latex}\left(m(a), m(a) \right)$", pad=15.0)
+
+        new_xticks = np.linspace(0, 100, 5)
+        ax.set_xticks(ticks=new_xticks, labels=scale_bin_labels)
+        ax.set_yticks(ticks=new_xticks, labels=scale_bin_labels[::-1])
 
         # colorbar
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("right", size="5%", pad=0.10)
-        fig.colorbar(im, cax=cax, orientation="vertical")
+        fig1.colorbar(im, cax=cax, orientation="vertical")
 
-        return {"am_corr_matrix": fig}
+        # (1) am covariance figure
+        corr = data["corr_am"]
+        mass_bins = data["mass_bins"]
+        mass_bin_labels = np.linspace(mass_bins.min(), mass_bins.max(), 6)
+        mass_bin_labels = [rf"${x:.1f}$" for x in mass_bin_labels]
+
+        fig2, ax = plt.subplots(1, 1)
+        im = ax.imshow(corr, vmin=0, vmax=1)
+
+        ax.set_xlabel(r"$m$")
+        ax.set_ylabel(r"$m$")
+        ax.set_title(rf"${rho_latex}\left( a(m), a(m) \right)$", pad=15.0)
+        ax.set_xticks(ticks=ax.get_xticks()[1:], labels=mass_bin_labels)
+        ax.set_yticks(ticks=ax.get_yticks()[1:], labels=mass_bin_labels[::-1])
+
+        # colorbar
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("right", size="5%", pad=0.10)
+        fig2.colorbar(im, cax=cax, orientation="vertical")
+
+        return {"ma_corr_matrix": fig1, "am_corr_matrix": fig2}
 
 
 @click.command()
