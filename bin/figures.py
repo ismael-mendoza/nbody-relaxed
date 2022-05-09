@@ -142,7 +142,7 @@ class CorrelationMAH(Figure):
 
     def get_latex_table(self, data):
         table = (
-            r"\begin{table*}" + "\n"
+            r"\begin{table*}[ht]" + "\n"
             r"\centering" + "\n"
             r"\begin{tabular}{|c|c|c|c|c|}" + "\n"
             r"\hline" + "\n"
@@ -217,7 +217,7 @@ class CorrelationMAH(Figure):
         fractional_tdyn = get_fractional_tdyn(xticks, tdyn, sim_name="Bolshoi")
         fractional_tdyn = [f"${x/10**9:.2g}$" for x in fractional_tdyn]
         ax2.set_xticklabels([np.nan] + fractional_tdyn)
-        ax2.set_xlabel(r"$ \Delta \tau_{\rm dyn} / \tau_{\rm dyn}$", labelpad=10)
+        ax2.set_xlabel(r"$ \Delta t / t_{\rm dyn}$", labelpad=10)
 
         ax.set_xlim(0.15, 1)
         ax2.set_xlim(0.15, 1)
