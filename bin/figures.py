@@ -142,7 +142,7 @@ class CorrelationMAH(Figure):
 
     def get_latex_table(self, data):
         table = (
-            r"\begin{table*}[ht]" + "\n"
+            r"\begin{table*}" + "\n"
             r"\centering" + "\n"
             r"\begin{tabular}{|c|c|c|c|c|}" + "\n"
             r"\hline" + "\n"
