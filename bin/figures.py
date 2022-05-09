@@ -206,7 +206,7 @@ class CorrelationMAH(Figure):
         ax.set_ylim(0, 0.8)
         ax.set_xlim(0, 1.0)
         ax.set_ylabel(rf"${rho_latex}\left(X, m_{{a}}\right)$")
-        ax.set_xlabel("$a$")
+        ax.set_xlabel(r"\rm Expansion factor $a=1/(1+z)$")
 
         # add additional x-axis with tydn fractional scale
         ax2 = ax.twiny()
@@ -264,7 +264,7 @@ class CorrelationMAH(Figure):
         ax.set_ylim(0, 0.8)
         ax.set_xlim(0.01, 1.0)
         ax.set_ylabel(rf"${rho_latex}\left(X, a_{{m}}\right)$")
-        ax.set_xlabel("$m$")
+        ax.set_xlabel(r"\rm Mass fraction $m=M/M(z=0)$")
         ax.tick_params(axis="both", which="major")
         ax.tick_params(axis="x", which="minor")
         ax.legend(loc="best")
