@@ -514,7 +514,7 @@ class PredictMAH(Figure):
             r"\rm $c_{\rm vir}$ only",
             r"\rm $x_{\rm off}$ only",
             r"\rm $T / \vert U \vert$ only",
-            r"\rm All parameters",
+            r"\rm All properties",
         ]
 
         # (1) Correlation m(a) vs m_pred(a) figure
