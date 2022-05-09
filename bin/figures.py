@@ -907,10 +907,10 @@ class ForwardPredMetrics(Figure):
             mval, merr = output[mdl]["val"], output[mdl]["err"]
             rxplots.metrics_plot(ax, mval, merr, self.params, label, x_bias, m, c)
             x_bias += 0.1
-        ax.set_ylim(0.3, 0.85)
+        ax.set_ylim(0.4, 0.8)
         ax.set_xlim(-0.5, len(self.params) - 0.5)
         ax.set_ylabel(rf"${rho_latex}\left(y_{{\rm pred}}, y_{{\rm true}}\right)$")
-        ax.legend()
+        ax.legend(loc="upper right")
         return {"forward_pred_metrics": fig}
 
 
