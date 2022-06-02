@@ -21,7 +21,7 @@ LATEX_PARAMS = {
     "cvir": r"$c_{\rm vir}$",
     "t/|u|": r"$T/\vert U \vert$",
     "x0": r"$x_{\rm off}$",
-    "spin": r"$\lambda$",
+    "spin": r"$\lambda_{\rm peebles}$",
     "q": r"$q$",
     "spin_bullock": r"$\lambda_{\rm bullock}$",
     "b_to_a": r"$b/a$",
