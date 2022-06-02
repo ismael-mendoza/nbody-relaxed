@@ -87,7 +87,9 @@ class Figure(ABC):
 
 class CorrelationMAH(Figure):
     cache_name = "correlations_mah"
-    params = ("cvir", "vmax/vvir", "x0", "t/|u|", "spin_bullock", "c_to_a")
+    params = ("cvir", "vmax/vvir", "x0", "t/|u|", "spin", "spin_bullock", "c_to_a", "b_to_a", "q")
+    fig_params = ("cvir", "vmax/vvir", "x0", "t/|u|", "spin_bullock", "c_to_a")
+    # add lambda peebles, b/a, voff to vvir ratio, r500c to rvir ratio, r200m to rvir ratio
     lss = np.array(["-", ":"])  # pos vs neg correlations
 
     def _set_rc(self):
@@ -173,7 +175,7 @@ class CorrelationMAH(Figure):
 
         fig, ax = plt.subplots(1, 1)
 
-        for j, param in enumerate(self.params):
+        for j, param in enumerate(self.fig_params):
             corr, err = ma_data[param]
             latex_param = rxplots.LATEX_PARAMS[param]
             color = CB_COLORS[j]
@@ -192,7 +194,6 @@ class CorrelationMAH(Figure):
 
             ax.fill_between(scales, _corr - err, _corr + err, color=color, alpha=0.5)
 
-        # draw a vertical line at max scales
         text = ""
         for j, param in enumerate(self.params):
             scale, corr, err = max_dict[param]
@@ -232,7 +233,7 @@ class CorrelationMAH(Figure):
 
         fig, ax = plt.subplots(1, 1)
 
-        for j, param in enumerate(self.params):
+        for j, param in enumerate(self.fig_params):
             corr, err = am_data[param]
             latex_param = rxplots.LATEX_PARAMS[param]
             color = CB_COLORS[j]
@@ -268,6 +269,13 @@ class CorrelationMAH(Figure):
         ax.tick_params(axis="both", which="major")
         ax.tick_params(axis="x", which="minor")
         ax.legend(loc="best")
+
+        # add additional x-axis so figures are aligned in paper
+        ax2 = ax.twiny()
+        ax2.set_xlabel(r"$ \Delta t / t_{\rm dyn}$", labelpad=10)
+        ax2.set_xlim(0.01, 1.0)
+        ax2.set_xlabel(r"\rm Mass fraction $m=M/M(z=0)$")
+        ax2.tick_params(axis="x", which="minor")
 
         return fig
 
