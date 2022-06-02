@@ -1,5 +1,9 @@
 import numpy as np
-from numpy.linalg import norm
+from colossus.cosmology import cosmology
+from colossus.halo import mass_so
+
+
+cosmology.setCosmology("bolshoi")
 
 default_params = {
     "id",
@@ -7,6 +11,8 @@ default_params = {
     "mvir",
     "vvir",
     "rvir",
+    "r200m/rvir",
+    "r500c/rvir",
     "x",
     "y",
     "z",
@@ -20,6 +26,7 @@ default_params = {
     "gamma_tdyn",
     "tdyn",
     "vmax/vvir",
+    "voff/vir",
     "gamma_tdyn",
     "tdyn",
     "scale_of_last_mm",
@@ -101,6 +108,21 @@ def derive(pname: str, mcat, b):
         vvir = derive_vvir(mcat, b)
         [vmax] = mcat.block(b, ["vmax"])
         return vmax / vvir
+
+    if pname == "voff/vvir":
+        vvir = derive_vvir(mcat, b)
+        [voff] = mcat.block(b, ["voff"])
+        return voff / vvir
+
+    if pname == "r200m/rvir":
+        [rvir, m200m] = mcat.block(b, ["rvir", "m200b"])
+        r200m = mass_so.M_to_R(m200m, 0.0, "200m")
+        return r200m / rvir
+
+    if pname == "r500c/rvir":
+        [rvir, m500c] = mcat.block(b, ["rvir", "m500c"])
+        r500c = mass_so.M_to_R(m500c, 0.0, "500c")
+        return r500c / rvir
 
     else:
         raise NotImplementedError()
