@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-from abc import ABC
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from collections import defaultdict
 from pathlib import Path
 from typing import Dict
@@ -15,24 +14,18 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy.interpolate import interp1d
 
 from relaxed import plotting as rxplots
-from relaxed.correlations import add_box_indices
-from relaxed.correlations import get_2d_corr
-from relaxed.correlations import spearmanr
-from relaxed.correlations import vol_jacknife_err
-from relaxed.cosmo import get_a_from_t
-from relaxed.cosmo import get_fractional_tdyn
-from relaxed.cosmo import get_t_from_a
-from relaxed.fits import alpha_analysis
-from relaxed.fits import get_early_late
+from relaxed.correlations import (
+    add_box_indices,
+    get_2d_corr,
+    spearmanr,
+    vol_jacknife_err,
+)
+from relaxed.cosmo import get_a_from_t, get_fractional_tdyn, get_t_from_a
+from relaxed.fits import alpha_analysis, get_early_late
 from relaxed.gradients import get_savgol_grads
-from relaxed.mah import get_an_from_am
-from relaxed.mah import get_mah
-from relaxed.models import opcam_dict
-from relaxed.models import prepare_datasets
-from relaxed.models import training_suite
-from relaxed.plotting import CB_COLORS
-from relaxed.plotting import MARKS
-from relaxed.plotting import set_rc
+from relaxed.mah import get_an_from_am, get_mah
+from relaxed.models import opcam_dict, prepare_datasets, training_suite
+from relaxed.plotting import CB_COLORS, MARKS, set_rc
 
 plt.ioff()
 
