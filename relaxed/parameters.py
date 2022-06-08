@@ -2,7 +2,6 @@ import numpy as np
 from colossus.cosmology import cosmology
 from colossus.halo import mass_so
 
-
 cosmology.setCosmology("bolshoi")
 
 default_params = {
@@ -26,7 +25,7 @@ default_params = {
     "gamma_tdyn",
     "tdyn",
     "vmax/vvir",
-    "voff/vir",
+    "voff/vvir",
     "gamma_tdyn",
     "tdyn",
     "scale_of_last_mm",
@@ -67,8 +66,6 @@ def derive_vvir(mcat, b):
 
 def derive(pname: str, mcat, b):
     """Derive additional useful halo properties that are not in .minh catalog."""
-    available = {"phi_l", "x0", "v0", "tdyn", "eta", "q", "vvir", "cvir", "vmax/vvir"}
-    assert pname in available, f"{pname} is not available."
 
     if pname == "phi_l":
         ax, ay, az, jx, jy, jz = mcat.block(b, ["ax", "ay", "az", "jx", "jy", "jz"])
@@ -125,4 +122,4 @@ def derive(pname: str, mcat, b):
         return r500c / rvir
 
     else:
-        raise NotImplementedError()
+        raise NotImplementedError(f"'{pname}' is not avaiable.")
