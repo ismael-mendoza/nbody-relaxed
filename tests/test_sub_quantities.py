@@ -1,9 +1,6 @@
 import numpy as np
 
-from relaxed.subhaloes.quantities import bin_by_host
-from relaxed.subhaloes.quantities import LookupTable
-from relaxed.subhaloes.quantities import m2_sub
-from relaxed.subhaloes.quantities import m_sub
+from relaxed.subhaloes.quantities import LookupTable, bin_by_host, m2_sub, m_sub
 
 
 def test_sub_quantities():
