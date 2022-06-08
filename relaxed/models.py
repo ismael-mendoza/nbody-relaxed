@@ -1,6 +1,5 @@
 import warnings
-from abc import ABC
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 
 import numpy as np
 from scipy.interpolate import interp1d
@@ -148,7 +147,9 @@ class SamplingModel(PredictionModelTransform):
         if self.use_multicam:
             for i in range(n_samples):
                 y_pred_i = y_pred[:, i, :]
-                qt_pred = QuantileTransformer(n_quantiles=len(y_pred_i), output_distribution="normal").fit(y_pred_i)
+                qt_pred = QuantileTransformer(
+                    n_quantiles=len(y_pred_i), output_distribution="normal"
+                ).fit(y_pred_i)
                 y_pred[:, i, :] = self.qt_y.inverse_transform(qt_pred.transform(y_pred_i))
 
         return y_pred
@@ -209,7 +210,9 @@ class LinearRegression(PredictionModelTransform):
 class LASSO(PredictionModelTransform):
     name = "lasso"
 
-    def __init__(self, n_features: int, n_targets: int, alpha: float = 0.1, **transform_kwargs) -> None:
+    def __init__(
+        self, n_features: int, n_targets: int, alpha: float = 0.1, **transform_kwargs
+    ) -> None:
         # alpha is the regularization parameter.
         super().__init__(n_features, n_targets, **transform_kwargs)
         self.alpha = alpha
@@ -368,7 +371,9 @@ class CAM(PredictionModel):
         marks = np.arange(len(y_sort)) / len(y_sort)
         marks += (marks[1] - marks[0]) / 2
         self.an_to_mark = interp1d(an_sort, marks, fill_value=(0, 1), bounds_error=False)
-        self.mark_to_Y = interp1d(marks, y_sort, fill_value=(y_sort[0], y_sort[-1]), bounds_error=False)
+        self.mark_to_Y = interp1d(
+            marks, y_sort, fill_value=(y_sort[0], y_sort[-1]), bounds_error=False
+        )
 
     def _predict(self, am):
         an = get_an_from_am(am, self.mass_bins, mbin=self.opt_mbin)
@@ -391,7 +396,9 @@ class MixedCAM(PredictionModel):
         super().__init__(n_features, n_targets)
 
         # create `n_targets` independent CAMs.
-        self.cams = [CAM(n_features, 1, mass_bins, opt_mbins[ii], cam_orders[ii]) for ii in range(n_targets)]
+        self.cams = [
+            CAM(n_features, 1, mass_bins, opt_mbins[ii], cam_orders[ii]) for ii in range(n_targets)
+        ]
 
     def _fit(self, x, y):
         for jj in range(self.n_targets):
@@ -439,7 +446,9 @@ class BayesianLinearRegression(SamplingModel):
         return mu_post, sigma_post
 
     def _fit(self, x, y):
-        self.mu, self.sigma = self._gaussian_inverse_problem(x, y, self.mu, self.sigma, self.noise_var)
+        self.mu, self.sigma = self._gaussian_inverse_problem(
+            x, y, self.mu, self.sigma, self.noise_var
+        )
 
     def _predict(self, x):
         # return expectation value / MAP.

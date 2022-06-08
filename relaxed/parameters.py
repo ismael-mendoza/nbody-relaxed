@@ -1,5 +1,8 @@
 import numpy as np
-from numpy.linalg import norm
+from colossus.cosmology import cosmology
+from colossus.halo import mass_so
+
+cosmology.setCosmology("bolshoi")
 
 default_params = {
     "id",
@@ -7,6 +10,8 @@ default_params = {
     "mvir",
     "vvir",
     "rvir",
+    "r200m/rvir",
+    "r500c/rvir",
     "x",
     "y",
     "z",
@@ -20,30 +25,13 @@ default_params = {
     "gamma_tdyn",
     "tdyn",
     "vmax/vvir",
+    "voff/vvir",
     "gamma_tdyn",
     "tdyn",
     "scale_of_last_mm",
     "b_to_a",
     "c_to_a",
     "spin_bullock",
-}
-
-latex_params = {
-    "mvir": {"units": "h^{-1} \\, M_{\\odot}", "form": "M_{\\rm vir}"},
-    "tdyn": {"units": "Gyr", "form": "T_{\\rm dyn}"},
-    "gamma_tdyn": {
-        "units": "h^{-1}\\, yr^{-1} \\, M_{\\odot}",
-        "form": "\\gamma_{\\tau_{\\rm dyn}}",
-    },
-    "t/|u|": {"units": "", "form": "T/|U|"},
-    "spin": {"units": "", "form": "\\lambda"},
-    "spin_bullock": {"units": "", "form": "\\lambda"},
-    "xoff": {"units": "", "form": "x_{\\rm off}"},
-    "phi_l": {"units": "", "form": "\\Phi_{l}"},
-    "q": {"units": "", "form": "q"},
-    "vmax/vvir": {"units": "", "form": "v_{\\rm max} / v_{\\rm vir}"},
-    "b/a": {"units": "", "form": "b/a"},
-    "c/a": {"units": "", "form": "c/a"},
 }
 
 
@@ -60,8 +48,6 @@ def derive_vvir(mcat, b):
 
 def derive(pname: str, mcat, b):
     """Derive additional useful halo properties that are not in .minh catalog."""
-    available = {"phi_l", "x0", "v0", "tdyn", "eta", "q", "vvir", "cvir", "vmax/vvir"}
-    assert pname in available, f"{pname} is not available."
 
     if pname == "phi_l":
         ax, ay, az, jx, jy, jz = mcat.block(b, ["ax", "ay", "az", "jx", "jy", "jz"])
@@ -102,5 +88,20 @@ def derive(pname: str, mcat, b):
         [vmax] = mcat.block(b, ["vmax"])
         return vmax / vvir
 
+    if pname == "voff/vvir":
+        vvir = derive_vvir(mcat, b)
+        [voff] = mcat.block(b, ["voff"])
+        return voff / vvir
+
+    if pname == "r200m/rvir":
+        [rvir, m200m] = mcat.block(b, ["rvir", "m200b"])
+        r200m = mass_so.M_to_R(m200m, 0.0, "200m")
+        return r200m / rvir
+
+    if pname == "r500c/rvir":
+        [rvir, m500c] = mcat.block(b, ["rvir", "m500c"])
+        r500c = mass_so.M_to_R(m500c, 0.0, "500c")
+        return r500c / rvir
+
     else:
-        raise NotImplementedError()
+        raise NotImplementedError(f"'{pname}' is not avaiable.")

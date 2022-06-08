@@ -2,7 +2,6 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 
-
 cb_colors_dict = {
     "blue": "#377eb8",
     "orange": "#ff7f00",
@@ -21,12 +20,15 @@ LATEX_PARAMS = {
     "cvir": r"$c_{\rm vir}$",
     "t/|u|": r"$T/\vert U \vert$",
     "x0": r"$x_{\rm off}$",
-    "spin": r"$\lambda$",
+    "spin": r"$\lambda_{\rm peebles}$",
     "q": r"$q$",
     "spin_bullock": r"$\lambda_{\rm bullock}$",
     "b_to_a": r"$b/a$",
     "c_to_a": r"$c/a$",
+    "r200m/rvir": r"$R_{200m} / R_{\rm vir}$",
+    "r500c/rvir": r"$R_{500c} / R_{\rm vir}$",
     "vmax/vvir": r"$V_{\rm max} / V_{\rm vir}$",
+    "voff/vvir": r"$V_{\rm off} / V_{\rm vir}$",
     "a2": r"$a_{1/2}$",
     "a4": r"$a_{3/4}$",
     "alpha": r"$\alpha$",

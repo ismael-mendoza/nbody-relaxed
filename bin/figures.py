@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-from abc import ABC
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from collections import defaultdict
 from pathlib import Path
 from typing import Dict
@@ -15,24 +14,18 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy.interpolate import interp1d
 
 from relaxed import plotting as rxplots
-from relaxed.correlations import add_box_indices
-from relaxed.correlations import get_2d_corr
-from relaxed.correlations import spearmanr
-from relaxed.correlations import vol_jacknife_err
-from relaxed.cosmo import get_a_from_t
-from relaxed.cosmo import get_fractional_tdyn
-from relaxed.cosmo import get_t_from_a
-from relaxed.fits import alpha_analysis
-from relaxed.fits import get_early_late
+from relaxed.correlations import (
+    add_box_indices,
+    get_2d_corr,
+    spearmanr,
+    vol_jacknife_err,
+)
+from relaxed.cosmo import get_a_from_t, get_fractional_tdyn, get_t_from_a
+from relaxed.fits import alpha_analysis, get_early_late
 from relaxed.gradients import get_savgol_grads
-from relaxed.mah import get_an_from_am
-from relaxed.mah import get_mah
-from relaxed.models import opcam_dict
-from relaxed.models import prepare_datasets
-from relaxed.models import training_suite
-from relaxed.plotting import CB_COLORS
-from relaxed.plotting import MARKS
-from relaxed.plotting import set_rc
+from relaxed.mah import get_an_from_am, get_mah
+from relaxed.models import opcam_dict, prepare_datasets, training_suite
+from relaxed.plotting import CB_COLORS, MARKS, set_rc
 
 plt.ioff()
 
@@ -87,7 +80,22 @@ class Figure(ABC):
 
 class CorrelationMAH(Figure):
     cache_name = "correlations_mah"
-    params = ("cvir", "vmax/vvir", "x0", "t/|u|", "spin_bullock", "c_to_a")
+    params = (
+        "cvir",
+        "vmax/vvir",
+        "voff/vvir",
+        "x0",
+        "t/|u|",
+        "spin",
+        "spin_bullock",
+        "c_to_a",
+        "b_to_a",
+        "q",
+        "r200m/rvir",
+        "r500c/rvir",
+    )
+    fig_params = ("cvir", "vmax/vvir", "x0", "t/|u|", "spin_bullock", "c_to_a")
+    # add lambda peebles, b/a, voff to vvir ratio, r500c to rvir ratio, r200m to rvir ratio
     lss = np.array(["-", ":"])  # pos vs neg correlations
 
     def _set_rc(self):
@@ -173,7 +181,7 @@ class CorrelationMAH(Figure):
 
         fig, ax = plt.subplots(1, 1)
 
-        for j, param in enumerate(self.params):
+        for j, param in enumerate(self.fig_params):
             corr, err = ma_data[param]
             latex_param = rxplots.LATEX_PARAMS[param]
             color = CB_COLORS[j]
@@ -192,12 +200,14 @@ class CorrelationMAH(Figure):
 
             ax.fill_between(scales, _corr - err, _corr + err, color=color, alpha=0.5)
 
-        # draw a vertical line at max scales
         text = ""
         for j, param in enumerate(self.params):
             scale, corr, err = max_dict[param]
-            color = CB_COLORS[j]
             text += f"{param}: Max corr is {corr:.3f} +- {err:.3f} at scale {scale:.3f}\n"
+            if param == "cvir":
+                assert j == 0
+                ax.axvline(scale, color=CB_COLORS[0], ls="--")
+                ax.text(scale + 0.01, abs(corr) + 0.05, r"$a_{\rm opt}$", color=CB_COLORS[0])
 
         # additional saving of max correlations for table
         with open(FIGS_DIR.joinpath("max_corrs_ma.txt"), "w") as fp:
@@ -205,7 +215,7 @@ class CorrelationMAH(Figure):
 
         ax.set_ylim(0, 0.8)
         ax.set_xlim(0, 1.0)
-        ax.set_ylabel(rf"${rho_latex}\left(X, m_{{a}}\right)$")
+        ax.set_ylabel(rf"${rho_latex}\left(X, m(a)\right)$")
         ax.set_xlabel(r"\rm Expansion factor $a=1/(1+z)$")
 
         # add additional x-axis with tydn fractional scale
@@ -232,7 +242,7 @@ class CorrelationMAH(Figure):
 
         fig, ax = plt.subplots(1, 1)
 
-        for j, param in enumerate(self.params):
+        for j, param in enumerate(self.fig_params):
             corr, err = am_data[param]
             latex_param = rxplots.LATEX_PARAMS[param]
             color = CB_COLORS[j]
@@ -254,7 +264,6 @@ class CorrelationMAH(Figure):
         # draw a vertical line at max scales, output table.
         text = ""
         for j, param in enumerate(self.params):
-            color = CB_COLORS[j]
             mbin, corr, err = max_dict[param]
             text += f"{param}: Max corr is {corr:.3f} +- {err:.3f} at mass bin {mbin:.3f}\n"
 
@@ -263,11 +272,18 @@ class CorrelationMAH(Figure):
 
         ax.set_ylim(0, 0.8)
         ax.set_xlim(0.01, 1.0)
-        ax.set_ylabel(rf"${rho_latex}\left(X, a_{{m}}\right)$")
+        ax.set_ylabel(rf"${rho_latex}\left(X, a(m)\right)$")
         ax.set_xlabel(r"\rm Mass fraction $m=M/M(z=0)$")
         ax.tick_params(axis="both", which="major")
         ax.tick_params(axis="x", which="minor")
         ax.legend(loc="best")
+
+        # add additional x-axis so figures are aligned in paper
+        ax2 = ax.twiny()
+        ax2.set_xlabel(r"$ \Delta t / t_{\rm dyn}$", labelpad=10)
+        ax2.set_xlim(0.01, 1.0)
+        ax2.set_xlabel(r"$m=M/M(z=0)$")
+        ax2.tick_params(axis="x", which="minor")
 
         return fig
 
@@ -525,7 +541,7 @@ class PredictMAH(Figure):
             ax.plot(scales, corr, label=nice_name, color=CB_COLORS[jj])
             ax.fill_between(scales, corr - err, corr + err, color=CB_COLORS[jj], alpha=0.5)
         ax.set_xlabel("$a$")
-        ax.set_ylabel(rf"${rho_latex}\left(m_{{a}}, m_{{a, \rm{{pred}}}}\right)$")
+        ax.set_ylabel(rf"${rho_latex}\left(m(a), m_{{a, \rm{{pred}}}}\right)$")
         ax.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8])
         ax.set_ylim(0.0, 0.8)
 
@@ -967,7 +983,7 @@ class CovarianceAm(Figure):
         scale_bin_labels = [rf"${x:.1f}$" for x in scale_labels]
 
         fig1, ax = plt.subplots(1, 1)
-        im = ax.imshow(corr, vmin=0, vmax=1)
+        im = ax.imshow(corr, vmin=0, vmax=1, extent=(-0.01, 100, -0.01, 100))
 
         ax.set_xlabel(r"$a$")
         ax.set_ylabel(r"$a$")
@@ -989,7 +1005,7 @@ class CovarianceAm(Figure):
         mass_bin_labels = [rf"${x:.1f}$" for x in mass_bin_labels]
 
         fig2, ax = plt.subplots(1, 1)
-        im = ax.imshow(corr, vmin=0, vmax=1)
+        im = ax.imshow(corr, vmin=0, vmax=1, extent=(-0.01, 100, -0.01, 100))
 
         ax.set_xlabel(r"$m$")
         ax.set_ylabel(r"$m$")
