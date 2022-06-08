@@ -80,7 +80,20 @@ class Figure(ABC):
 
 class CorrelationMAH(Figure):
     cache_name = "correlations_mah"
-    params = ("cvir", "vmax/vvir", "x0", "t/|u|", "spin", "spin_bullock", "c_to_a", "b_to_a", "q")
+    params = (
+        "cvir",
+        "vmax/vvir",
+        "voff/vvir",
+        "x0",
+        "t/|u|",
+        "spin",
+        "spin_bullock",
+        "c_to_a",
+        "b_to_a",
+        "q",
+        "r200m/rvir",
+        "r500c/rvir",
+    )
     fig_params = ("cvir", "vmax/vvir", "x0", "t/|u|", "spin_bullock", "c_to_a")
     # add lambda peebles, b/a, voff to vvir ratio, r500c to rvir ratio, r200m to rvir ratio
     lss = np.array(["-", ":"])  # pos vs neg correlations
@@ -190,7 +203,6 @@ class CorrelationMAH(Figure):
         text = ""
         for j, param in enumerate(self.params):
             scale, corr, err = max_dict[param]
-            color = CB_COLORS[j]
             text += f"{param}: Max corr is {corr:.3f} +- {err:.3f} at scale {scale:.3f}\n"
 
         # additional saving of max correlations for table
@@ -248,7 +260,6 @@ class CorrelationMAH(Figure):
         # draw a vertical line at max scales, output table.
         text = ""
         for j, param in enumerate(self.params):
-            color = CB_COLORS[j]
             mbin, corr, err = max_dict[param]
             text += f"{param}: Max corr is {corr:.3f} +- {err:.3f} at mass bin {mbin:.3f}\n"
 
@@ -267,7 +278,7 @@ class CorrelationMAH(Figure):
         ax2 = ax.twiny()
         ax2.set_xlabel(r"$ \Delta t / t_{\rm dyn}$", labelpad=10)
         ax2.set_xlim(0.01, 1.0)
-        ax2.set_xlabel(r"\rm Mass fraction $m=M/M(z=0)$")
+        ax2.set_xlabel(r"$m=M/M(z=0)$")
         ax2.tick_params(axis="x", which="minor")
 
         return fig
@@ -968,7 +979,7 @@ class CovarianceAm(Figure):
         scale_bin_labels = [rf"${x:.1f}$" for x in scale_labels]
 
         fig1, ax = plt.subplots(1, 1)
-        im = ax.imshow(corr, vmin=0, vmax=1)
+        im = ax.imshow(corr, vmin=0, vmax=1, extent=(-0.01, 100, -0.01, 100))
 
         ax.set_xlabel(r"$a$")
         ax.set_ylabel(r"$a$")
@@ -990,7 +1001,7 @@ class CovarianceAm(Figure):
         mass_bin_labels = [rf"${x:.1f}$" for x in mass_bin_labels]
 
         fig2, ax = plt.subplots(1, 1)
-        im = ax.imshow(corr, vmin=0, vmax=1)
+        im = ax.imshow(corr, vmin=0, vmax=1, extent=(-0.01, 100, -0.01, 100))
 
         ax.set_xlabel(r"$m$")
         ax.set_ylabel(r"$m$")
