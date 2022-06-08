@@ -2,7 +2,6 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 
-
 cb_colors_dict = {
     "blue": "#377eb8",
     "orange": "#ff7f00",

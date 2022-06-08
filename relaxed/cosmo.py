@@ -1,6 +1,5 @@
 """Functions used to compute cosmological values."""
-from astropy.cosmology import LambdaCDM
-from astropy.cosmology import z_at_value
+from astropy.cosmology import LambdaCDM, z_at_value
 
 from relaxed.sims import all_sims
 

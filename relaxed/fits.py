@@ -2,8 +2,7 @@
 from pathlib import Path
 
 import numpy as np
-from lmfit import minimize
-from lmfit import Parameters
+from lmfit import Parameters, minimize
 from scipy.optimize import curve_fit
 from tqdm import tqdm
 
