@@ -204,6 +204,10 @@ class CorrelationMAH(Figure):
         for j, param in enumerate(self.params):
             scale, corr, err = max_dict[param]
             text += f"{param}: Max corr is {corr:.3f} +- {err:.3f} at scale {scale:.3f}\n"
+            if param == "cvir":
+                assert j == 0
+                ax.axvline(scale, color=CB_COLORS[0], ls="--")
+                ax.text(scale + 0.01, abs(corr) + 0.05, r"$a_{\rm opt}$", color=CB_COLORS[0])
 
         # additional saving of max correlations for table
         with open(FIGS_DIR.joinpath("max_corrs_ma.txt"), "w") as fp:
