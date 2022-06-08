@@ -34,24 +34,6 @@ default_params = {
     "spin_bullock",
 }
 
-latex_params = {
-    "mvir": {"units": "h^{-1} \\, M_{\\odot}", "form": "M_{\\rm vir}"},
-    "tdyn": {"units": "Gyr", "form": "T_{\\rm dyn}"},
-    "gamma_tdyn": {
-        "units": "h^{-1}\\, yr^{-1} \\, M_{\\odot}",
-        "form": "\\gamma_{\\tau_{\\rm dyn}}",
-    },
-    "t/|u|": {"units": "", "form": "T/|U|"},
-    "spin": {"units": "", "form": "\\lambda"},
-    "spin_bullock": {"units": "", "form": "\\lambda"},
-    "xoff": {"units": "", "form": "x_{\\rm off}"},
-    "phi_l": {"units": "", "form": "\\Phi_{l}"},
-    "q": {"units": "", "form": "q"},
-    "vmax/vvir": {"units": "", "form": "v_{\\rm max} / v_{\\rm vir}"},
-    "b/a": {"units": "", "form": "b/a"},
-    "c/a": {"units": "", "form": "c/a"},
-}
-
 
 def derive_vvir(mcat, b):
     # units = km/s
