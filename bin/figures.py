@@ -700,7 +700,7 @@ class InvPredMetrics(Figure):
             x_bias += 0.1
         ax.set_ylim(-0.05, 0.80)
         ax.set_xlim(-0.5, len(self.params) - 0.5)
-        ax.axvline(len(self.params) - 0.5 - 0.02, ymin=0.0, ymax=1.0, color="k", lw=1.5)
+        ax.axvline(len(self.params) - 0.5 - 0.02, ymin=0.0, ymax=1.0, color="k", lw=1.3)
         ax.set_ylabel(rf"${rho_latex}\left(y_{{\rm pred}}, y_{{\rm true}}\right)$")
         ax.legend()
         return {"inv_pred_metrics": fig}
@@ -925,7 +925,7 @@ class ForwardPredMetrics(Figure):
             rxplots.metrics_plot(ax, mval, merr, self.params, label, x_bias, m, c)
             x_bias += 0.1
         ax.set_ylim(0.4, 0.8)
-        ax.axvline(len(self.params) - 0.5 - 0.02, ymin=0.0, ymax=1.0, color="k", lw=1.5)
+        ax.axvline(len(self.params) - 0.5 - 0.02, ymin=0.0, ymax=1.0, color="k", lw=1.3)
         ax.set_xlim(-0.5, len(self.params) - 0.5)
         ax.set_ylabel(rf"${rho_latex}\left(y_{{\rm pred}}, y_{{\rm true}}\right)$")
         ax.legend(loc="upper right")
