@@ -390,15 +390,13 @@ class TriangleSamples(Figure):
             _y1 = y1[:, self.subset_params]
             _y2 = y2[:, self.subset_params]
             _labels = [labels[ii] for ii in self.subset_params]
-            fig = corner.corner(
-                _y1, labels=_labels, color="C1", labelpad=0.05, max_n_ticks=4, plot_datapoints=False
-            )
+            fig = corner.corner(_y1, color="C1", max_n_ticks=4, plot_datapoints=False)
             fig = corner.corner(
                 _y2,
                 labels=_labels,
                 fig=fig,
                 color="C2",
-                labelpad=0.05,
+                labelpad=0.2,
                 max_n_ticks=4,
                 plot_datapoints=False,
             )
