@@ -297,6 +297,7 @@ class TriangleSamples(Figure):
 
     def _set_rc(self):
         set_rc(fontsize=24)
+        mpl.rcParams.update({"axes.grid": False})
 
     def get_data(self):
         mah_data = get_mah(MAH_DIR, cutoff_missing=0.05, cutoff_particle=0.05)
@@ -357,7 +358,6 @@ class TriangleSamples(Figure):
         return y_new
 
     def get_figures(self, data: Dict[str, np.ndarray]) -> Dict[str, mpl.figure.Figure]:
-        mpl.rcParams.update({"axes.grid": False})
         figs = {}
 
         # (1) multicam gaussian samples on all params.
@@ -937,6 +937,7 @@ class CovarianceAm(Figure):
 
     def _set_rc(self):
         set_rc(fontsize=24, cmap="tab10")
+        mpl.rcParams.update({"grid.color": "0.85"})
 
     def get_data(self):
         mahdir = ROOT.joinpath("data", "processed", "bolshoi_m12")
