@@ -46,11 +46,10 @@ class Figure(ABC):
     cache_name = ""
     params = ()
 
-    def __init__(self, overwrite=False, ext="png", style="seaborn-whitegrid") -> None:
+    def __init__(self, overwrite=False, ext="png") -> None:
         self.cache_file = CACHE_DIR.joinpath(self.cache_name).with_suffix(".npy")
         self.ext = "." + ext
         self.overwrite = overwrite
-        self.style = style
 
     @abstractmethod
     def _set_rc(self):
@@ -69,7 +68,6 @@ class Figure(ABC):
             data = self.get_data()
             np.save(self.cache_file, data)
         data = np.load(self.cache_file, allow_pickle=True)
-        plt.style.use(self.style)
         self._set_rc()
         figs = self.get_figures(data.item())
         for name, fig in figs.items():
@@ -542,6 +540,7 @@ class PredictMAH(Figure):
         ax.set_xlabel("$a$")
         ax.set_ylabel(rf"${rho_latex}\left(m(a), m_{{\rm pred}}(a)\right)$")
         ax.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8])
+        ax.set_xticks(np.arange(0.2, 1.1, 0.1))
         ax.set_ylim(0.0, 0.8)
 
         # (2) Correlation a(m) vs a_pred(m) figure
@@ -555,6 +554,7 @@ class PredictMAH(Figure):
         ax.set_ylabel(rf"${rho_latex}\left(a(m), a_{{\rm pred}}(m)\right)$")
         ax.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8])
         ax.set_ylim(0.0, 0.8)
+        ax.set_xticks(np.arange(0.0, 1.1, 0.1))
         ax.set_yticklabels(f"${x:.1f}$" for x in ax.get_yticks())
         ax.legend(loc="best")
 
@@ -1029,7 +1029,7 @@ def main(overwrite, ext):
     InvPredMetrics(overwrite, ext).save()
     ForwardPredMetrics(overwrite, ext).save()
     CovarianceAm(overwrite, ext).save()
-    TriangleSamples(overwrite, ext, style="classic").save()  # FIXME: always last (bolding issue)
+    TriangleSamples(overwrite, ext).save()  # FIXME: always last (bolding issue)
 
 
 if __name__ == "__main__":
