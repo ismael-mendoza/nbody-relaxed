@@ -357,6 +357,7 @@ class TriangleSamples(Figure):
         return y_new
 
     def get_figures(self, data: Dict[str, np.ndarray]) -> Dict[str, mpl.figure.Figure]:
+        mpl.rcParams.update({"axes.grid": False})
         figs = {}
 
         # (1) multicam gaussian samples on all params.
@@ -539,9 +540,10 @@ class PredictMAH(Figure):
             ax.fill_between(scales, corr - err, corr + err, color=CB_COLORS[jj], alpha=0.5)
         ax.set_xlabel("$a$")
         ax.set_ylabel(rf"${rho_latex}\left(m(a), m_{{\rm pred}}(a)\right)$")
-        ax.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8])
+        ax.set_yticks(np.arange(0.0, 0.9, 0.1))
         ax.set_xticks(np.arange(0.2, 1.1, 0.1))
         ax.set_ylim(0.0, 0.8)
+        ax.set_xlim(0.2, 1.0)
 
         # (2) Correlation a(m) vs a_pred(m) figure
         fig2, ax = plt.subplots(1, 1)
@@ -552,9 +554,10 @@ class PredictMAH(Figure):
             ax.fill_between(mass_bins, corr - err, corr + err, color=CB_COLORS[jj], alpha=0.5)
         ax.set_xlabel("$m$")
         ax.set_ylabel(rf"${rho_latex}\left(a(m), a_{{\rm pred}}(m)\right)$")
-        ax.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8])
+        ax.set_yticks(np.arange(0.0, 0.9, 0.1))
         ax.set_ylim(0.0, 0.8)
         ax.set_xticks(np.arange(0.0, 1.1, 0.1))
+        ax.set_xlim(0.0, 1.0)
         ax.set_yticklabels(f"${x:.1f}$" for x in ax.get_yticks())
         ax.legend(loc="best")
 
