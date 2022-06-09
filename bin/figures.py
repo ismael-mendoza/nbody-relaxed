@@ -154,9 +154,8 @@ class CorrelationMAH(Figure):
             r"\centering" + "\n"
             r"\begin{tabular}{|c|c|c|c|c|}" + "\n"
             r"\hline" + "\n"
-            rf"$X$ & $a_{{\rm opt}}$ & ${rho_latex}\left(X, m_{{a_{{\rm opt}}}}\right)$"
-            rf" & $m_{{\rm opt}}$ & ${rho_latex}\left(X, a_{{m_{{\rm opt}}}}\right)$ \\ [0.5ex]"
-            + "\n"
+            rf"$X$ & $a_{{\rm opt}}$ & ${rho_latex}\left(X, m(a_{{\rm opt}})\right)$"
+            rf" & $m_{{\rm opt}}$ & ${rho_latex}\left(X, a(m_{{\rm opt}})\right)$ \\ [0.5ex]" + "\n"
             r"\hline\hline" + "\n"
         )
         for param in self.params:
@@ -541,7 +540,7 @@ class PredictMAH(Figure):
             ax.plot(scales, corr, label=nice_name, color=CB_COLORS[jj])
             ax.fill_between(scales, corr - err, corr + err, color=CB_COLORS[jj], alpha=0.5)
         ax.set_xlabel("$a$")
-        ax.set_ylabel(rf"${rho_latex}\left(m(a), m_{{a, \rm{{pred}}}}\right)$")
+        ax.set_ylabel(rf"${rho_latex}\left(m(a), m_{{\rm pred}}(a)\right)$")
         ax.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8])
         ax.set_ylim(0.0, 0.8)
 
@@ -553,7 +552,7 @@ class PredictMAH(Figure):
             ax.plot(mass_bins, corr, label=nice_name, color=CB_COLORS[jj])
             ax.fill_between(mass_bins, corr - err, corr + err, color=CB_COLORS[jj], alpha=0.5)
         ax.set_xlabel("$m$")
-        ax.set_ylabel(rf"${rho_latex}\left(a_{{m}}, a_{{m, \rm{{pred}}}}\right)$")
+        ax.set_ylabel(rf"${rho_latex}\left(a(m), a_{{\rm pred}}(m)\right)$")
         ax.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8])
         ax.set_ylim(0.0, 0.8)
         ax.set_yticklabels(f"${x:.1f}$" for x in ax.get_yticks())
