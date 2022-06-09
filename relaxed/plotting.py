@@ -109,6 +109,12 @@ def set_rc(
         "legend.edgecolor": "gray",
         # figures
         "figure.autolayout": True,  # same as 'tight_layout'
+        # grids
+        "axes.grid": True,
+        "grid.color": "0.75",  # light gray gridlines
+        "grid.linestyle": "-",  # solid gridlines
+        "grid.linewidth": 0.5,  # thin gridlines
+        "grid.alpha": 1.0,
     }
     mpl.rcParams.update(rc_params)
 

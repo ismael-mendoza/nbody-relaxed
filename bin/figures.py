@@ -46,11 +46,10 @@ class Figure(ABC):
     cache_name = ""
     params = ()
 
-    def __init__(self, overwrite=False, ext="png", style="seaborn-whitegrid") -> None:
+    def __init__(self, overwrite=False, ext="png") -> None:
         self.cache_file = CACHE_DIR.joinpath(self.cache_name).with_suffix(".npy")
         self.ext = "." + ext
         self.overwrite = overwrite
-        self.style = style
 
     @abstractmethod
     def _set_rc(self):
@@ -69,7 +68,6 @@ class Figure(ABC):
             data = self.get_data()
             np.save(self.cache_file, data)
         data = np.load(self.cache_file, allow_pickle=True)
-        plt.style.use(self.style)
         self._set_rc()
         figs = self.get_figures(data.item())
         for name, fig in figs.items():
@@ -299,6 +297,7 @@ class TriangleSamples(Figure):
 
     def _set_rc(self):
         set_rc(fontsize=24)
+        mpl.rcParams.update({"axes.grid": False})
 
     def get_data(self):
         mah_data = get_mah(MAH_DIR, cutoff_missing=0.05, cutoff_particle=0.05)
@@ -391,15 +390,13 @@ class TriangleSamples(Figure):
             _y1 = y1[:, self.subset_params]
             _y2 = y2[:, self.subset_params]
             _labels = [labels[ii] for ii in self.subset_params]
-            fig = corner.corner(
-                _y1, labels=_labels, color="C1", labelpad=0.05, max_n_ticks=4, plot_datapoints=False
-            )
+            fig = corner.corner(_y1, color="C1", max_n_ticks=4, plot_datapoints=False)
             fig = corner.corner(
                 _y2,
                 labels=_labels,
                 fig=fig,
                 color="C2",
-                labelpad=0.05,
+                labelpad=0.2,
                 max_n_ticks=4,
                 plot_datapoints=False,
             )
@@ -541,8 +538,10 @@ class PredictMAH(Figure):
             ax.fill_between(scales, corr - err, corr + err, color=CB_COLORS[jj], alpha=0.5)
         ax.set_xlabel("$a$")
         ax.set_ylabel(rf"${rho_latex}\left(m(a), m_{{\rm pred}}(a)\right)$")
-        ax.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8])
+        ax.set_yticks(np.arange(0.0, 0.9, 0.1))
+        ax.set_xticks(np.arange(0.2, 1.1, 0.1))
         ax.set_ylim(0.0, 0.8)
+        ax.set_xlim(0.2, 1.0)
 
         # (2) Correlation a(m) vs a_pred(m) figure
         fig2, ax = plt.subplots(1, 1)
@@ -553,8 +552,10 @@ class PredictMAH(Figure):
             ax.fill_between(mass_bins, corr - err, corr + err, color=CB_COLORS[jj], alpha=0.5)
         ax.set_xlabel("$m$")
         ax.set_ylabel(rf"${rho_latex}\left(a(m), a_{{\rm pred}}(m)\right)$")
-        ax.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8])
+        ax.set_yticks(np.arange(0.0, 0.9, 0.1))
         ax.set_ylim(0.0, 0.8)
+        ax.set_xticks(np.arange(0.0, 1.1, 0.1))
+        ax.set_xlim(0.0, 1.0)
         ax.set_yticklabels(f"${x:.1f}$" for x in ax.get_yticks())
         ax.legend(loc="best")
 
@@ -934,6 +935,7 @@ class CovarianceAm(Figure):
 
     def _set_rc(self):
         set_rc(fontsize=24, cmap="tab10")
+        mpl.rcParams.update({"grid.color": "0.85"})
 
     def get_data(self):
         mahdir = ROOT.joinpath("data", "processed", "bolshoi_m12")
@@ -1029,7 +1031,7 @@ def main(overwrite, ext):
     InvPredMetrics(overwrite, ext).save()
     ForwardPredMetrics(overwrite, ext).save()
     CovarianceAm(overwrite, ext).save()
-    TriangleSamples(overwrite, ext, style="classic").save()  # FIXME: always last (bolding issue)
+    TriangleSamples(overwrite, ext).save()  # FIXME: always last (bolding issue)
 
 
 if __name__ == "__main__":
