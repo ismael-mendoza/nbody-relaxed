@@ -106,7 +106,7 @@ class CorrelationMAH(Figure):
         cat = mah_data["cat"]
         scales = mah_data["scales"]
         am = mah_data["am"]
-        ma = mah_data["ma"]
+        ma = mah_data["ma_peak"]
         mass_bins = mah_data["mass_bins"]
         add_box_indices(cat)
 
@@ -323,7 +323,7 @@ class TriangleSamples(Figure):
                 "n_features": 100,
                 "n_targets": n_targets,
                 "model": "gaussian",
-                "kwargs": {"to_marginal_normal": True, "use_multicam": True},
+                "kwargs": {"use_multicam": True},
             },
             "optcam": {
                 "xy": datasets["all"]["train"],
@@ -426,7 +426,7 @@ class PredictMAH(Figure):
     def get_data(self):
         mah_data = get_mah(MAH_DIR, cutoff_missing=0.05, cutoff_particle=0.05)
         cat = mah_data["cat"]
-        ma = mah_data["ma"]
+        ma = mah_data["ma_peak"]
         am = mah_data["am"]
         mass_bins = mah_data["mass_bins"][:-1]  # remove last bin to avoid spearman error.
         scales = mah_data["scales"][:-1]  # same for scales.
@@ -460,28 +460,28 @@ class PredictMAH(Figure):
                 "n_features": 1,
                 "n_targets": n_mbins + n_scales,
                 "model": "linear",
-                "kwargs": {"to_marginal_normal": True, "use_multicam": True},
+                "kwargs": {"use_multicam": True},
             },
             "linear_x0": {
                 "xy": datasets["x0_only"]["train"],
                 "n_features": 1,
                 "n_targets": n_mbins + n_scales,
                 "model": "linear",
-                "kwargs": {"to_marginal_normal": True, "use_multicam": True},
+                "kwargs": {"use_multicam": True},
             },
             "linear_tu": {
                 "xy": datasets["tu_only"]["train"],
                 "n_features": 1,
                 "n_targets": n_mbins + n_scales,
                 "model": "linear",
-                "kwargs": {"to_marginal_normal": True, "use_multicam": True},
+                "kwargs": {"use_multicam": True},
             },
             "linear_all": {
                 "xy": datasets["all"]["train"],
                 "n_features": len(self.params),
                 "n_targets": n_mbins + n_scales,
                 "model": "linear",
-                "kwargs": {"to_marginal_normal": True, "use_multicam": True},
+                "kwargs": {"use_multicam": True},
             },
         }
         models = training_suite(data)
@@ -572,7 +572,7 @@ class InvPredMetrics(Figure):
     def get_data(self):
         mah_data = get_mah(MAH_DIR, cutoff_missing=0.05, cutoff_particle=0.05)
         cat = mah_data["cat"]
-        ma = mah_data["ma"]
+        ma = mah_data["ma"]  # for alpha fit
         am = mah_data["am"]
         scales = mah_data["scales"]
         mass_bins = mah_data["mass_bins"]
@@ -636,28 +636,28 @@ class InvPredMetrics(Figure):
                 "n_features": 1,
                 "n_targets": len(self.params),
                 "model": "linear",
-                "kwargs": {"to_marginal_normal": True, "use_multicam": True},
+                "kwargs": {"use_multicam": True},
             },
             "linear_x0": {
                 "xy": datasets["x0_only"]["train"],
                 "n_features": 1,
                 "n_targets": len(self.params),
                 "model": "linear",
-                "kwargs": {"to_marginal_normal": True, "use_multicam": True},
+                "kwargs": {"use_multicam": True},
             },
             "linear_tu": {
                 "xy": datasets["tu_only"]["train"],
                 "n_features": 1,
                 "n_targets": len(self.params),
                 "model": "linear",
-                "kwargs": {"to_marginal_normal": True, "use_multicam": True},
+                "kwargs": {"use_multicam": True},
             },
             "linear_all": {
                 "xy": datasets["all"]["train"],
                 "n_features": len(x_params),
                 "n_targets": len(self.params),
                 "model": "linear",
-                "kwargs": {"to_marginal_normal": True, "use_multicam": True},
+                "kwargs": {"use_multicam": True},
             },
         }
         models = training_suite(data)
@@ -716,7 +716,8 @@ class ForwardPredMetrics(Figure):
     def get_data(self):
         mah_data = get_mah(MAH_DIR, cutoff_missing=0.05, cutoff_particle=0.05)
         cat = mah_data["cat"]
-        ma = mah_data["ma"]
+        ma = mah_data["ma"]  # for alpha fits and gradients.
+        ma_peak = mah_data["ma_peak"]
         am = mah_data["am"]
         scales = mah_data["scales"]
         mass_bins = mah_data["mass_bins"]
@@ -725,7 +726,7 @@ class ForwardPredMetrics(Figure):
         # prepare catalog with all m_a
         ma_names = [f"ma_{ii}" for ii in range(len(scales))]
         for ii in range(len(scales)):
-            cat.add_column(ma[:, ii], name=ma_names[ii])
+            cat.add_column(ma_peak[:, ii], name=ma_names[ii])
 
         # prepare catalog with all a_m
         am_names = [f"am_{ii}" for ii in range(len(mass_bins))]
@@ -745,7 +746,8 @@ class ForwardPredMetrics(Figure):
         cat.add_column(early, name="alpha_early")
         cat.add_column(late, name="alpha_late")
 
-        # load diffmah fits curves.
+        # load diffmah fits curves
+        # note that they are already mpeak by virtual of parametrization of diffmah
         diffmah_curves = np.load(ROOT.joinpath("data", "processed", "diffmah_fits.npy"))
         ma_diffmah_names = [f"ma_diffmah_{ii}" for ii in range(len(scales))]
         for ii in range(len(scales)):
@@ -821,21 +823,21 @@ class ForwardPredMetrics(Figure):
                 "n_features": 165,
                 "n_targets": n_params,
                 "model": "linear",
-                "kwargs": {"to_marginal_normal": True, "use_multicam": True},
+                "kwargs": {"use_multicam": True},
             },
             "multicam_ma_diffmah": {
                 "xy": datasets["ma_diffmah"]["train"],
                 "n_features": 165,
                 "n_targets": n_params,
                 "model": "linear",
-                "kwargs": {"to_marginal_normal": True, "use_multicam": True},
+                "kwargs": {"use_multicam": True},
             },
             "multicam_params_diffmah": {
                 "xy": datasets["params_diffmah"]["train"],
                 "n_features": 3,
                 "n_targets": n_params,
                 "model": "linear",
-                "kwargs": {"to_marginal_normal": True, "use_multicam": True},
+                "kwargs": {"use_multicam": True},
             },
             "optcam": {
                 "xy": datasets["am"]["train"],
@@ -853,33 +855,33 @@ class ForwardPredMetrics(Figure):
             #     "n_features": 3,
             #     "n_targets": len(params),
             #     "model": "linear",
-            #     "kwargs": {"to_marginal_normal": True, "use_multicam": True},
+            #     "kwargs": {"use_multicam": True},
             # },
             # "multicam_alpha": {
             #     "xy": datasets["alpha"]["train"],
             #     "n_features": 1,
             #     "n_targets": len(params),
             #     "model": "linear",
-            #     "kwargs": {"to_marginal_normal": True, "use_multicam": True},
+            #     "kwargs": {"use_multicam": True},
             # },
             # 'gradients': {
             #     'xy': datasets['gradients']['train'], 'n_features': 100 + 165, 'n_targets':
             # len(params),
-            #     'model': 'linear', 'kwargs': {'to_marginal_normal':True , 'use_multicam': True},
+            #     'model': 'linear', 'kwargs': {'use_multicam': True},
             # },
             # "overfitting5": {
             #     "xy": datasets["overfitting5"]["train"],
             #     "n_features": 100 // 5,
             #     "n_targets": len(params),
             #     "model": "linear",
-            #     "kwargs": {"to_marginal_normal": True, "use_multicam": True},
+            #     "kwargs": { "use_multicam": True},
             # },
             # "overfitting10": {
             #     "xy": datasets["overfitting10"]["train"],
             #     "n_features": 100 // 10,
             #     "n_targets": len(params),
             #     "model": "linear",
-            #     "kwargs": {"to_marginal_normal": True, "use_multicam": True},
+            #     "kwargs": {"use_multicam": True},
             # },
         }
 
@@ -945,7 +947,7 @@ class CovarianceAm(Figure):
             mahdir, cutoff_missing=0.05, cutoff_particle=0.05, log_mbin_spacing=False
         )
         scales = mah_data["scales"][:-1]
-        ma = mah_data["ma"][:, :-1]
+        ma = mah_data["ma_peak"][:, :-1]
         mass_bins = mah_data["mass_bins"]
         am = mah_data["am"]
         n_mbins = mass_bins.shape[0]
@@ -1028,10 +1030,10 @@ class CovarianceAm(Figure):
 @click.option("--overwrite", "-o", is_flag=True, default=False)
 @click.option("--ext", default="png", type=str)
 def main(overwrite, ext):
-    CorrelationMAH(overwrite, ext).save()
-    PredictMAH(overwrite, ext).save()
-    InvPredMetrics(overwrite, ext).save()
-    ForwardPredMetrics(overwrite, ext).save()
+    # CorrelationMAH(overwrite, ext).save()
+    # PredictMAH(overwrite, ext).save()
+    # InvPredMetrics(overwrite, ext).save()
+    # ForwardPredMetrics(overwrite, ext).save()
     CovarianceAm(overwrite, ext).save()
     TriangleSamples(overwrite, ext).save()  # FIXME: always last (bolding issue)
 
