@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 from scipy.interpolate import interp1d
+from scipy.stats import rankdata
 from sklearn import linear_model
 from sklearn.feature_selection import SelectFromModel
 from sklearn.preprocessing import QuantileTransformer
@@ -34,7 +35,7 @@ class PredictionModel(ABC):
         # change internal state such that predict and/or sampling are possible.
         assert np.sum(np.isnan(x)) == np.sum(np.isnan(y)) == 0
         assert x.shape == (y.shape[0], self.n_features)
-        y = y.reshape(x.shape[0], self.n_targets)
+        assert y.shape == (x.shape[0], self.n_targets)
         self._fit(x, y)
         self.trained = True
 
@@ -62,36 +63,42 @@ class PredictionModelTransform(PredictionModel, ABC):
         n_features: int,
         n_targets: int,
         to_log: bool = False,
-        to_marginal_normal: bool = True,
         use_multicam: bool = True,
     ) -> None:
         super().__init__(n_features, n_targets)
-        assert (to_log + to_marginal_normal) <= 1, "Only 1 transformation at a time."
+        assert (to_log + use_multicam) <= 1, "Only 1 transformation at a time."
 
-        self.to_marginal_normal = to_marginal_normal  # transform data to be (marginally) gaussian
         self.to_log = to_log  # transform to log space.
         self.use_multicam = use_multicam  # map predictions to trained data quantiles.
 
         # quantile transformers.
-        self.qt_x = None
-        self.qt_y = None
+        self.qt_xr = None
+        self.qt_yr = None
+        self.y_train = None
 
     def fit(self, x, y):
-        y = y.reshape(x.shape[0], self.n_targets)
+        assert len(x.shape) == len(y.shape) == 2
 
-        if self.use_multicam or self.to_marginal_normal:
-            self.qt_y = QuantileTransformer(n_quantiles=len(y), output_distribution="normal")
-            self.qt_y = self.qt_y.fit(y)
+        if self.use_multicam:
 
-        if self.to_marginal_normal:
-            self.qt_x = QuantileTransformer(n_quantiles=len(x), output_distribution="normal")
-            self.qt_x = self.qt_x.fit(x)
+            # need to save training data to predict from ranks later.
+            self.y_train = y.copy()
 
-            # transform
-            x_trans = self.qt_x.transform(x)
-            y_trans = self.qt_y.transform(y)
+            # first get ranks of features and targets.
+            xr = rankdata(x, axis=0, method="ordinal")
+            yr = rankdata(y, axis=0, method="ordinal")
 
-            super().fit(x_trans, y_trans)
+            # then get a quantile transformer for the ranks to a normal distribution.
+            self.qt_xr = QuantileTransformer(n_quantiles=len(xr), output_distribution="normal")
+            self.qt_xr = self.qt_xr.fit(xr)
+            self.qt_yr = QuantileTransformer(n_quantiles=len(yr), output_distribution="normal")
+            self.qt_yr = self.qt_yr.fit(yr)
+
+            # transform rank data to be (marginally) gaussian.
+            xr_trans = self.qt_xr.transform(xr)
+            yr_trans = self.qt_yr.transform(yr)
+
+            super().fit(xr_trans, yr_trans)
 
         elif self.to_log:
             super().fit(np.log(x), np.log(y))
@@ -99,23 +106,43 @@ class PredictionModelTransform(PredictionModel, ABC):
         else:
             super().fit(x, y)
 
+    @staticmethod
+    def value_at_rank(x, ranks):
+        """Get value at ranks of multidimensional array."""
+        assert x.shape[1] == ranks.shape[1]
+        assert ranks.dtype == np.int
+        n, m = ranks.shape
+        rows = ranks.T.flatten()
+        cols = np.full((n, m), np.arange(m)).T.flatten().astype(int)
+        return x[rows, cols].reshape(m, n).T
+
     def predict(self, x):
-        if self.to_marginal_normal:
-            x_trans = self.qt_x.transform(x)
-            y_trans = super().predict(x_trans)
-            y_pred = self.qt_y.inverse_transform(y_trans)
+        if self.use_multicam:
+            # get ranks of test data.
+            xr = rankdata(x, axis=0, method="ordinal")
+
+            # transform ranks to be (marginally) gaussian.
+            xr_trans = self.qt_xr.transform(xr)
+
+            # predict on transformed ranks.
+            yr_trans = super().predict(xr_trans)
+
+            # get quantile transformer of prediction to (marginal) normal.
+            qt_pred = QuantileTransformer(n_quantiles=len(yr_trans), output_distribution="normal")
+            qt_pred.fit(yr_trans)
+
+            # inverse transform prediction to get ranks of target.
+            yr = self.qt_yr.inverse_transform(qt_pred.transform(yr_trans)).astype(int) - 1
+
+            # predictions are points in train data corresponding to ranks predicted
+            y_train_sorted = np.sort(self.y_train, axis=0)
+            y_pred = self.value_at_rank(y_train_sorted, yr)
 
         elif self.to_log:
             y_pred = np.exp(super().predict(np.log(x)))
 
         else:
             y_pred = super().predict(x)
-
-        # optionally map prediction to correct quantiles from trained distribution.
-        if self.use_multicam:
-            qt_pred = QuantileTransformer(n_quantiles=len(y_pred), output_distribution="normal")
-            qt_pred = qt_pred.fit(y_pred)
-            y_pred = self.qt_y.inverse_transform(qt_pred.transform(y_pred))
 
         return y_pred
 
@@ -244,12 +271,6 @@ class MultiVariateGaussian(SamplingModel):
         self.Sigma = None
         self.rho = None
         self.sigma_cond = None
-
-        if not self.to_marginal_normal:
-            warnings.warn(
-                "You initialized the `MultivariateGaussian` model with `to_marginal_normal`"
-                "set to False. However, this model usually requires this data preprocessing step."
-            )
 
     def _fit(self, x, y):
         """
