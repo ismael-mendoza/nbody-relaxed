@@ -793,24 +793,12 @@ class ForwardPredMetrics(Figure):
                 "x": ("tau_c", "alpha_early", "alpha_late"),
                 "y": self.params,
             },
-            "new_params_diffmah": {
-                "x": ("tau_c", "a2", "alpha_late"),
-                "y": self.params,
-            },
             "alpha": {
                 "x": ("alpha",),
                 "y": self.params,
             },
             "gradients": {
                 "x": am_names + grad_names_k[11],
-                "y": self.params,
-            },
-            "overfitting5": {
-                "x": am_names[::5],
-                "y": self.params,
-            },
-            "overfitting10": {
-                "x": am_names[::10],
                 "y": self.params,
             },
         }
@@ -849,40 +837,7 @@ class ForwardPredMetrics(Figure):
                     "opt_mbins": [opcam_dict[param]["mbin"] for param in self.params],
                     "cam_orders": [opcam_dict[param]["order"] for param in self.params],
                 },
-            }
-            # "multicam_diffmah_new": {
-            #     "xy": datasets["diffmah_new"]["train"],
-            #     "n_features": 3,
-            #     "n_targets": len(params),
-            #     "model": "linear",
-            #     "kwargs": {"use_multicam": True},
-            # },
-            # "multicam_alpha": {
-            #     "xy": datasets["alpha"]["train"],
-            #     "n_features": 1,
-            #     "n_targets": len(params),
-            #     "model": "linear",
-            #     "kwargs": {"use_multicam": True},
-            # },
-            # 'gradients': {
-            #     'xy': datasets['gradients']['train'], 'n_features': 100 + 165, 'n_targets':
-            # len(params),
-            #     'model': 'linear', 'kwargs': {'use_multicam': True},
-            # },
-            # "overfitting5": {
-            #     "xy": datasets["overfitting5"]["train"],
-            #     "n_features": 100 // 5,
-            #     "n_targets": len(params),
-            #     "model": "linear",
-            #     "kwargs": { "use_multicam": True},
-            # },
-            # "overfitting10": {
-            #     "xy": datasets["overfitting10"]["train"],
-            #     "n_features": 100 // 10,
-            #     "n_targets": len(params),
-            #     "model": "linear",
-            #     "kwargs": {"use_multicam": True},
-            # },
+            },
         }
 
         models = training_suite(data)
@@ -894,9 +849,6 @@ class ForwardPredMetrics(Figure):
             r"\rm MultiCAM Diffmah $m(a)$ curves",
             r"\rm MultiCAM Diffmah parameters",
             r"\rm CAM $a_{\rm opt}$",
-            # r"\rm MultiCAM subsampled every 5",
-            # r"\rm MultiCAM subsampled every 10",
-            # r"\rm MultiCAM $\alpha$ only",
         )
 
         output = {}
@@ -1033,9 +985,9 @@ def main(overwrite, ext):
     # CorrelationMAH(overwrite, ext).save()
     # PredictMAH(overwrite, ext).save()
     # InvPredMetrics(overwrite, ext).save()
-    # ForwardPredMetrics(overwrite, ext).save()
-    CovarianceAm(overwrite, ext).save()
-    TriangleSamples(overwrite, ext).save()  # FIXME: always last (bolding issue)
+    ForwardPredMetrics(overwrite, ext).save()
+    # CovarianceAm(overwrite, ext).save()
+    # TriangleSamples(overwrite, ext).save()  # FIXME: always last (bolding issue)
 
 
 if __name__ == "__main__":
