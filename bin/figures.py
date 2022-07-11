@@ -323,7 +323,7 @@ class TriangleSamples(Figure):
                 "n_features": 100,
                 "n_targets": n_targets,
                 "model": "gaussian",
-                "kwargs": {"use_multicam": True},
+                "kwargs": {"use_multicam_no_ranks": True, "use_multicam": False},
             },
             "optcam": {
                 "xy": datasets["all"]["train"],
@@ -717,7 +717,6 @@ class ForwardPredMetrics(Figure):
         mah_data = get_mah(MAH_DIR, cutoff_missing=0.05, cutoff_particle=0.05)
         cat = mah_data["cat"]
         ma = mah_data["ma"]  # for alpha fits and gradients.
-        ma_peak = mah_data["ma_peak"]
         am = mah_data["am"]
         scales = mah_data["scales"]
         mass_bins = mah_data["mass_bins"]
@@ -726,7 +725,7 @@ class ForwardPredMetrics(Figure):
         # prepare catalog with all m_a
         ma_names = [f"ma_{ii}" for ii in range(len(scales))]
         for ii in range(len(scales)):
-            cat.add_column(ma_peak[:, ii], name=ma_names[ii])
+            cat.add_column(ma[:, ii], name=ma_names[ii])
 
         # prepare catalog with all a_m
         am_names = [f"am_{ii}" for ii in range(len(mass_bins))]
@@ -811,21 +810,21 @@ class ForwardPredMetrics(Figure):
                 "n_features": 165,
                 "n_targets": n_params,
                 "model": "linear",
-                "kwargs": {"use_multicam": True},
+                "kwargs": {"use_multicam_no_ranks": True, "use_multicam": False},
             },
             "multicam_ma_diffmah": {
                 "xy": datasets["ma_diffmah"]["train"],
                 "n_features": 165,
                 "n_targets": n_params,
                 "model": "linear",
-                "kwargs": {"use_multicam": True},
+                "kwargs": {"use_multicam_no_ranks": True, "use_multicam": False},
             },
             "multicam_params_diffmah": {
                 "xy": datasets["params_diffmah"]["train"],
                 "n_features": 3,
                 "n_targets": n_params,
                 "model": "linear",
-                "kwargs": {"use_multicam": True},
+                "kwargs": {"use_multicam_no_ranks": True, "use_multicam": False},
             },
             "optcam": {
                 "xy": datasets["am"]["train"],
@@ -948,14 +947,14 @@ class CovarianceAm(Figure):
 
         new_xticks = np.linspace(0, 100, 5)
         ax.set_xticks(ticks=new_xticks, labels=scale_bin_labels)
-        ax.set_yticks(ticks=new_xticks, labels=scale_bin_labels[::-1])
+        ax.set_yticks(ticks=new_xticks, labels=scale_bin_labels)
 
         # colorbar
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("right", size="5%", pad=0.10)
         fig1.colorbar(im, cax=cax, orientation="vertical")
 
-        # (1) am covariance figure
+        # (2) am covariance figure
         corr = data["corr_am"]
         mass_bins = data["mass_bins"]
         mass_bin_labels = np.linspace(mass_bins.min(), mass_bins.max(), 6)
@@ -968,7 +967,7 @@ class CovarianceAm(Figure):
         ax.set_ylabel(r"$m$")
         ax.set_title(rf"${rho_latex}\left( a(m), a(m) \right)$", pad=15.0)
         ax.set_xticks(ticks=ax.get_xticks()[1:], labels=mass_bin_labels)
-        ax.set_yticks(ticks=ax.get_yticks()[1:], labels=mass_bin_labels[::-1])
+        ax.set_yticks(ticks=ax.get_yticks()[1:], labels=mass_bin_labels)
 
         # colorbar
         divider = make_axes_locatable(ax)
@@ -982,12 +981,12 @@ class CovarianceAm(Figure):
 @click.option("--overwrite", "-o", is_flag=True, default=False)
 @click.option("--ext", default="png", type=str)
 def main(overwrite, ext):
-    # CorrelationMAH(overwrite, ext).save()
-    # PredictMAH(overwrite, ext).save()
-    # InvPredMetrics(overwrite, ext).save()
+    CorrelationMAH(overwrite, ext).save()
+    PredictMAH(overwrite, ext).save()
+    InvPredMetrics(overwrite, ext).save()
     ForwardPredMetrics(overwrite, ext).save()
-    # CovarianceAm(overwrite, ext).save()
-    # TriangleSamples(overwrite, ext).save()  # FIXME: always last (bolding issue)
+    CovarianceAm(overwrite, ext).save()
+    TriangleSamples(overwrite, ext).save()  # FIXME: always last (bolding issue)
 
 
 if __name__ == "__main__":
