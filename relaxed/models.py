@@ -117,9 +117,10 @@ class PredictionModelTransform(PredictionModel, ABC):
         assert x.shape[1] == ranks.shape[1]
         assert ranks.dtype == np.int
         n, m = ranks.shape
-        rows = ranks.T.flatten()
-        cols = np.full((n, m), np.arange(m)).T.flatten().astype(int)
-        return x[rows, cols].reshape(m, n).T
+        y = np.zeros((n, m), dtype=float)
+        for ii in range(m):
+            y[:, ii] = np.take(x[:, ii], ranks[:, ii])
+        return y
 
     def predict(self, x):
         assert len(x.shape) == 2
@@ -167,31 +168,24 @@ class SamplingModel(PredictionModelTransform):
         assert x.shape[1] == self.n_features
         assert np.sum(np.isnan(x)) == 0
         assert self.trained
-
         n_points = x.shape[0]
-        if self.to_marginal_normal:
+
+        if self.use_multicam_no_ranks:
             x_trans = self.qt_x.transform(x)
-        elif self.to_log:
-            x_trans = np.log(x)
-        else:
-            x_trans = x
-
-        y_pred = self._sample(x_trans, n_samples).reshape(n_points, n_samples, self.n_targets)
-
-        if self.to_marginal_normal:
-            for i in range(n_samples):
-                y_pred[:, i, :] = self.qt_y.inverse_transform(y_pred[:, i, :])
-
-        elif self.to_log:
-            y_pred = np.exp(y_pred)
-
-        if self.use_multicam:
+            y_pred = self._sample(x_trans, n_samples).reshape(n_points, n_samples, self.n_targets)
             for i in range(n_samples):
                 y_pred_i = y_pred[:, i, :]
                 qt_pred = QuantileTransformer(
                     n_quantiles=len(y_pred_i), output_distribution="normal"
                 ).fit(y_pred_i)
                 y_pred[:, i, :] = self.qt_y.inverse_transform(qt_pred.transform(y_pred_i))
+
+        elif self.use_multicam:
+            raise NotImplementedError()
+
+        else:
+            x_trans = x
+            y_pred = self._sample(x_trans, n_samples).reshape(n_points, n_samples, self.n_targets)
 
         return y_pred
 
