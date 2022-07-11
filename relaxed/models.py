@@ -62,25 +62,26 @@ class PredictionModelTransform(PredictionModel, ABC):
         self,
         n_features: int,
         n_targets: int,
-        to_log: bool = False,
+        use_multicam_no_ranks: bool = False,
         use_multicam: bool = True,
     ) -> None:
         super().__init__(n_features, n_targets)
-        assert (to_log + use_multicam) <= 1, "Only 1 transformation at a time."
+        assert use_multicam + use_multicam_no_ranks <= 1, "Only 1 multicam option allowed."
 
-        self.to_log = to_log  # transform to log space.
-        self.use_multicam = use_multicam  # map predictions to trained data quantiles.
+        self.use_multicam_no_ranks = use_multicam_no_ranks
+        self.use_multicam = use_multicam
 
         # quantile transformers.
         self.qt_xr = None
         self.qt_yr = None
+        self.qt_x = None
+        self.qt_y = None
         self.y_train = None
 
     def fit(self, x, y):
         assert len(x.shape) == len(y.shape) == 2
 
         if self.use_multicam:
-
             # need to save training data to predict from ranks later.
             self.y_train = y.copy()
 
@@ -94,17 +95,21 @@ class PredictionModelTransform(PredictionModel, ABC):
             self.qt_yr = QuantileTransformer(n_quantiles=len(yr), output_distribution="normal")
             self.qt_yr = self.qt_yr.fit(yr)
 
-            # transform rank data to be (marginally) gaussian.
-            xr_trans = self.qt_xr.transform(xr)
-            yr_trans = self.qt_yr.transform(yr)
+            x_trans, y_trans = self.qt_xr.transform(xr), self.qt_yr.transform(yr)
 
-            super().fit(xr_trans, yr_trans)
+        elif self.use_multicam_no_ranks:
+            # then get a quantile transformer for the ranks to a normal distribution.
+            self.qt_x = QuantileTransformer(n_quantiles=len(x), output_distribution="normal")
+            self.qt_x = self.qt_x.fit(x)
+            self.qt_y = QuantileTransformer(n_quantiles=len(y), output_distribution="normal")
+            self.qt_y = self.qt_y.fit(y)
 
-        elif self.to_log:
-            super().fit(np.log(x), np.log(y))
+            x_trans, y_trans = self.qt_x.transform(x), self.qt_y.transform(y)
 
         else:
-            super().fit(x, y)
+            x_trans, y_trans = x, y
+
+        super().fit(x_trans, y_trans)
 
     @staticmethod
     def value_at_rank(x, ranks):
@@ -117,6 +122,8 @@ class PredictionModelTransform(PredictionModel, ABC):
         return x[rows, cols].reshape(m, n).T
 
     def predict(self, x):
+        assert len(x.shape) == 2
+
         if self.use_multicam:
             # get ranks of test data.
             xr = rankdata(x, axis=0, method="ordinal")
@@ -138,8 +145,15 @@ class PredictionModelTransform(PredictionModel, ABC):
             y_train_sorted = np.sort(self.y_train, axis=0)
             y_pred = self.value_at_rank(y_train_sorted, yr)
 
-        elif self.to_log:
-            y_pred = np.exp(super().predict(np.log(x)))
+        elif self.use_multicam_no_ranks:
+            x_trans = self.qt_x.transform(x)
+            y_trans = super().predict(x_trans)
+
+            # get quantile transformer of prediction to (marginal) normal.
+            qt_pred = QuantileTransformer(n_quantiles=len(y_trans), output_distribution="normal")
+            qt_pred.fit(y_trans)
+
+            y_pred = self.qt_y.inverse_transform(qt_pred.transform(y_trans))
 
         else:
             y_pred = super().predict(x)
