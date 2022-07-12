@@ -46,10 +46,14 @@ class Figure(ABC):
     cache_name = ""
     params = ()
 
-    def __init__(self, overwrite=False, ext="png") -> None:
+    def __init__(self, overwrite=False, ext="png", rng=None) -> None:
         self.cache_file = CACHE_DIR.joinpath(self.cache_name).with_suffix(".npy")
         self.ext = "." + ext
         self.overwrite = overwrite
+        if rng is None:
+            self.rng = np.random.default_rng()
+        else:
+            self.rng = rng
 
     @abstractmethod
     def _set_rc(self):
@@ -313,7 +317,7 @@ class TriangleSamples(Figure):
 
         # dataset preparation
         info = {"all": {"x": am_names, "y": self.params}}
-        datasets, _, _ = prepare_datasets(cat, info)
+        datasets, _, _ = prepare_datasets(cat, info, self.rng)
 
         # models to use
         n_targets = len(self.params)
@@ -451,7 +455,7 @@ class PredictMAH(Figure):
             "tu_only": {"x": ("t/|u|",), "y": am_names + ma_names},
             "all": {"x": self.params, "y": am_names + ma_names},
         }
-        datasets, _, cat_test = prepare_datasets(cat, info)
+        datasets, _, cat_test = prepare_datasets(cat, info, self.rng)
 
         # train models
         data = {
@@ -628,7 +632,7 @@ class InvPredMetrics(Figure):
                 "y": self.params,
             },
         }
-        datasets, _, cat_test = prepare_datasets(cat, info)
+        datasets, _, cat_test = prepare_datasets(cat, info, self.rng)
 
         data = {
             "linear_cvir": {
@@ -801,7 +805,7 @@ class ForwardPredMetrics(Figure):
                 "y": self.params,
             },
         }
-        datasets, _, cat_test = prepare_datasets(cat, info)
+        datasets, _, cat_test = prepare_datasets(cat, info, self.rng)
         n_params = len(self.params)
 
         data = {
@@ -980,13 +984,15 @@ class CovarianceAm(Figure):
 @click.command()
 @click.option("--overwrite", "-o", is_flag=True, default=False)
 @click.option("--ext", default="png", type=str)
-def main(overwrite, ext):
-    CorrelationMAH(overwrite, ext).save()
-    PredictMAH(overwrite, ext).save()
-    InvPredMetrics(overwrite, ext).save()
-    ForwardPredMetrics(overwrite, ext).save()
-    CovarianceAm(overwrite, ext).save()
-    TriangleSamples(overwrite, ext).save()  # FIXME: always last (bolding issue)
+@click.option("--seed", default=42, type=int)
+def main(overwrite, ext, seed):
+    rng = np.random.default_rng(seed=seed)
+    CorrelationMAH(overwrite, ext, rng).save()
+    PredictMAH(overwrite, ext, rng).save()
+    InvPredMetrics(overwrite, ext, rng).save()
+    ForwardPredMetrics(overwrite, ext, rng).save()
+    CovarianceAm(overwrite, ext, rng).save()
+    TriangleSamples(overwrite, ext, rng).save()  # FIXME: always last (bolding issue)
 
 
 if __name__ == "__main__":
