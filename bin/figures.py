@@ -720,7 +720,7 @@ class ForwardPredMetrics(Figure):
     def get_data(self):
         mah_data = get_mah(MAH_DIR, cutoff_missing=0.05, cutoff_particle=0.05)
         cat = mah_data["cat"]
-        ma = mah_data["ma"]  # for alpha fits and gradients.
+        ma_peak = mah_data["ma_peak"]  # for alpha fits and gradients.
         am = mah_data["am"]
         scales = mah_data["scales"]
         mass_bins = mah_data["mass_bins"]
@@ -729,7 +729,7 @@ class ForwardPredMetrics(Figure):
         # prepare catalog with all m_a
         ma_names = [f"ma_{ii}" for ii in range(len(scales))]
         for ii in range(len(scales)):
-            cat.add_column(ma[:, ii], name=ma_names[ii])
+            cat.add_column(ma_peak[:, ii], name=ma_names[ii])
 
         # prepare catalog with all a_m
         am_names = [f"am_{ii}" for ii in range(len(mass_bins))]
@@ -738,7 +738,7 @@ class ForwardPredMetrics(Figure):
 
         # load alpha fits
         alpha_file = ROOT.joinpath("data", "processed", "alpha_fits.npy")
-        alphas, _, _ = alpha_analysis(ma, scales, mass_bins, alpha_file=alpha_file)
+        alphas, _, _ = alpha_analysis(ma_peak, scales, mass_bins, alpha_file=alpha_file)
         cat.add_column(alphas, name="alpha")
 
         # load diffmah parameters of best fits.
@@ -759,26 +759,6 @@ class ForwardPredMetrics(Figure):
         # add a_{1/2} also as alternative parametrization
         cat.add_column(get_an_from_am(am, mass_bins, 0.5), name="a2")
 
-        # add savitsky-golay gradients
-        ks = [11, 21, 41, 81, 121, 161]
-        log_a = np.log(scales)
-        # 200 is default number of interpolation points for uniform spacing. (in get_savgol_grads)
-        delta = abs(log_a[-1] - log_a[0]) / (200 - 1)
-        gamma_k = {k: -get_savgol_grads(scales, ma, k=k) for k in ks}
-        delta_k = {k: delta * (k // 2) for k in ks}
-        grad_names_k = {k: [f"grad_{k}_{jj}" for jj in range(gamma_k[k].shape[1])] for k in ks}
-        all_grad_names = [
-            grad_names_k[k][jj] for k in grad_names_k for jj in range(len(grad_names_k[k]))
-        ]
-        assert delta_k and all_grad_names
-
-        # add gradients to catalog catalog
-        for k in ks:
-            for jj in range(gamma_k[k].shape[1]):
-                name = grad_names_k[k][jj]
-                value = gamma_k[k][:, jj]
-                cat.add_column(value, name=name)
-
         info = {
             "ma": {
                 "x": ma_names,
@@ -798,10 +778,6 @@ class ForwardPredMetrics(Figure):
             },
             "alpha": {
                 "x": ("alpha",),
-                "y": self.params,
-            },
-            "gradients": {
-                "x": am_names + grad_names_k[11],
                 "y": self.params,
             },
         }
