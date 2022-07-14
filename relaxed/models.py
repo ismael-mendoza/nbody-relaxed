@@ -197,9 +197,10 @@ class SamplingModel(PredictionModelTransform):
 class LogNormalRandomSample(PredictionModel):
     """Lognormal random samples."""
 
-    def __init__(self, n_features: int, n_targets: int) -> None:
+    def __init__(self, n_features: int, n_targets: int, rng) -> None:
         super().__init__(n_features, n_targets)
 
+        self.rng = rng
         self.mu = None
         self.sigma = None
 
@@ -211,14 +212,15 @@ class LogNormalRandomSample(PredictionModel):
 
     def _predict(self, x):
         n_test = len(x)
-        return np.exp(np.random.normal(self.mu, self.sigma, (n_test, self.n_targets)))
+        return np.exp(self.rng.normal(self.mu, self.sigma, (n_test, self.n_targets)))
 
 
 class InverseCDFRandomSamples(PredictionModel):
     """Use Quantile Transformer to get random samples from a 1D Distribution."""
 
-    def __init__(self, n_features: int, n_targets: int) -> None:
+    def __init__(self, n_features: int, n_targets: int, rng) -> None:
         super().__init__(n_features, n_targets)
+        self.rng = rng
         assert self.n_targets == 1
 
     def _fit(self, x, y):
@@ -226,7 +228,7 @@ class InverseCDFRandomSamples(PredictionModel):
         self.qt_y = self.qt_y.fit(y)
 
     def _predict(self, x):
-        u = np.random.random(size=(len(x), self.n_targets))
+        u = self.rng.random(size=(len(x), self.n_targets))
         return self.qt_y.inverse_transform(u)
 
 
@@ -270,10 +272,11 @@ class LASSO(PredictionModelTransform):
 class MultiVariateGaussian(SamplingModel):
     """Multi-Variate Gaussian using full covariance matrix (returns conditional mean)."""
 
-    def __init__(self, n_features: int, n_targets, **transform_kwargs) -> None:
+    def __init__(self, n_features: int, n_targets: int, rng, **transform_kwargs) -> None:
         # do_sample: wheter to sample from x1|x2 or return E[x1 | x2] for predictions
         super().__init__(n_features, n_targets, **transform_kwargs)
 
+        self.rng = rng
         self.mu1 = None
         self.mu2 = None
         self.Sigma = None
@@ -358,7 +361,7 @@ class MultiVariateGaussian(SamplingModel):
         _zero = np.zeros((self.n_targets,))
         mu_cond = self._get_mu_cond(x)
         size = (n_points, n_samples)
-        y_samples = np.random.multivariate_normal(mean=_zero, cov=self.sigma_bar, size=size)
+        y_samples = self.rng.multivariate_normal(mean=_zero, cov=self.sigma_bar, size=size)
         assert y_samples.shape == (n_points, n_samples, self.n_targets)
         y_samples += mu_cond.reshape(-1, 1, self.n_targets)
         return y_samples
@@ -441,67 +444,12 @@ class MixedCAM(PredictionModel):
         return np.hstack(y_pred)
 
 
-class BayesianLinearRegression(SamplingModel):
-    def __init__(self, n_features, n_targets, mu0, sigma0, noise_var, **kwargs) -> None:
-        super().__init__(n_features, n_targets, **kwargs)
-
-        self.prior = (mu0, sigma0)
-
-        # prior on beta
-        # assumes data is already normal gaussian transformed.
-        self.mu = mu0
-        self.sigma = sigma0
-
-        # model
-        self.noise_var = noise_var  # assumes diagonal, uniform covariance.
-
-        assert self.mu.shape[0] == self.n_features
-        assert self.sigma.shape == (self.n_features, self.n_features)
-
-    def _gaussian_inverse_problem(self, x, y, mu0, sigma0, noise_var):
-        # Y is data
-        # 0 mean prior
-        # Sigma0 is prior on Beta covariance.
-        # A is vandermonde matrix
-        n_points, _ = x.shape
-        assert n_points == y.shape[0]
-        S = x.dot(sigma0).dot(x.T) + noise_var * np.eye(n_points)
-        U = sigma0.dot(x.T)
-
-        delta = y - x.dot(mu0)
-        mu_post = U.dot(np.linalg.solve(S, delta))
-        sigma_post = sigma0 - U.dot(np.linalg.inv(S)).dot(U.T)
-
-        return mu_post, sigma_post
-
-    def _fit(self, x, y):
-        self.mu, self.sigma = self._gaussian_inverse_problem(
-            x, y, self.mu, self.sigma, self.noise_var
-        )
-
-    def _predict(self, x):
-        # return expectation value / MAP.
-        n_points = x.shape[0]
-        return x.dot(self.mu).reshape(n_points, self.n_targets)
-
-    def _sample(self, x, n_samples):
-        n_points = x.shape[0]
-        y_samples = np.zeros((n_points, n_samples, self.n_targets))
-        for i in range(n_points):
-            xi = x[i, None]
-            mean = xi.dot(self.mu).reshape(-1)
-            cov = xi.dot(self.sigma).dot(xi.T) + self.noise_var * np.eye(1)
-            y_samples[i] = np.random.multivariate_normal(mean, cov, size=(n_samples,))
-        return y_samples
-
-
 available_models = {
     "gaussian": MultiVariateGaussian,
     "cam": CAM,
     "linear": LinearRegression,
     "lasso": LASSO,
     "lognormal": LogNormalRandomSample,
-    "bayes_linear": BayesianLinearRegression,
     "mixed_cam": MixedCAM,
 }
 

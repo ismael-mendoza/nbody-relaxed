@@ -327,7 +327,7 @@ class TriangleSamples(Figure):
                 "n_features": 100,
                 "n_targets": n_targets,
                 "model": "gaussian",
-                "kwargs": {"use_multicam_no_ranks": True, "use_multicam": False},
+                "kwargs": {"use_multicam_no_ranks": True, "use_multicam": False, "rng": self.rng},
             },
             "optcam": {
                 "xy": datasets["all"]["train"],
@@ -857,7 +857,7 @@ class ForwardPredMetrics(Figure):
             mval, merr = output[mdl]["val"], output[mdl]["err"]
             rxplots.metrics_plot(ax, mval, merr, self.params, label, x_bias, m, c)
             x_bias += 0.1
-        ax.set_ylim(0.4, 0.8)
+        ax.set_ylim(0.3, 0.8)
         ax.axvline(len(self.params) - 0.5 - 0.02, ymin=0.0, ymax=1.0, color="k", lw=1.3)
         ax.set_xlim(-0.5, len(self.params) - 0.5)
         ax.set_ylabel(rf"${rho_latex}\left(y_{{\rm pred}}, y_{{\rm true}}\right)$")
@@ -963,11 +963,11 @@ class CovarianceAm(Figure):
 @click.option("--seed", default=42, type=int)
 def main(overwrite, ext, seed):
     rng = np.random.default_rng(seed=seed)
-    CorrelationMAH(overwrite, ext, rng).save()
-    PredictMAH(overwrite, ext, rng).save()
-    InvPredMetrics(overwrite, ext, rng).save()
-    ForwardPredMetrics(overwrite, ext, rng).save()
-    CovarianceAm(overwrite, ext, rng).save()
+    # CorrelationMAH(overwrite, ext, rng).save()
+    # PredictMAH(overwrite, ext, rng).save()
+    # InvPredMetrics(overwrite, ext, rng).save()
+    # ForwardPredMetrics(overwrite, ext, rng).save()
+    # CovarianceAm(overwrite, ext, rng).save()
     TriangleSamples(overwrite, ext, rng).save()  # FIXME: always last (bolding issue)
 
 
