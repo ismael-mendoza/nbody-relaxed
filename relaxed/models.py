@@ -541,9 +541,11 @@ def training_suite(info: dict):
     return trained_models
 
 
-def prepare_datasets(cat, datasets: dict, test_ratio=0.3):
+def prepare_datasets(cat, datasets: dict, rng, test_ratio=0.3):
+    """Prepare datasets for training and testing."""
+
     # train/test split
-    train_idx, test_idx = get_tt_indices(len(cat), test_ratio=test_ratio)
+    train_idx, test_idx = get_tt_indices(len(cat), rng, test_ratio=test_ratio)
     cat_train, cat_test = cat[train_idx], cat[test_idx]
     output = {}
     for name in datasets:
@@ -561,9 +563,9 @@ def tbl_to_arr(table, names=None):
     return np.hstack([table[param].reshape(-1, 1) for param in names])
 
 
-def get_tt_indices(n_points, test_ratio=0.2):
+def get_tt_indices(n_points, rng, test_ratio=0.2):
     test_size = int(np.ceil(test_ratio * n_points))
-    test_idx = np.random.choice(range(n_points), replace=False, size=test_size)
+    test_idx = rng.choice(range(n_points), replace=False, size=test_size)
     assert len(test_idx) == len(set(test_idx))
     train_idx = np.array(list(set(range(n_points)) - set(test_idx)))
     assert set(train_idx).intersection(set(test_idx)) == set()
