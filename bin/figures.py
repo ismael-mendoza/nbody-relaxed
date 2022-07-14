@@ -963,11 +963,11 @@ class CovarianceAm(Figure):
 @click.option("--seed", default=42, type=int)
 def main(overwrite, ext, seed):
     rng = np.random.default_rng(seed=seed)
-    # CorrelationMAH(overwrite, ext, rng).save()
-    # PredictMAH(overwrite, ext, rng).save()
-    # InvPredMetrics(overwrite, ext, rng).save()
-    # ForwardPredMetrics(overwrite, ext, rng).save()
-    # CovarianceAm(overwrite, ext, rng).save()
+    CorrelationMAH(overwrite, ext, rng).save()
+    PredictMAH(overwrite, ext, rng).save()
+    InvPredMetrics(overwrite, ext, rng).save()
+    ForwardPredMetrics(overwrite, ext, rng).save()
+    CovarianceAm(overwrite, ext, rng).save()
     TriangleSamples(overwrite, ext, rng).save()  # FIXME: always last (bolding issue)
 
 
