@@ -77,12 +77,14 @@ class PredictionModelTransform(PredictionModel, ABC):
         self.qt_x = None
         self.qt_y = None
         self.y_train = None
+        self.x_train = None
 
     def fit(self, x, y):
         assert len(x.shape) == len(y.shape) == 2
 
         if self.use_multicam:
             # need to save training data to predict from ranks later.
+            self.x_train = x.copy()
             self.y_train = y.copy()
 
             # first get ranks of features and targets.
@@ -128,7 +130,7 @@ class PredictionModelTransform(PredictionModel, ABC):
         if self.use_multicam:
             # get ranks of test data.
             xr = rankdata(x, axis=0, method="ordinal")
-
+            xr = (xr - 1) * (len(self.x_train) - 1) / (len(x) - 1) + 1
             # transform ranks to be (marginally) gaussian.
             xr_trans = self.qt_xr.transform(xr)
 
