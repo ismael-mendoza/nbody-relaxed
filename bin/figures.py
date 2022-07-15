@@ -804,7 +804,7 @@ class ForwardPredMetrics(Figure):
                 "n_features": 3,
                 "n_targets": n_params,
                 "model": "linear",
-                "kwargs": {"use_multicam": False, "use_multicam_no_ranks": True},
+                "kwargs": {"use_multicam": True},
             },
             "optcam": {
                 "xy": datasets["am"]["train"],
