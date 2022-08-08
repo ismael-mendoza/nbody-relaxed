@@ -199,7 +199,7 @@ class CorrelationMAH(Figure):
                 label = f"${latex_param}$" if sum(pos) < sum(neg) else None
                 ax.plot(scales[neg], _corr[neg], color=color, ls=self.lss[1], label=label)
 
-            ax.fill_between(scales, _corr - err, _corr + err, color=color, alpha=0.5)
+            ax.fill_between(scales, _corr - err, _corr + err, color=color, alpha=0.3)
 
         text = ""
         for j, param in enumerate(self.params):
@@ -260,7 +260,7 @@ class CorrelationMAH(Figure):
                 label = f"${latex_param}$" if sum(pos) < sum(neg) else None
                 ax.plot(mass_bins[neg], _corr[neg], color=color, ls=self.lss[1], label=label)
 
-            ax.fill_between(mass_bins, _corr - err, _corr + err, alpha=0.5)
+            ax.fill_between(mass_bins, _corr - err, _corr + err, alpha=0.3)
 
         # draw a vertical line at max scales, output table.
         text = ""
