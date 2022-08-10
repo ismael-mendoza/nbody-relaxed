@@ -506,13 +506,13 @@ class PredictMAH(Figure):
                 y1 = y_pred[:, jj]
                 y2 = y_test[:, jj]
                 corrs_am[mdl_name][jj] = spearmanr(y1, y2)
-                errs_am[mdl_name][jj] = vol_jacknife_err(y1, y2, ibox, spearmanr)
+                errs_am[mdl_name][jj] = vol_jacknife_err(spearmanr, ibox, y1, y2)
 
             for jj in range(n_scales):
                 y1 = y_pred[:, jj + n_mbins]
                 y2 = y_test[:, jj + n_mbins]
                 corrs_ma[mdl_name][jj] = spearmanr(y1, y2)
-                errs_ma[mdl_name][jj] = vol_jacknife_err(y1, y2, ibox, spearmanr)
+                errs_ma[mdl_name][jj] = vol_jacknife_err(spearmanr, ibox, y1, y2)
 
         return {
             "corrs_am": dict(corrs_am),
@@ -685,7 +685,7 @@ class InvPredMetrics(Figure):
             for jj in range(n_params):
                 y1, y2 = y_test[:, jj], y_est[:, jj]
                 d["val"][jj] = spearmanr(y1, y2)
-                d["err"][jj] = vol_jacknife_err(y1, y2, ibox, spearmanr)
+                d["err"][jj] = vol_jacknife_err(spearmanr, ibox, y1, y2)
             output[mdl] = dict(d)
 
         return {
@@ -840,7 +840,7 @@ class ForwardPredMetrics(Figure):
             for jj in range(n_params):
                 y1, y2 = y_test[:, jj], y_est[:, jj]
                 d["val"][jj] = spearmanr(y1, y2)
-                d["err"][jj] = vol_jacknife_err(y1, y2, ibox, spearmanr)
+                d["err"][jj] = vol_jacknife_err(spearmanr, ibox, y1, y2)
             output[mdl] = dict(d)
 
         return {
