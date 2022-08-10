@@ -199,16 +199,16 @@ class CorrelationMAH(Figure):
                 label = f"${latex_param}$" if sum(pos) < sum(neg) else None
                 ax.plot(scales[neg], _corr[neg], color=color, ls=self.lss[1], label=label)
 
-            ax.fill_between(scales, _corr - err, _corr + err, color=color, alpha=0.5)
+            ax.fill_between(scales, _corr - err, _corr + err, color=color, alpha=0.3)
 
         text = ""
         for j, param in enumerate(self.params):
             scale, corr, err = max_dict[param]
             text += f"{param}: Max corr is {corr:.3f} +- {err:.3f} at scale {scale:.3f}\n"
-            if param == "cvir":
-                assert j == 0
-                ax.axvline(scale, color=CB_COLORS[0], ls="--")
-                ax.text(scale + 0.01, abs(corr) + 0.05, r"$a_{\rm opt}$", color=CB_COLORS[0])
+            if param == "vmax/vvir":
+                assert j == 1
+                ax.axvline(scale, color=CB_COLORS[1], ls="--")
+                ax.text(scale + 0.01, abs(corr) + 0.05, r"$a_{\rm opt}$", color=CB_COLORS[1])
 
         # additional saving of max correlations for table
         with open(FIGS_DIR.joinpath("max_corrs_ma.txt"), "w") as fp:
@@ -260,7 +260,7 @@ class CorrelationMAH(Figure):
                 label = f"${latex_param}$" if sum(pos) < sum(neg) else None
                 ax.plot(mass_bins[neg], _corr[neg], color=color, ls=self.lss[1], label=label)
 
-            ax.fill_between(mass_bins, _corr - err, _corr + err, alpha=0.5)
+            ax.fill_between(mass_bins, _corr - err, _corr + err, alpha=0.3)
 
         # draw a vertical line at max scales, output table.
         text = ""
