@@ -577,6 +577,7 @@ class InvPredMetrics(Figure):
         mah_data = get_mah(MAH_DIR, cutoff_missing=0.05, cutoff_particle=0.05)
         cat = mah_data["cat"]
         ma = mah_data["ma"]  # for alpha fit
+        ma_peak = mah_data["ma_peak"]  # for m_tdyn
         am = mah_data["am"]
         scales = mah_data["scales"]
         mass_bins = mah_data["mass_bins"]
@@ -588,7 +589,7 @@ class InvPredMetrics(Figure):
         t = (t0 - tdyn) * u.Gyr
         a_dyn = get_a_from_t(t)
         indx_dyn = np.where(scales > a_dyn)[0][0]
-        mdyn = ma[:, indx_dyn].reshape(-1, 1)
+        mdyn = ma_peak[:, indx_dyn].reshape(-1, 1)
 
         # extract alpha fits
         alpha_file = ROOT.joinpath("data", "processed", "alpha_fits.npy")
