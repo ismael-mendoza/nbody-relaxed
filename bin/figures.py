@@ -162,10 +162,10 @@ class CorrelationMAH(Figure):
         )
         for param in self.params:
             latex_param = rxplots.LATEX_PARAMS[param]
-            scale, val_ma, err_ma = data["ma_max_dict"][param]
-            mass_bin, val_am, err_am = data["am_max_dict"][param]
-            table += rf"{latex_param} & ${scale:.3f}$ & ${val_ma:.3f} \pm {err_ma:.3f}$"
-            table += rf" & ${mass_bin:.3f}$ & ${val_am:.3f} \pm {err_am:.3f}$ \\ \hline"
+            scale, val_ma, _ = data["ma_max_dict"][param]
+            mass_bin, val_am, _ = data["am_max_dict"][param]
+            table += rf"{latex_param} & ${scale:.3f}$ & ${val_ma:.3f}$"
+            table += rf" & ${mass_bin:.3f}$ & ${val_am:.3f}\\ \hline"
             table += "\n"
 
         table += r"\end{tabular}" + "\n" + r"\caption{}" + "\n" + r"\end{table*}"
