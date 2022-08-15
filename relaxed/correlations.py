@@ -16,7 +16,7 @@ def get_2d_corr(x, y, ibox):
     for jj in range(m):
         x_j = x[:, jj]
         corrs[jj] = spearmanr(x_j, y)
-        errs[jj] = vol_jacknife_err(x_j, y, ibox, spearmanr)
+        errs[jj] = vol_jacknife_err(spearmanr, ibox, x_j, y)
 
     return corrs, errs
 
