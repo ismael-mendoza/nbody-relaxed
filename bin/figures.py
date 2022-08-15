@@ -922,9 +922,9 @@ class CovarianceAm(Figure):
         fig1, ax = plt.subplots(1, 1)
         im = ax.imshow(corr, vmin=0, vmax=1, extent=(-0.01, 100, -0.01, 100))
 
-        ax.set_xlabel(r"$a$")
-        ax.set_ylabel(r"$a$")
-        ax.set_title(rf"${rho_latex}\left(m(a), m(a) \right)$", pad=15.0)
+        ax.set_xlabel(r"$a_{i}$")
+        ax.set_ylabel(r"$a_{j}$")
+        ax.set_title(rf"${rho_latex}\left(m(a_{{i}}), m(a_{{j}}) \right)$", pad=15.0)
 
         new_xticks = np.linspace(0, 100, 5)
         ax.set_xticks(ticks=new_xticks, labels=scale_bin_labels)
@@ -944,9 +944,9 @@ class CovarianceAm(Figure):
         fig2, ax = plt.subplots(1, 1)
         im = ax.imshow(corr, vmin=0, vmax=1, extent=(-0.01, 100, -0.01, 100))
 
-        ax.set_xlabel(r"$m$")
-        ax.set_ylabel(r"$m$")
-        ax.set_title(rf"${rho_latex}\left( a(m), a(m) \right)$", pad=15.0)
+        ax.set_xlabel(r"$m_{i}$")
+        ax.set_ylabel(r"$m_{j}$")
+        ax.set_title(rf"${rho_latex}\left( a(m_{{i}}), a(m_{{j}}) \right)$", pad=15.0)
         ax.set_xticks(ticks=ax.get_xticks()[1:], labels=mass_bin_labels)
         ax.set_yticks(ticks=ax.get_yticks()[1:], labels=mass_bin_labels)
 
