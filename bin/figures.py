@@ -165,7 +165,7 @@ class CorrelationMAH(Figure):
             scale, val_ma, _ = data["ma_max_dict"][param]
             mass_bin, val_am, _ = data["am_max_dict"][param]
             table += rf"{latex_param} & ${scale:.3f}$ & ${val_ma:.3f}$"
-            table += rf" & ${mass_bin:.3f}$ & ${val_am:.3f}\\ \hline"
+            table += rf" & ${mass_bin:.3f}$ & ${val_am:.3f}$\\ \hline"
             table += "\n"
 
         table += r"\end{tabular}" + "\n" + r"\caption{}" + "\n" + r"\end{table*}"
