@@ -17,12 +17,12 @@ from relaxed import plotting as rxplots
 from relaxed.correlations import (
     add_box_indices,
     get_2d_corr,
+    get_opt_corr,
     spearmanr,
     vol_jacknife_err,
 )
 from relaxed.cosmo import get_a_from_t, get_fractional_tdyn, get_t_from_a
 from relaxed.fits import alpha_analysis, get_early_late
-from relaxed.gradients import get_savgol_grads
 from relaxed.mah import get_an_from_am, get_mah
 from relaxed.models import opcam_dict, prepare_datasets, training_suite
 from relaxed.plotting import CB_COLORS, MARKS, set_rc
@@ -130,16 +130,15 @@ class CorrelationMAH(Figure):
             pvalue = cat[param]
             ma_corr, ma_err = get_2d_corr(ma, pvalue, ibox)
             ma_data[param] = (ma_corr, ma_err)
-            _corr = abs(ma_corr)
-            max_indx = np.nanargmax(_corr)
-            ma_max_dict[param] = scales[max_indx], ma_corr[max_indx], ma_err[max_indx]
+            max_indx, opt_scale, opt_err_scale = get_opt_corr(ma, pvalue, scales, ibox)
+            ma_max_dict[param] = opt_scale, opt_err_scale, ma_corr[max_indx], ma_err[max_indx]
 
             # am
             am_corr, am_err = get_2d_corr(am, pvalue, ibox)
             am_data[param] = am_corr, am_err
-            _corr = abs(am_corr)
-            max_indx = np.nanargmax(_corr)
-            am_max_dict[param] = mass_bins[max_indx], am_corr[max_indx], am_err[max_indx]
+            max_indx, opt_mbin, opt_err_mbin = get_opt_corr(am, pvalue, mass_bins, ibox)
+            am_max_dict[param] = opt_mbin, opt_err_mbin, am_corr[max_indx], am_err[max_indx]
+
         return {
             "tdyn": tdyn,
             "ma_data": ma_data,
@@ -162,8 +161,8 @@ class CorrelationMAH(Figure):
         )
         for param in self.params:
             latex_param = rxplots.LATEX_PARAMS[param]
-            scale, val_ma, _ = data["ma_max_dict"][param]
-            mass_bin, val_am, _ = data["am_max_dict"][param]
+            scale, _, val_ma, _ = data["ma_max_dict"][param]
+            mass_bin, _, val_am, _ = data["am_max_dict"][param]
             table += rf"{latex_param} & ${scale:.3f}$ & ${val_ma:.3f}$"
             table += rf" & ${mass_bin:.3f}$ & ${val_am:.3f}$\\ \hline"
             table += "\n"
@@ -203,8 +202,8 @@ class CorrelationMAH(Figure):
 
         text = ""
         for j, param in enumerate(self.params):
-            scale, corr, err = max_dict[param]
-            text += f"{param}: Max corr is {corr:.3f} +- {err:.3f} at scale {scale:.3f}\n"
+            scale, err_scale, corr, err = max_dict[param]
+            text += f"{param}: Max corr is {corr:.3f} +- {err:.3f} at scale {scale:.3f} +- {err_scale:.5f}\n"
             if param == "vmax/vvir":
                 assert j == 1
                 ax.axvline(scale, color=CB_COLORS[1], ls="--")
@@ -265,8 +264,8 @@ class CorrelationMAH(Figure):
         # draw a vertical line at max scales, output table.
         text = ""
         for j, param in enumerate(self.params):
-            mbin, corr, err = max_dict[param]
-            text += f"{param}: Max corr is {corr:.3f} +- {err:.3f} at mass bin {mbin:.3f}\n"
+            mbin, mbin_err, corr, err = max_dict[param]
+            text += f"{param}: Max corr is {corr:.3f} +- {err:.3f} at mass bin {mbin:.3f} +- {mbin_err:.5f}\n"
 
         with open(FIGS_DIR.joinpath("max_corrs_am.txt"), "w") as fp:
             print(text.strip(), file=fp)
@@ -965,11 +964,11 @@ class CovarianceAm(Figure):
 def main(overwrite, ext, seed):
     rng = np.random.default_rng(seed=seed)
     CorrelationMAH(overwrite, ext, rng).save()
-    PredictMAH(overwrite, ext, rng).save()
-    InvPredMetrics(overwrite, ext, rng).save()
-    ForwardPredMetrics(overwrite, ext, rng).save()
-    CovarianceAm(overwrite, ext, rng).save()
-    TriangleSamples(overwrite, ext, rng).save()  # FIXME: always last (bolding issue)
+    # PredictMAH(overwrite, ext, rng).save()
+    # InvPredMetrics(overwrite, ext, rng).save()
+    # ForwardPredMetrics(overwrite, ext, rng).save()
+    # CovarianceAm(overwrite, ext, rng).save()
+    # TriangleSamples(overwrite, ext, rng).save()  # FIXME: always last (bolding issue)
 
 
 if __name__ == "__main__":

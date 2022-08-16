@@ -21,19 +21,23 @@ def get_2d_corr(x, y, ibox):
     return corrs, errs
 
 
-def get_opt_corr(ma, y, scales, ibox):
-    def _get_opt_scale(ma, y, scales=None):
-        assert scales is not None
+def get_opt_corr(ma, y, bins, ibox):
+    def _get_opt_indx(ma, y):
         m = ma.shape[1]
         corrs = np.zeros(m)
         for jj in range(m):
             corrs[jj] = spearmanr(ma[:, jj], y)
         max_indx = np.nanargmax(abs(corrs))
-        return scales[max_indx]
+        return max_indx
 
-    max_scale = _get_opt_scale(ma, y, scales)
-    err_scale = vol_jacknife_err(_get_opt_scale, ibox, ma, y, scales=scales)
-    return max_scale, err_scale
+    def _get_opt_scale(ma, y, bins=None):
+        assert bins is not None
+        max_indx = _get_opt_indx(ma, y)
+        return bins[max_indx]
+
+    max_indx = _get_opt_indx(ma, y)
+    err_opt_bin = vol_jacknife_err(_get_opt_scale, ibox, ma, y, bins=bins)
+    return max_indx, bins[max_indx], err_opt_bin
 
 
 def add_box_indices(cat, boxes=8, box_size=250):
