@@ -14,7 +14,7 @@ cb_colors_dict = {
     "gray": "#999999",
 }
 CB_COLORS = list(cb_colors_dict.values())
-MARKS = ["o", "v", "^", "D", "*"]
+MARKS = ["o", "s", "D", "P", "X"]
 
 LATEX_PARAMS = {
     "cvir": r"$c_{\rm vir}$",
@@ -55,7 +55,7 @@ def set_rc(
     minor_ticksize=5,
     major_tickwidth=1.0,
     minor_tickwidth=0.8,
-    ms=8,
+    ms=6,
     mew=2.0,
     lw=2.0,
     capsize=2.0,

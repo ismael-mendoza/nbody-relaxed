@@ -16,9 +16,28 @@ def get_2d_corr(x, y, ibox):
     for jj in range(m):
         x_j = x[:, jj]
         corrs[jj] = spearmanr(x_j, y)
-        errs[jj] = vol_jacknife_err(x_j, y, ibox, spearmanr)
+        errs[jj] = vol_jacknife_err(spearmanr, ibox, x_j, y)
 
     return corrs, errs
+
+
+def get_opt_corr(ma, y, bins, ibox):
+    def _get_opt_indx(ma, y):
+        m = ma.shape[1]
+        corrs = np.zeros(m)
+        for jj in range(m):
+            corrs[jj] = spearmanr(ma[:, jj], y)
+        max_indx = np.nanargmax(abs(corrs))
+        return max_indx
+
+    def _get_opt_scale(ma, y, bins=None):
+        assert bins is not None
+        max_indx = _get_opt_indx(ma, y)
+        return bins[max_indx]
+
+    max_indx = _get_opt_indx(ma, y)
+    err_opt_bin = vol_jacknife_err(_get_opt_scale, ibox, ma, y, bins=bins)
+    return max_indx, bins[max_indx], err_opt_bin
 
 
 def add_box_indices(cat, boxes=8, box_size=250):
@@ -33,14 +52,13 @@ def add_box_indices(cat, boxes=8, box_size=250):
             cat["ibox"] += 2**k * (d < cat[dim])
 
 
-def vol_jacknife_err(x, y, ibox, fn):
+def vol_jacknife_err(fn, ibox, *args, **kwargs):
     n_boxes = int(np.max(ibox) + 1)
     values = []
     for b in range(n_boxes):
         box_keep = ibox != b
-        xb = x[box_keep]
-        yb = y[box_keep]
-        value = fn(xb, yb)
+        bargs = (x[box_keep] for x in args)
+        value = fn(*bargs, **kwargs)
         values.append(value)
     values = np.array(values)
     return np.sqrt(values.var(axis=0) * (n_boxes - 1))

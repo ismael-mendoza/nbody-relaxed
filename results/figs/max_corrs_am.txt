@@ -1,12 +1,12 @@
-cvir: Max corr is -0.698 +- 0.006 at mass bin 0.495
-vmax/vvir: Max corr is -0.700 +- 0.006 at mass bin 0.397
-voff/vvir: Max corr is 0.574 +- 0.008 at mass bin 0.735
-x0: Max corr is 0.599 +- 0.012 at mass bin 0.735
-t/|u|: Max corr is 0.623 +- 0.011 at mass bin 0.673
-spin: Max corr is 0.384 +- 0.007 at mass bin 0.541
-spin_bullock: Max corr is 0.473 +- 0.007 at mass bin 0.541
-c_to_a: Max corr is -0.510 +- 0.006 at mass bin 0.644
-b_to_a: Max corr is -0.505 +- 0.008 at mass bin 0.673
-q: Max corr is -0.533 +- 0.007 at mass bin 0.673
-r200m/rvir: Max corr is 0.321 +- 0.008 at mass bin 0.292
-r500c/rvir: Max corr is -0.614 +- 0.011 at mass bin 0.673
+cvir: Max corr is -0.698 +- 0.006 at mass bin 0.495 +- 0.00000
+vmax/vvir: Max corr is -0.700 +- 0.006 at mass bin 0.397 +- 0.05101
+voff/vvir: Max corr is 0.574 +- 0.008 at mass bin 0.735 +- 0.03621
+x0: Max corr is 0.599 +- 0.012 at mass bin 0.735 +- 0.00000
+t/|u|: Max corr is 0.623 +- 0.011 at mass bin 0.673 +- 0.08183
+spin: Max corr is 0.384 +- 0.007 at mass bin 0.541 +- 0.00000
+spin_bullock: Max corr is 0.473 +- 0.007 at mass bin 0.541 +- 0.00000
+c_to_a: Max corr is -0.510 +- 0.006 at mass bin 0.644 +- 0.03317
+b_to_a: Max corr is -0.505 +- 0.008 at mass bin 0.673 +- 0.00000
+q: Max corr is -0.533 +- 0.007 at mass bin 0.673 +- 0.03317
+r200m/rvir: Max corr is 0.321 +- 0.008 at mass bin 0.292 +- 0.04491
+r500c/rvir: Max corr is -0.614 +- 0.011 at mass bin 0.673 +- 0.00000
