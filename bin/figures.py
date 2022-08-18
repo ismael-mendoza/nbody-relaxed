@@ -354,7 +354,7 @@ class TriangleSamples(Figure):
             "cam": samples_cam,
         }
 
-    def transform(self, y):
+    def _transform(self, y):
         y_new = np.zeros_like(y)
         for ii in range(y.shape[1]):
             y_new[:, ii] = np.log10(y[:, ii]) if self.which_log[ii] else y[:, ii]
@@ -370,10 +370,21 @@ class TriangleSamples(Figure):
             for ii, label in enumerate(labels)
         ]
         y_true = data.pop("truth")
-        y1 = self.transform(y_true)
-        y2 = self.transform(data["multigauss"])
+        y1 = self._transform(y_true)
+        y2 = self._transform(data["multigauss"])
+        levels = [1 - np.exp(-(x**2) / 2) for x in [1, 2, 3]]
+        ranges = [(0.3, 1.8), (-0.40, -0.10), (-2.4, -0.6), (-2.4, -0.6), (0.15, 0.95)]
+        n_bins = 15
         fig = corner.corner(
-            y1, labels=labels, max_n_ticks=4, color="C1", labelpad=0.2, plot_datapoints=False
+            y1,
+            labels=labels,
+            max_n_ticks=4,
+            color="C1",
+            labelpad=0.2,
+            plot_datapoints=False,
+            levels=levels,
+            range=ranges,
+            bins=n_bins,
         )
         fig = corner.corner(
             y2,
@@ -383,13 +394,16 @@ class TriangleSamples(Figure):
             color="C2",
             labelpad=0.25,
             plot_datapoints=False,
+            levels=levels,
+            range=ranges,
+            bins=n_bins,
         )
         figs["multigauss_triangle"] = fig
 
         # (2) Now a subset set of 3 triangle plots without histograms.
         ndim = len(self.subset_params)
         for name, yest in data.items():
-            y2 = self.transform(yest)
+            y2 = self._transform(yest)
             _y1 = y1[:, self.subset_params]
             _y2 = y2[:, self.subset_params]
             _labels = [labels[ii] for ii in self.subset_params]
