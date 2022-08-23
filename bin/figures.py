@@ -161,10 +161,10 @@ class CorrelationMAH(Figure):
         )
         for param in self.params:
             latex_param = rxplots.LATEX_PARAMS[param]
-            scale, _, val_ma, _ = data["ma_max_dict"][param]
-            mass_bin, _, val_am, _ = data["am_max_dict"][param]
-            table += rf"{latex_param} & ${scale:.3f}$ & ${val_ma:.3f}$"
-            table += rf" & ${mass_bin:.3f}$ & ${val_am:.3f}$\\ \hline"
+            scale, err_scale, val_ma, err_ma = data["ma_max_dict"][param]
+            mass_bin, err_mbin, val_am, err_am = data["am_max_dict"][param]
+            table += rf"{latex_param} & ${scale:.3f} \pm {err_scale:.3f}$ & ${val_ma:.3f} \pm {err_ma:.3f}$"
+            table += rf" & ${mass_bin:.3f} \pm {err_mbin:.3f}$ & ${val_am:.3f} \pm {err_am:.3f}$\\ \hline"
             table += "\n"
 
         table += r"\end{tabular}" + "\n" + r"\caption{}" + "\n" + r"\end{table*}"
@@ -404,6 +404,11 @@ class TriangleSamples(Figure):
 
         # (2) Now a subset set of 3 triangle plots without histograms.
         ndim = len(self.subset_params)
+        annotations = {
+            "cam": "\\rm CAM $a_{\\rm opt}$",
+            "lr": "\\rm MultiCAM \n \\rm (no scatter)",
+            "multigauss": "\\rm MultiCAM \n \\rm (scatter)",
+        }
         for name, yest in data.items():
             _ranges = [(-2.7, -0.3), (-2.5, -0.4), (0.15, 1.00)]
             y2 = self._transform(yest)
@@ -434,6 +439,8 @@ class TriangleSamples(Figure):
 
             # remove histograms
             axes = np.array(fig.axes).reshape((ndim, ndim))
+            axes[1, 0].annotate(annotations[name], xy=(0.45, 0.55), xycoords="figure fraction")
+            # axes[1, 0].annotate(annotations[name], xy=(0.3, 0.68), xycoords="figure fraction")
             for ii in range(ndim):
                 ax: plt.Axes = axes[ii, ii]
                 ax.set_xmargin(0)
