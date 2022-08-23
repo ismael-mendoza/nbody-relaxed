@@ -161,10 +161,10 @@ class CorrelationMAH(Figure):
         )
         for param in self.params:
             latex_param = rxplots.LATEX_PARAMS[param]
-            scale, _, val_ma, _ = data["ma_max_dict"][param]
-            mass_bin, _, val_am, _ = data["am_max_dict"][param]
-            table += rf"{latex_param} & ${scale:.3f}$ & ${val_ma:.3f}$"
-            table += rf" & ${mass_bin:.3f}$ & ${val_am:.3f}$\\ \hline"
+            scale, err_scale, val_ma, err_ma = data["ma_max_dict"][param]
+            mass_bin, err_mbin, val_am, err_am = data["am_max_dict"][param]
+            table += rf"{latex_param} & ${scale:.3f} \pm {err_scale:.3f}$ & ${val_ma:.3f} \pm {err_ma:.3f}$"
+            table += rf" & ${mass_bin:.3f} \pm {err_mbin:.3f}$ & ${val_am:.3f} \pm {err_am:.3f}$\\ \hline"
             table += "\n"
 
         table += r"\end{tabular}" + "\n" + r"\caption{}" + "\n" + r"\end{table*}"
@@ -300,7 +300,7 @@ class TriangleSamples(Figure):
 
     def _set_rc(self):
         set_rc(fontsize=24)
-        mpl.rcParams.update({"axes.grid": False})
+        mpl.rcParams.update({"axes.grid": False, "figure.autolayout": False})
 
     def get_data(self):
         mah_data = get_mah(MAH_DIR, cutoff_missing=0.05, cutoff_particle=0.05)
@@ -354,7 +354,7 @@ class TriangleSamples(Figure):
             "cam": samples_cam,
         }
 
-    def transform(self, y):
+    def _transform(self, y):
         y_new = np.zeros_like(y)
         for ii in range(y.shape[1]):
             y_new[:, ii] = np.log10(y[:, ii]) if self.which_log[ii] else y[:, ii]
@@ -370,42 +370,77 @@ class TriangleSamples(Figure):
             for ii, label in enumerate(labels)
         ]
         y_true = data.pop("truth")
-        y1 = self.transform(y_true)
-        y2 = self.transform(data["multigauss"])
+        y1 = self._transform(y_true)
+        y2 = self._transform(data["multigauss"])
+        levels = [1 - np.exp(-(x**2) / 2) for x in [1, 2, 3]]
+        ranges = [(0.3, 1.4), (-0.40, 0), (-2.7, -0.3), (-2.5, -0.4), (0.15, 1.00)]
+        # ranges = [0.999, 0.999, 0.999, 0.999, 0.999]
+        n_bins = 15
+        fig = plt.figure(figsize=(10, 10))
         fig = corner.corner(
-            y1, labels=labels, max_n_ticks=4, color="C1", labelpad=0.2, plot_datapoints=False
+            y1,
+            labels=labels,
+            max_n_ticks=3,
+            color="C1",
+            plot_datapoints=False,
+            levels=levels,
+            range=ranges,
+            bins=n_bins,
+            labelpad=0.125,
+            fig=fig,
         )
         fig = corner.corner(
             y2,
-            labels=labels,
-            max_n_ticks=4,
-            fig=fig,
+            max_n_ticks=3,
             color="C2",
-            labelpad=0.25,
             plot_datapoints=False,
+            levels=levels,
+            range=ranges,
+            bins=n_bins,
+            fig=fig,
         )
+        fig.subplots_adjust(wspace=0.2, hspace=0.2)
         figs["multigauss_triangle"] = fig
 
         # (2) Now a subset set of 3 triangle plots without histograms.
         ndim = len(self.subset_params)
+        annotations = {
+            "cam": "\\rm CAM $a_{\\rm opt}$",
+            "lr": "\\rm MultiCAM \n \\rm (no scatter)",
+            "multigauss": "\\rm MultiCAM \n \\rm (scatter)",
+        }
         for name, yest in data.items():
-            y2 = self.transform(yest)
+            _ranges = [(-2.7, -0.3), (-2.5, -0.4), (0.15, 1.00)]
+            y2 = self._transform(yest)
             _y1 = y1[:, self.subset_params]
             _y2 = y2[:, self.subset_params]
             _labels = [labels[ii] for ii in self.subset_params]
-            fig = corner.corner(_y1, color="C1", max_n_ticks=4, plot_datapoints=False)
+            fig = corner.corner(
+                _y1,
+                color="C1",
+                max_n_ticks=3,
+                plot_datapoints=False,
+                labels=_labels,
+                labelpad=0.1,
+                range=_ranges,
+                bins=n_bins,
+                levels=levels,
+            )
             fig = corner.corner(
                 _y2,
-                labels=_labels,
                 fig=fig,
                 color="C2",
-                labelpad=0.2,
-                max_n_ticks=4,
+                max_n_ticks=3,
                 plot_datapoints=False,
+                bins=n_bins,
+                range=_ranges,
+                levels=levels,
             )
 
             # remove histograms
             axes = np.array(fig.axes).reshape((ndim, ndim))
+            axes[1, 0].annotate(annotations[name], xy=(0.45, 0.55), xycoords="figure fraction")
+            # axes[1, 0].annotate(annotations[name], xy=(0.3, 0.68), xycoords="figure fraction")
             for ii in range(ndim):
                 ax: plt.Axes = axes[ii, ii]
                 ax.set_xmargin(0)
@@ -413,7 +448,7 @@ class TriangleSamples(Figure):
                 ax.set_axes_locator(plt.NullLocator())
                 ax.set_axis_off()
                 ax.remove()
-            plt.subplots_adjust(top=1, bottom=0, right=1, left=0, hspace=0, wspace=0)
+            fig.subplots_adjust(wspace=0.2, hspace=0.2)
             figs[f"{name}_subset_triangle"] = fig
 
         return figs
