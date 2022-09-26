@@ -563,7 +563,7 @@ class PredictMAH(Figure):
         nice_names = [
             r"\rm $c_{\rm vir}$ only",
             r"\rm $x_{\rm off}$ only",
-            r"\rm $T / \vert U \vert$ only",
+            r"\rm $T / | U |$ only",
             r"\rm All properties",
         ]
 
@@ -706,7 +706,7 @@ class InvPredMetrics(Figure):
         nice_names = [
             r"\rm $c_{\rm vir}$ only",
             r"\rm $x_{\rm off}$ only",
-            r"\rm $T/\vert U \vert$ only",
+            r"\rm $T/| U |$ only",
             r"\rm All parameters",
         ]
 
