@@ -18,7 +18,7 @@ MARKS = ["o", "s", "D", "P", "X"]
 
 LATEX_PARAMS = {
     "cvir": r"$c_{\rm vir}$",
-    "t/|u|": r"$T/| U |$",
+    "t/|u|": r"$T/|U|$",
     "x0": r"$x_{\rm off}$",
     "spin": r"$\lambda_{\rm peebles}$",
     "q": r"$q$",
