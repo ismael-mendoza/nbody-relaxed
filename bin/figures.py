@@ -376,12 +376,12 @@ class TriangleSamples(Figure):
         ranges = [(0.3, 1.4), (-0.40, 0), (-2.7, -0.3), (-2.5, -0.4), (0.15, 1.00)]
         # ranges = [0.999, 0.999, 0.999, 0.999, 0.999]
         n_bins = 15
-        fig = plt.figure(figsize=(10, 10))
+        fig, axes = plt.subplots(5, 5, figsize=(10, 10))
         fig = corner.corner(
             y1,
             labels=labels,
             max_n_ticks=3,
-            color="C1",
+            color=CB_COLORS[1],
             plot_datapoints=False,
             levels=levels,
             range=ranges,
@@ -392,22 +392,36 @@ class TriangleSamples(Figure):
         fig = corner.corner(
             y2,
             max_n_ticks=3,
-            color="C2",
+            color=CB_COLORS[2],
             plot_datapoints=False,
             levels=levels,
             range=ranges,
             bins=n_bins,
             fig=fig,
         )
-        fig.subplots_adjust(wspace=0.2, hspace=0.2)
+        axes[0, 0].annotate(
+            r"\rm \textbf{True samples}",
+            xy=(0.275, 0.925),
+            xycoords="figure fraction",
+            color=CB_COLORS[1],
+            fontsize=18,
+        )
+        axes[0, 0].annotate(
+            "\\rm \\textbf{MultiCAM} \n \\rm \\textbf{(with scatter)}",
+            xy=(0.275, 0.87),
+            xycoords="figure fraction",
+            color=CB_COLORS[2],
+            fontsize=18,
+        )
+        fig.subplots_adjust(wspace=0.15, hspace=0.15)
         figs["multigauss_triangle"] = fig
 
         # (2) Now a subset set of 3 triangle plots without histograms.
         ndim = len(self.subset_params)
         annotations = {
-            "cam": "\\rm CAM $a_{\\rm opt}$",
-            "lr": "\\rm MultiCAM \n \\rm (no scatter)",
-            "multigauss": "\\rm MultiCAM \n \\rm (scatter)",
+            "cam": r"\rm \textbf{CAM} $\boldsymbol{a_{\rm opt}}$",
+            "lr": "\\rm \\textbf{MultiCAM} \n \\rm \\textbf{(no scatter)}",
+            "multigauss": "\\rm \\textbf{MultiCAM} \n \\rm \\textbf{(with scatter)}",
         }
         for name, yest in data.items():
             _ranges = [(-2.7, -0.3), (-2.5, -0.4), (0.15, 1.00)]
@@ -417,7 +431,7 @@ class TriangleSamples(Figure):
             _labels = [labels[ii] for ii in self.subset_params]
             fig = corner.corner(
                 _y1,
-                color="C1",
+                color=CB_COLORS[1],
                 max_n_ticks=3,
                 plot_datapoints=False,
                 labels=_labels,
@@ -429,7 +443,7 @@ class TriangleSamples(Figure):
             fig = corner.corner(
                 _y2,
                 fig=fig,
-                color="C2",
+                color=CB_COLORS[2],
                 max_n_ticks=3,
                 plot_datapoints=False,
                 bins=n_bins,
@@ -439,7 +453,16 @@ class TriangleSamples(Figure):
 
             # remove histograms
             axes = np.array(fig.axes).reshape((ndim, ndim))
-            axes[1, 0].annotate(annotations[name], xy=(0.45, 0.55), xycoords="figure fraction")
+            if name == "cam":
+                axes[1, 0].annotate(
+                    r"\rm \textbf{True samples}",
+                    xy=(0.425, 0.56),
+                    xycoords="figure fraction",
+                    color=CB_COLORS[1],
+                )
+            axes[1, 0].annotate(
+                annotations[name], xy=(0.425, 0.50), xycoords="figure fraction", color=CB_COLORS[2]
+            )
             # axes[1, 0].annotate(annotations[name], xy=(0.3, 0.68), xycoords="figure fraction")
             for ii in range(ndim):
                 ax: plt.Axes = axes[ii, ii]
@@ -563,7 +586,7 @@ class PredictMAH(Figure):
         nice_names = [
             r"\rm $c_{\rm vir}$ only",
             r"\rm $x_{\rm off}$ only",
-            r"\rm $T / | U |$ only",
+            r"\rm $T / |U|$ only",
             r"\rm All properties",
         ]
 
@@ -706,7 +729,7 @@ class InvPredMetrics(Figure):
         nice_names = [
             r"\rm $c_{\rm vir}$ only",
             r"\rm $x_{\rm off}$ only",
-            r"\rm $T/| U |$ only",
+            r"\rm $T/|U|$ only",
             r"\rm All parameters",
         ]
 
