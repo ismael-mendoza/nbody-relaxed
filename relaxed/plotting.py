@@ -108,7 +108,7 @@ def set_rc(
         "legend.facecolor": "white",
         "legend.edgecolor": "gray",
         # figures
-        "figure.autolayout": True,  # same as 'tight_layout'
+        "figure.autolayout": False,  # same as 'tight_layout'
         # grids
         "axes.grid": True,
         "grid.color": "0.75",  # light gray gridlines
