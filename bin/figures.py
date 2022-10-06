@@ -101,7 +101,7 @@ class CorrelationMAH(Figure):
     lss = np.array(["-", ":"])  # pos vs neg correlations
 
     def _set_rc(self):
-        set_rc(figsize=(7, 7), fontsize=24, lgsize=18, lgloc="upper right")
+        set_rc(figsize=(7, 7), fontsize=24, lgsize="small", lgloc="best")
 
     def get_data(self):
         mah_data = get_mah(MAH_DIR, cutoff_missing=0.05, cutoff_particle=0.05)
@@ -276,7 +276,6 @@ class CorrelationMAH(Figure):
         ax.set_xlabel(r"\rm Mass fraction $m=M/M(z=0)$")
         ax.tick_params(axis="both", which="major")
         ax.tick_params(axis="x", which="minor")
-        ax.legend(loc="best")
 
         # add additional x-axis so figures are aligned in paper
         ax2 = ax.twiny()
@@ -285,6 +284,7 @@ class CorrelationMAH(Figure):
         ax2.set_xlabel(r"$m=M/M(z=0)$")
         ax2.tick_params(axis="x", which="minor")
 
+        ax.legend(loc="best")
         return fig
 
     def get_figures(self, data: Dict[str, np.ndarray]) -> Dict[str, mpl.figure.Figure]:
@@ -419,7 +419,7 @@ class TriangleSamples(Figure):
         # (2) Now a subset set of 3 triangle plots without histograms.
         ndim = len(self.subset_params)
         annotations = {
-            "cam": r"\rm \textbf{CAM} $\boldsymbol{a_{\rm opt}}$",
+            "cam": r"\rm \textbf{CAM} $\boldsymbol{a(m_{\rm opt})}$",
             "lr": "\\rm \\textbf{MultiCAM} \n \\rm \\textbf{(no scatter)}",
             "multigauss": "\\rm \\textbf{MultiCAM} \n \\rm \\textbf{(with scatter)}",
         }
@@ -881,12 +881,6 @@ class ForwardPredMetrics(Figure):
 
         mdl_names = ("multicam_ma", "multicam_ma_diffmah", "multicam_params_diffmah", "optcam")
         ds_names = ("ma", "ma_diffmah", "params_diffmah", "am")
-        nice_names = (
-            r"\rm MultiCAM $m(a)$",
-            r"\rm MultiCAM Diffmah $m(a)$ curves",
-            r"\rm MultiCAM Diffmah parameters",
-            r"\rm CAM $a_{\rm opt}$",
-        )
 
         output = {}
         ibox = cat_test["ibox"]
@@ -902,13 +896,18 @@ class ForwardPredMetrics(Figure):
 
         return {
             "mdl_names": mdl_names,
-            "nice_names": nice_names,
             "output": output,
         }
 
     def get_figures(self, data: Dict[str, np.ndarray]) -> Dict[str, mpl.figure.Figure]:
+        nice_names = (
+            r"\rm MultiCAM $m(a)$",
+            r"\rm MultiCAM Diffmah $m(a)$ curves",
+            r"\rm MultiCAM Diffmah parameters",
+            r"\rm CAM $a(m_{\rm opt})$",
+        )
         fig, ax = plt.subplots(1, 1)
-        mdl_names, nice_names, output = data.values()
+        mdl_names, output = data.values()
         x_bias = -0.2
         for ii, (mdl, label) in enumerate(zip(mdl_names, nice_names)):
             m, c = MARKS[ii], CB_COLORS[ii]
