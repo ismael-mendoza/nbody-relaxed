@@ -4,7 +4,7 @@ import numpy as np
 from astropy.table import Table
 from pminh import minh
 
-from relaxed.halo_filters import intersect
+from relaxed.catalogs import intersect
 from relaxed.subhaloes import quantities
 
 

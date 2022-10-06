@@ -11,7 +11,8 @@ from astropy.io import ascii
 from pminh import minh
 from tqdm import tqdm
 
-from relaxed.catalogs import get_id_filter, intersect, load_cat_minh, save_cat_csv
+from relaxed.catalogs import get_id_filter, intersect, save_cat_csv
+from relaxed.minh import load_cat_minh
 from relaxed.parameters import default_params
 from relaxed.progenitors.progenitor_lines import get_next_progenitor
 from relaxed.sims import all_sims
