@@ -360,6 +360,38 @@ class TriangleSamples(Figure):
             y_new[:, ii] = np.log10(y[:, ii]) if self.which_log[ii] else y[:, ii]
         return y_new
 
+    def get_latex_table(self, corrs):
+        nice_names = {
+            "truth": r"\rm Truth",
+            "cam": r"\rm CAM $a(m_{\rm opt})$",
+            "lr": r"\rm MultiCAM (no scatter)",
+            "multigauss": r"\rm MultiCAM (with scatter)",
+        }
+        latex_name_tuples = [
+            rf"{rxplots.LATEX_PARAMS[p1]},{rxplots.LATEX_PARAMS[p2]}" for (p1, p2) in corrs["truth"]
+        ]
+        name_row = "Model & " + " & ".join(latex_name_tuples)
+        table = (
+            r"\begin{table*}[ht]" + "\n"
+            r"\centering" + "\n"
+            r"\begin{tabular}{|c|c|c|c|c|}" + "\n"
+            r"\hline" + "\n"
+            rf"{name_row} \\ [0.5ex]" + "\n"
+            r"\hline\hline" + "\n"
+        )
+
+        for model in nice_names:
+            latex_model = nice_names[model]
+            corr_values = corrs[model].values()
+            corr_row = f"{latex_model} & " + " & ".join([f"{corr:.2f}" for corr in corr_values])
+            table += rf"{corr_row} \\" + "\n"
+            table += r"\hline" + "\n"
+
+        table += r"\end{tabular}" + "\n" + r"\caption{}" + "\n" + r"\end{table*}"
+
+        with open(FIGS_DIR.joinpath("triangle_corrs_table.txt"), "w") as fp:
+            print(table.strip(), file=fp)
+
     def get_figures(self, data: Dict[str, np.ndarray]) -> Dict[str, mpl.figure.Figure]:
         figs = {}
 
@@ -474,6 +506,21 @@ class TriangleSamples(Figure):
             fig.subplots_adjust(wspace=0.2, hspace=0.2)
             figs[f"{name}_subset_triangle"] = fig
 
+        # (3) Print out correlations explicitly so that they can be reported in a table.
+        data["truth"] = y_true  # now we put it back since we popped it
+        corrs = {k: {} for k in data}
+        for model in data:
+            for p1 in self.subset_params:
+                for p2 in self.subset_params:
+                    param1 = self.params[p1]
+                    param2 = self.params[p2]
+                    if param1 == param2 or (param2, param1) in corrs[model]:
+                        continue
+                    idx1 = self.params.index(param1)
+                    idx2 = self.params.index(param2)
+                    y = data[model]
+                    corrs[model][(param1, param2)] = spearmanr(y[:, idx1], y[:, idx2])
+        self.get_latex_table(corrs)
         return figs
 
 
@@ -1020,11 +1067,11 @@ class CovarianceAm(Figure):
 @click.option("--seed", default=42, type=int)
 def main(overwrite, ext, seed):
     rng = np.random.default_rng(seed=seed)
-    CorrelationMAH(overwrite, ext, rng).save()
-    PredictMAH(overwrite, ext, rng).save()
-    InvPredMetrics(overwrite, ext, rng).save()
-    ForwardPredMetrics(overwrite, ext, rng).save()
-    CovarianceAm(overwrite, ext, rng).save()
+    # CorrelationMAH(overwrite, ext, rng).save()
+    # PredictMAH(overwrite, ext, rng).save()
+    # InvPredMetrics(overwrite, ext, rng).save()
+    # ForwardPredMetrics(overwrite, ext, rng).save()
+    # CovarianceAm(overwrite, ext, rng).save()
     TriangleSamples(overwrite, ext, rng).save()  # FIXME: always last (bolding issue)
 
 
