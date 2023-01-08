@@ -362,19 +362,20 @@ class TriangleSamples(Figure):
 
     def get_latex_table(self, corrs):
         nice_names = {
-            "truth": r"\rm Truth",
+            "truth": r"\rm True",
             "cam": r"\rm CAM $a(m_{\rm opt})$",
             "lr": r"\rm MultiCAM (no scatter)",
             "multigauss": r"\rm MultiCAM (with scatter)",
         }
         latex_name_tuples = [
-            rf"{rxplots.LATEX_PARAMS[p1]},{rxplots.LATEX_PARAMS[p2]}" for (p1, p2) in corrs["truth"]
+            rf"{rxplots.LATEX_PARAMS[p1]},\,{rxplots.LATEX_PARAMS[p2]}"
+            for (p1, p2) in corrs["truth"]
         ]
         name_row = "Model & " + " & ".join(latex_name_tuples)
         table = (
             r"\begin{table*}[ht]" + "\n"
             r"\centering" + "\n"
-            r"\begin{tabular}{|c|c|c|c|c|}" + "\n"
+            r"\begin{tabular}{|c|c|c|c|}" + "\n"
             r"\hline" + "\n"
             rf"{name_row} \\ [0.5ex]" + "\n"
             r"\hline\hline" + "\n"
@@ -1067,11 +1068,11 @@ class CovarianceAm(Figure):
 @click.option("--seed", default=42, type=int)
 def main(overwrite, ext, seed):
     rng = np.random.default_rng(seed=seed)
-    # CorrelationMAH(overwrite, ext, rng).save()
-    # PredictMAH(overwrite, ext, rng).save()
-    # InvPredMetrics(overwrite, ext, rng).save()
-    # ForwardPredMetrics(overwrite, ext, rng).save()
-    # CovarianceAm(overwrite, ext, rng).save()
+    CorrelationMAH(overwrite, ext, rng).save()
+    PredictMAH(overwrite, ext, rng).save()
+    InvPredMetrics(overwrite, ext, rng).save()
+    ForwardPredMetrics(overwrite, ext, rng).save()
+    CovarianceAm(overwrite, ext, rng).save()
     TriangleSamples(overwrite, ext, rng).save()  # FIXME: always last (bolding issue)
 
 
