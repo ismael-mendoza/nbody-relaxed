@@ -117,7 +117,7 @@ class PredictionModelTransform(PredictionModel, ABC):
     def value_at_rank(x, ranks):
         """Get value at ranks of multidimensional array."""
         assert x.shape[1] == ranks.shape[1]
-        assert ranks.dtype == np.int
+        assert ranks.dtype == int
         n, m = ranks.shape
         y = np.zeros((n, m), dtype=float)
         for ii in range(m):

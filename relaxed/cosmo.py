@@ -16,12 +16,12 @@ def get_fractional_tdyn(scale, tdyn, sim_name="Bolshoi"):
     return (cosmo.age(0).value - cosmo.age(z).value) / tdyn
 
 
-def get_a_from_t(t, sim_name="Bolshoi"):
+def get_a_from_t(t: float, sim_name="Bolshoi", method="Bounded"):
     sim = all_sims[sim_name]
 
     # get cosmology based on given sim
     cosmo = LambdaCDM(H0=sim.h * 100, Ob0=sim.omega_b, Ode0=sim.omega_lambda, Om0=sim.omega_m)
-    z = z_at_value(cosmo.age, t)  # t in Gyrs
+    z = z_at_value(cosmo.age, t, method=method)  # t in Gyrs
     return 1 / (1 + z)
 
 
