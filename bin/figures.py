@@ -632,9 +632,9 @@ class PredictMAH(Figure):
         corrs_am, errs_am, corrs_ma, errs_ma, mass_bins, scales = data.values()
         mdl_names = list(corrs_am.keys())
         nice_names = [
-            r"\rm $c_{\rm vir}$ only",
-            r"\rm $x_{\rm off}$ only",
-            r"\rm $T / |U|$ only",
+            r"\rm $c_{\rm vir}$ only (CAM)",
+            r"\rm $x_{\rm off}$ only (CAM)",
+            r"\rm $T / |U|$ only (CAM)",
             r"\rm All properties",
         ]
 
@@ -775,9 +775,9 @@ class InvPredMetrics(Figure):
         mdl_names = ["linear_cvir", "linear_x0", "linear_tu", "linear_all"]
         ds_names = ["cvir_only", "x0_only", "tu_only", "all"]
         nice_names = [
-            r"\rm $c_{\rm vir}$ only",
-            r"\rm $x_{\rm off}$ only",
-            r"\rm $T/|U|$ only",
+            r"\rm $c_{\rm vir}$ only (CAM)",
+            r"\rm $x_{\rm off}$ only (CAM)",
+            r"\rm $T/|U|$ only (CAM)",
             r"\rm All parameters",
         ]
 
