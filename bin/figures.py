@@ -131,12 +131,14 @@ class CorrelationMAH(Figure):
             ma_corr, ma_err = get_2d_corr(ma, pvalue, ibox)
             ma_data[param] = (ma_corr, ma_err)
             max_indx, opt_scale, opt_err_scale = get_opt_corr(ma, pvalue, scales, ibox)
+            opt_err_scale = np.vstack([opt_err_scale, np.diff(scales)]).max(axis=0)
             ma_max_dict[param] = opt_scale, opt_err_scale, ma_corr[max_indx], ma_err[max_indx]
 
             # am
             am_corr, am_err = get_2d_corr(am, pvalue, ibox)
             am_data[param] = am_corr, am_err
             max_indx, opt_mbin, opt_err_mbin = get_opt_corr(am, pvalue, mass_bins, ibox)
+            opt_err_mbin = np.vstack([opt_err_mbin, np.diff(mass_bins)]).max(axis=0)
             am_max_dict[param] = opt_mbin, opt_err_mbin, am_corr[max_indx], am_err[max_indx]
 
         return {
