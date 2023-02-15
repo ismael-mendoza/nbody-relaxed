@@ -45,6 +45,8 @@ rho_latex = r"\rho_{\rm sp}"
 class Figure(ABC):
     cache_name = ""
     params = ()
+    bbox_inches = "tight"
+    pad_inches = 0
 
     def __init__(self, overwrite=False, ext="png", rng=None) -> None:
         self.cache_file = CACHE_DIR.joinpath(self.cache_name).with_suffix(".npy")
@@ -76,7 +78,9 @@ class Figure(ABC):
         figs = self.get_figures(data.item())
         for name, fig in figs.items():
             fig.savefig(
-                FIGS_DIR.joinpath(name).with_suffix(self.ext), bbox_inches="tight", pad_inches=0
+                FIGS_DIR.joinpath(name).with_suffix(self.ext),
+                bbox_inches=self.bbox_inches,
+                pad_inches=self.pad_inches,
             )
 
 
@@ -299,6 +303,8 @@ class TriangleSamples(Figure):
     params = ("cvir", "t/|u|", "x0", "spin_bullock", "c_to_a")
     which_log = [True, True, True, True, False]
     subset_params = [2, 3, 4]
+    bbox_inches = "tight"
+    pad_inches = 0.05
 
     def _set_rc(self):
         set_rc(fontsize=24)
