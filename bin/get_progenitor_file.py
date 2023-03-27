@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
+"""Script to create a file containing main line progenitor information to be extracted."""
 import json
 import re
 from pathlib import Path
 
 import click
 
-from relaxed.catalogs import sims
 from relaxed.progenitors import io_progenitors
+from relaxed.sims import all_sims
 
 the_root = Path(__file__).absolute().parent.parent
 read_trees_dir = the_root.joinpath("consistent-trees", "read_tree")
@@ -21,6 +22,7 @@ catname_map = {
 @click.option("--catalog-name", default="Bolshoi", type=str, show_default=True)
 @click.option("--cpus", type=int, help="number of cpus to use.")
 def make_progenitor_file(root, catalog_name, cpus):
+    """Create a file containing all progenitors of all halos in the catalog."""
     # setup required names and directories first.
     catname = catname_map[catalog_name]
     prog_name = f"{catname}_progenitors"
@@ -31,7 +33,7 @@ def make_progenitor_file(root, catalog_name, cpus):
     lookup_file = root.joinpath("output", "lookup_prog.json")
     assert trees_dir.exists()
     progenitor_dir.mkdir(exist_ok=True)
-    particle_mass = sims[catalog_name].particle_mass
+    particle_mass = all_sims[catalog_name].particle_mass
     mcut = particle_mass * 1e3
 
     # prefix to be used to save the results of each of the tree files.
@@ -44,7 +46,7 @@ def make_progenitor_file(root, catalog_name, cpus):
     io_progenitors.merge_progenitors(progenitor_dir, progenitor_file)
 
     # create a lookup table mapping line -> tree_root_id
-    with open(progenitor_file, "r") as fp:
+    with open(progenitor_file, "r", encoding="utf-8") as fp:
         prev = 0
         lookup = {}
         line = fp.readline()
@@ -57,9 +59,9 @@ def make_progenitor_file(root, catalog_name, cpus):
             prev = fp.tell()
             line = fp.readline()
 
-    with open(lookup_file, "w") as fp:
+    with open(lookup_file, "w", encoding="utf-8") as fp:
         json.dump(lookup, fp)
 
 
 if __name__ == "__main__":
-    make_progenitor_file()
+    make_progenitor_file()  # pylint: disable=no-value-for-parameter
