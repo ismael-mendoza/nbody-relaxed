@@ -200,7 +200,7 @@ def make_progenitors(ctx):
     values[values == 0] = np.nan
 
     # create an astropy table for a mainline progenitor 'lookup'
-    # i.e. for a given idx of root_ids, where root_ids[idx] = root_id, we have
+    # i.e. for a given `idx` of root_ids, where root_ids[idx] = root_id, we have
     # lookup_index[idx, s] = id of progenitor line halo at scales[s]
     lookup_names = ["id"] + [f"id_a{i}" for i in range(len(scales))]
     lookup_index = np.zeros((len(root_ids), 1 + len(scales)))
