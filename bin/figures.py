@@ -13,19 +13,19 @@ from astropy import units as u
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy.interpolate import interp1d
 
-from relaxed import plotting as rxplots
-from relaxed.correlations import (
+from multicam import plotting as rxplots
+from multicam.correlations import (
     add_box_indices,
     get_2d_corr,
     get_opt_corr,
     spearmanr,
     vol_jacknife_err,
 )
-from relaxed.cosmo import get_a_from_t, get_fractional_tdyn, get_t_from_a
-from relaxed.fits import alpha_analysis, get_early_late
-from relaxed.mah import get_an_from_am, get_mah
-from relaxed.models import opcam_dict, prepare_datasets, training_suite
-from relaxed.plotting import CB_COLORS, MARKS, set_rc
+from multicam.cosmo import get_a_from_t, get_fractional_tdyn, get_t_from_a
+from multicam.fits import alpha_analysis, get_early_late
+from multicam.mah import get_an_from_am, get_mah
+from multicam.models import opcam_dict, prepare_datasets, training_suite
+from multicam.plotting import CB_COLORS, MARKS, set_rc
 
 plt.ioff()
 

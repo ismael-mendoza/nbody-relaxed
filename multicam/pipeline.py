@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Pipeline to produce dark matter halo catalogs to analyze from raw ROCKSTAR catalogs."""
 import json
 import os
 from pathlib import Path
@@ -7,16 +8,16 @@ from shutil import copyfile
 import click
 import numpy as np
 from astropy import table
-from astropy.io import ascii
+from astropy.io import ascii as astro_ascii
 from pminh import minh
 from tqdm import tqdm
 
-from relaxed.catalogs import get_id_filter, intersect, save_cat_csv
-from relaxed.minh import load_cat_minh
-from relaxed.parameters import default_params
-from relaxed.progenitors.progenitor_lines import get_next_progenitor
-from relaxed.sims import all_sims
-from relaxed.subhaloes import quantities as sub_quantities
+from multicam.catalogs import get_id_filter, intersect, save_cat_csv
+from multicam.minh import load_cat_minh
+from multicam.parameters import default_params
+from multicam.progenitors.progenitor_lines import get_next_progenitor
+from multicam.sims import all_sims
+from multicam.subhaloes import quantities as sub_quantities
 
 the_root = Path(__file__).absolute().parent.parent
 raw_catalogs = the_root.joinpath("catalogs")
@@ -39,6 +40,7 @@ NAN_INTEGER = -5555
 )
 @click.pass_context
 def pipeline(ctx, root, outdir, minh_file, catalog_name, all_minh_files):
+    """Full pipeline for extracting halo catalog."""
     catname = catname_map[catalog_name]
 
     ctx.ensure_object(dict)
@@ -100,6 +102,7 @@ def pipeline(ctx, root, outdir, minh_file, catalog_name, all_minh_files):
 )
 @click.pass_context
 def make_ids(ctx, m_low, m_high, n_haloes):
+    """Select ids of haloes to be used in the pipeline based on mass range."""
     # create appropriate filters
     assert not ctx.obj["ids_file"].exists()
     m_low = 10**m_low
@@ -127,14 +130,15 @@ def make_ids(ctx, m_low, m_high, n_haloes):
     # extract ids into a json file, first convert to int's.
     ids = sorted([int(x) for x in cat["id"]])
     assert len(ids) == n_haloes
-    with open(ctx.obj["ids_file"], "w") as fp:
+    with open(ctx.obj["ids_file"], "w", encoding="utf-8") as fp:
         json.dump(ids, fp)
 
 
 @pipeline.command()
 @click.pass_context
 def make_dmcat(ctx):
-    with open(ctx.obj["ids_file"], "r") as fp:
+    """Create dark matter catalog with default halo parameters given the ids file."""
+    with open(ctx.obj["ids_file"], "r", encoding="utf-8") as fp:
         ids = np.array(json.load(fp))
 
     assert np.all(np.sort(ids) == ids)
@@ -152,14 +156,15 @@ def make_dmcat(ctx):
 @pipeline.command()
 @click.pass_context
 def make_progenitors(ctx):
+    """Create progenitor and lookup table for all haloes in ids file."""
     progenitor_file = ctx.obj["progenitor_file"]
     lookup_file = ctx.obj["lookup_file"]
     assert progenitor_file.exists()
     assert lookup_file.exists()
-    with open(ctx.obj["ids_file"], "r") as fp:
+    with open(ctx.obj["ids_file"], "r", encoding="utf-8") as fp:
         root_ids = np.array(json.load(fp)).astype(int)
 
-    with open(lookup_file, "r") as jp:
+    with open(lookup_file, "r", encoding="utf-8") as jp:
         lookup = json.load(jp)
         lookup = {int(k): int(v) for k, v in lookup.items()}
 
@@ -167,7 +172,7 @@ def make_progenitors(ctx):
     assert z_map_file.exists()
 
     # first collect all scales from existing z_map
-    with open(z_map_file, "r") as fp:
+    with open(z_map_file, "r", encoding="utf-8") as fp:
         z_map = dict(json.load(fp))
         z_map = {int(k): float(v) for k, v in z_map.items()}
 
@@ -175,10 +180,10 @@ def make_progenitors(ctx):
     prog_lines = []
 
     # iterate through the progenitor generator, obtaining the haloes that match IDs
-    with open(progenitor_file, "r") as pf:
-        for id in tqdm(root_ids, desc="Extracting lines and building lookup table"):
-            if id in lookup:  # only extract lines in lookup.
-                pos = lookup[id]
+    with open(progenitor_file, "r", encoding="utf-8") as pf:
+        for id_ in tqdm(root_ids, desc="Extracting lines and building lookup table"):
+            if id_ in lookup:  # only extract lines in lookup.
+                pos = lookup[id_]
                 pf.seek(pos, os.SEEK_SET)
                 prog_line = get_next_progenitor(pf)
                 prog_lines.append(prog_line)
@@ -195,7 +200,7 @@ def make_progenitors(ctx):
     values[values == 0] = np.nan
 
     # create an astropy table for a mainline progenitor 'lookup'
-    # i.e. for a given idx of root_ids, where root_ids[idx] = root_id, we have
+    # i.e. for a given `idx` of root_ids, where root_ids[idx] = root_id, we have
     # lookup_index[idx, s] = id of progenitor line halo at scales[s]
     lookup_names = ["id"] + [f"id_a{i}" for i in range(len(scales))]
     lookup_index = np.zeros((len(root_ids), 1 + len(scales)))
@@ -204,9 +209,9 @@ def make_progenitors(ctx):
 
     for prog_line in tqdm(prog_lines, desc="Extracting information from lines"):
         idx = np.where(root_ids == prog_line.root_id)[0].item()  # where should I insert this line?
-        for s in range(len(scales)):
-            if scales[s] in prog_line.cat["scale"]:
-                line_idx = np.where(prog_line.cat["scale"] == scales[s])[0].item()
+        for s, scale in enumerate(scales):
+            if scale in prog_line.cat["scale"]:
+                line_idx = np.where(prog_line.cat["scale"] == scale)[0].item()
                 mvir = prog_line.cat["mvir"][line_idx]
                 values[idx, 1 + s] = mvir
                 cpg_mvir = prog_line.cat["coprog_mvir"][line_idx]
@@ -221,11 +226,12 @@ def make_progenitors(ctx):
     lookup_index.sort("id")
 
     # save final table and json file mapping index to scale
-    ascii.write(prog_table, ctx.obj["progenitor_table_file"], format="csv")
-    ascii.write(lookup_index, ctx.obj["lookup_index"], format="csv")
+    astro_ascii.write(prog_table, ctx.obj["progenitor_table_file"], format="csv")
+    astro_ascii.write(lookup_index, ctx.obj["lookup_index"], format="csv")
 
 
 def get_central_subhaloes(prev_pids, prev_dfids, curr_ids, curr_pids, curr_dfids, log_file=None):
+    """Find subhaloes in current snapshot that had a central progenitor in previous snapshot."""
     prev_sort = np.argsort(prev_dfids)
     assert np.array_equal(prev_pids[prev_sort], prev_pids)
     assert np.array_equal(prev_dfids[prev_sort], prev_dfids)
@@ -255,11 +261,13 @@ def get_central_subhaloes(prev_pids, prev_dfids, curr_ids, curr_pids, curr_dfids
         n2 = was_central.sum().item() / len(curr_dfids) * 100
         n3 = is_subhalo.sum().item() / len(curr_dfids) * 100
         n4 = sub_keep.sum().item() / len(curr_dfids) * 100
-        print(f"Progenitors found (percentage): {n1:.2f}%", file=open(log_file, "a"))
-        print(f"Was Central found (percentage): {n2:.2f}%", file=open(log_file, "a"))
-        print(f"Is Subhalo found (percentage): {n3:.2f}%", file=open(log_file, "a"))
-        print(f"Sub Keep found (percentage): {n4:.2f}%", file=open(log_file, "a"))
-        print(f"Total current halos: {len(curr_dfids)}", file=open(log_file, "a"))
+
+        with open(log_file, "a", encoding="utf-8") as f:
+            print(f"Progenitors found (percentage): {n1:.2f}%", file=f)
+            print(f"Was Central found (percentage): {n2:.2f}%", file=f)
+            print(f"Is Subhalo found (percentage): {n3:.2f}%", file=f)
+            print(f"Sub Keep found (percentage): {n4:.2f}%", file=f)
+            print(f"Total current halos: {len(curr_dfids)}", file=f)
 
     return sub_keep
 
@@ -274,6 +282,7 @@ def get_central_subhaloes(prev_pids, prev_dfids, curr_ids, curr_pids, curr_dfids
 )
 @click.pass_context
 def make_subhaloes(ctx, threshold):
+    """Add subhalo information to the main table."""
     # contains info for subhaloes at all snapshots (including present)
     outfile = ctx.obj["subhalo_file"]
     log_file = ctx.obj["output"].joinpath("subhalo_log.txt")
@@ -284,17 +293,17 @@ def make_subhaloes(ctx, threshold):
     assert z_map_file.exists()
 
     # load host ids
-    with open(ctx.obj["ids_file"], "r") as fp:
+    with open(ctx.obj["ids_file"], "r", encoding="utf-8") as fp:
         sample_ids = np.array(json.load(fp)).astype(int)
 
     # first collect all scales from existing z_map
-    with open(z_map_file, "r") as fp:
+    with open(z_map_file, "r", encoding="utf-8") as fp:
         z_map = dict(json.load(fp))
         z_map = {int(k): float(v) for k, v in z_map.items()}
     z_map_inv = {v: k for k, v in z_map.items()}
 
     # load lookup index
-    lookup_index = ascii.read(ctx.obj["lookup_index"], format="csv")
+    lookup_index = astro_ascii.read(ctx.obj["lookup_index"], format="csv")
 
     # NOTE: We keep all NaN's for subhalo information of very first snapshot. Most likely not used.
     f_sub_names = [f"f_sub_a{i}" for i in z_map]
@@ -327,7 +336,7 @@ def make_subhaloes(ctx, threshold):
 
         print(
             f"Computing subhalo information for: {prev_minh_file.stem} & {curr_minh_file.stem}",
-            file=open(log_file, "a"),
+            file=open(log_file, "a", encoding="utf-8"),
         )
 
         # extract information from all blocks in minh files
@@ -346,12 +355,12 @@ def make_subhaloes(ctx, threshold):
 
         # sort the data that was extracted from .minh catalogs.
         prev_sort = np.argsort(prev_dfids)
-        prev_dfids = prev_dfids[prev_sort]
-        prev_pids = prev_pids[prev_sort]
+        prev_dfids = prev_dfids[prev_sort]  # pylint: disable=unsubscriptable-object
+        prev_pids = prev_pids[prev_sort]  # pylint: disable=unsubscriptable-object
 
         curr_sort = np.argsort(curr_ids)
-        curr_ids = curr_ids[curr_sort]
-        curr_pids = curr_pids[curr_sort]
+        curr_ids = curr_ids[curr_sort]  # pylint: disable=unsubscriptable-object
+        curr_pids = curr_pids[curr_sort]  # pylint: disable=unsubscriptable-object
         curr_dfids = curr_dfids[curr_sort]
         curr_mvir = curr_mvir[curr_sort]
 
@@ -389,18 +398,21 @@ def make_subhaloes(ctx, threshold):
             f"in minh catalog loaded from file {curr_minh_file.stem}.\n"
             f"Percentage: {p1:.2f}%\n\n"
         )
-        print(msg, file=open(log_file, "a"))
+        print(msg, file=open(log_file, "a", encoding="utf-8"))
 
-    ascii.write(fcat, output=outfile, format="csv")
+    astro_ascii.write(fcat, output=outfile, format="csv")
 
 
 @pipeline.command()
 @click.pass_context
 def combine_all(ctx):
+    """Combine all previous steps of the pipeline and save the final catalog."""
     # load the 3 catalogs that we will be combining
-    dm_cat = ascii.read(ctx.obj["dm_file"], format="csv", fast_reader=True)
-    subhalo_cat = ascii.read(ctx.obj["subhalo_file"], format="csv", fast_reader=True)
-    progenitor_cat = ascii.read(ctx.obj["progenitor_table_file"], format="csv", fast_reader=True)
+    dm_cat = astro_ascii.read(ctx.obj["dm_file"], format="csv", fast_reader=True)
+    subhalo_cat = astro_ascii.read(ctx.obj["subhalo_file"], format="csv", fast_reader=True)
+    progenitor_cat = astro_ascii.read(
+        ctx.obj["progenitor_table_file"], format="csv", fast_reader=True
+    )
 
     # check all are sorted.
     assert np.array_equal(np.sort(dm_cat["id"]), dm_cat["id"])
@@ -417,8 +429,8 @@ def combine_all(ctx):
     fcat_file = ctx.obj["output"].joinpath("final_table.csv")
 
     # save final csv containing all the information.
-    ascii.write(fcat, fcat_file, format="csv")
+    astro_ascii.write(fcat, fcat_file, format="csv")
 
 
 if __name__ == "__main__":
-    pipeline()
+    pipeline()  # pylint: disable=no-value-for-parameter

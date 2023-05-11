@@ -6,8 +6,8 @@ import numpy as np
 from astropy.table import Table, vstack
 from pminh import minh
 
-from relaxed import parameters
-from relaxed.catalogs import filter_cat
+from multicam import parameters
+from multicam.catalogs import filter_cat
 
 
 def load_cat_minh(minh_file: str, params: list, filters: dict, verbose=False):

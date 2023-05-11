@@ -1,6 +1,6 @@
 import numpy as np
 
-from relaxed.pipeline import get_central_subhaloes
+from multicam.pipeline import get_central_subhaloes
 
 
 def test_was_central():

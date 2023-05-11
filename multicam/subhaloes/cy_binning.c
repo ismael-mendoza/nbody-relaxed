@@ -3,12 +3,12 @@
 /* BEGIN: Cython Metadata
 {
     "distutils": {
-        "name": "relaxed.subhaloes.cy_binning",
+        "name": "multicam.subhaloes.cy_binning",
         "sources": [
-            "relaxed/subhaloes/cy_binning.pyx"
+            "multicam/subhaloes/cy_binning.pyx"
         ]
     },
-    "module_name": "relaxed.subhaloes.cy_binning"
+    "module_name": "multicam.subhaloes.cy_binning"
 }
 END: Cython Metadata */
 
@@ -819,7 +819,7 @@ static const char *__pyx_filename;
 
 
 static const char *__pyx_f[] = {
-  "relaxed/subhaloes/cy_binning.pyx",
+  "multicam/subhaloes/cy_binning.pyx",
   "stringsource",
 };
 /* MemviewSliceStruct.proto */
@@ -1693,7 +1693,7 @@ static PyObject *__pyx_memoryviewslice_assign_item_from_object(struct __pyx_memo
 
 /* Module declarations from 'cython' */
 
-/* Module declarations from 'relaxed.subhaloes.cy_binning' */
+/* Module declarations from 'multicam.subhaloes.cy_binning' */
 static PyTypeObject *__pyx_array_type = 0;
 static PyTypeObject *__pyx_MemviewEnum_type = 0;
 static PyTypeObject *__pyx_memoryview_type = 0;
@@ -1740,11 +1740,11 @@ static void __pyx_memoryview__slice_assign_scalar(char *, Py_ssize_t *, Py_ssize
 static PyObject *__pyx_unpickle_Enum__set_state(struct __pyx_MemviewEnum_obj *, PyObject *); /*proto*/
 static __Pyx_TypeInfo __Pyx_TypeInfo_long = { "long", NULL, sizeof(long), { 0 }, 0, IS_UNSIGNED(long) ? 'U' : 'I', IS_UNSIGNED(long), 0 };
 static __Pyx_TypeInfo __Pyx_TypeInfo_double = { "double", NULL, sizeof(double), { 0 }, 0, 'R', 0, 0 };
-#define __Pyx_MODULE_NAME "relaxed.subhaloes.cy_binning"
+#define __Pyx_MODULE_NAME "multicam.subhaloes.cy_binning"
 extern int __pyx_module_is_main_relaxed__subhaloes__cy_binning;
 int __pyx_module_is_main_relaxed__subhaloes__cy_binning = 0;
 
-/* Implementation of 'relaxed.subhaloes.cy_binning' */
+/* Implementation of 'multicam.subhaloes.cy_binning' */
 static PyObject *__pyx_builtin_range;
 static PyObject *__pyx_builtin_ValueError;
 static PyObject *__pyx_builtin_MemoryError;
@@ -1841,7 +1841,7 @@ static const char __pyx_k_contiguous_and_indirect[] = "<contiguous and indirect>
 static const char __pyx_k_Cannot_index_with_type_s[] = "Cannot index with type '%s'";
 static const char __pyx_k_Invalid_shape_in_axis_d_d[] = "Invalid shape in axis %d: %d.";
 static const char __pyx_k_itemsize_0_for_cython_array[] = "itemsize <= 0 for cython.array";
-static const char __pyx_k_relaxed_subhaloes_cy_binning[] = "relaxed.subhaloes.cy_binning";
+static const char __pyx_k_relaxed_subhaloes_cy_binning[] = "multicam.subhaloes.cy_binning";
 static const char __pyx_k_unable_to_allocate_array_data[] = "unable to allocate array data.";
 static const char __pyx_k_strided_and_direct_or_indirect[] = "<strided and direct or indirect>";
 static const char __pyx_k_Buffer_view_does_not_expose_stri[] = "Buffer view does not expose strides";
@@ -1856,7 +1856,7 @@ static const char __pyx_k_Out_of_bounds_on_buffer_access_a[] = "Out of bounds on
 static const char __pyx_k_Unable_to_convert_item_to_object[] = "Unable to convert item to object";
 static const char __pyx_k_got_differing_extents_in_dimensi[] = "got differing extents in dimension %d (got %d and %d)";
 static const char __pyx_k_no_default___reduce___due_to_non[] = "no default __reduce__ due to non-trivial __cinit__";
-static const char __pyx_k_relaxed_subhaloes_cy_binning_pyx[] = "relaxed/subhaloes/cy_binning.pyx";
+static const char __pyx_k_relaxed_subhaloes_cy_binning_pyx[] = "multicam/subhaloes/cy_binning.pyx";
 static const char __pyx_k_unable_to_allocate_shape_and_str[] = "unable to allocate shape and strides.";
 static PyObject *__pyx_n_s_ASCII;
 static PyObject *__pyx_kp_s_Buffer_view_does_not_expose_stri;
@@ -2051,7 +2051,7 @@ static PyObject *__pyx_codeobj__24;
 static PyObject *__pyx_codeobj__31;
 /* Late includes */
 
-/* "relaxed/subhaloes/cy_binning.pyx":6
+/* "multicam/subhaloes/cy_binning.pyx":6
  * @cython.wraparound(False)
  * @cython.cdivision(True)
  * def bin_ints(long[:] x, long[:] out_bins, long[:] out_bin_edges):             # <<<<<<<<<<<<<<
@@ -2124,7 +2124,7 @@ static PyObject *__pyx_pw_7relaxed_9subhaloes_10cy_binning_1bin_ints(PyObject *_
   __pyx_L5_argtuple_error:;
   __Pyx_RaiseArgtupleInvalid("bin_ints", 1, 3, 3, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 6, __pyx_L3_error)
   __pyx_L3_error:;
-  __Pyx_AddTraceback("relaxed.subhaloes.cy_binning.bin_ints", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("multicam.subhaloes.cy_binning.bin_ints", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
@@ -2163,7 +2163,7 @@ static PyObject *__pyx_pf_7relaxed_9subhaloes_10cy_binning_bin_ints(CYTHON_UNUSE
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("bin_ints", 0);
 
-  /* "relaxed/subhaloes/cy_binning.pyx":7
+  /* "multicam/subhaloes/cy_binning.pyx":7
  * @cython.cdivision(True)
  * def bin_ints(long[:] x, long[:] out_bins, long[:] out_bin_edges):
  *     cdef long n_bins = len(out_bin_edges) - 1             # <<<<<<<<<<<<<<
@@ -2173,7 +2173,7 @@ static PyObject *__pyx_pf_7relaxed_9subhaloes_10cy_binning_bin_ints(CYTHON_UNUSE
   __pyx_t_1 = __Pyx_MemoryView_Len(__pyx_v_out_bin_edges); 
   __pyx_v_n_bins = (__pyx_t_1 - 1);
 
-  /* "relaxed/subhaloes/cy_binning.pyx":8
+  /* "multicam/subhaloes/cy_binning.pyx":8
  * def bin_ints(long[:] x, long[:] out_bins, long[:] out_bin_edges):
  *     cdef long n_bins = len(out_bin_edges) - 1
  *     cdef long n = len(x)             # <<<<<<<<<<<<<<
@@ -2183,7 +2183,7 @@ static PyObject *__pyx_pf_7relaxed_9subhaloes_10cy_binning_bin_ints(CYTHON_UNUSE
   __pyx_t_1 = __Pyx_MemoryView_Len(__pyx_v_x); 
   __pyx_v_n = __pyx_t_1;
 
-  /* "relaxed/subhaloes/cy_binning.pyx":11
+  /* "multicam/subhaloes/cy_binning.pyx":11
  *     cdef long i
  * 
  *     assert(len(x) == len(out_bins))             # <<<<<<<<<<<<<<
@@ -2201,7 +2201,7 @@ static PyObject *__pyx_pf_7relaxed_9subhaloes_10cy_binning_bin_ints(CYTHON_UNUSE
   }
   #endif
 
-  /* "relaxed/subhaloes/cy_binning.pyx":13
+  /* "multicam/subhaloes/cy_binning.pyx":13
  *     assert(len(x) == len(out_bins))
  * 
  *     for i in range(n_bins + 1):             # <<<<<<<<<<<<<<
@@ -2213,7 +2213,7 @@ static PyObject *__pyx_pf_7relaxed_9subhaloes_10cy_binning_bin_ints(CYTHON_UNUSE
   for (__pyx_t_5 = 0; __pyx_t_5 < __pyx_t_4; __pyx_t_5+=1) {
     __pyx_v_i = __pyx_t_5;
 
-    /* "relaxed/subhaloes/cy_binning.pyx":14
+    /* "multicam/subhaloes/cy_binning.pyx":14
  * 
  *     for i in range(n_bins + 1):
  *         out_bin_edges[i] = 0             # <<<<<<<<<<<<<<
@@ -2224,7 +2224,7 @@ static PyObject *__pyx_pf_7relaxed_9subhaloes_10cy_binning_bin_ints(CYTHON_UNUSE
     *((long *) ( /* dim=0 */ (__pyx_v_out_bin_edges.data + __pyx_t_6 * __pyx_v_out_bin_edges.strides[0]) )) = 0;
   }
 
-  /* "relaxed/subhaloes/cy_binning.pyx":17
+  /* "multicam/subhaloes/cy_binning.pyx":17
  * 
  *     cdef long bin
  *     for i in range(n):             # <<<<<<<<<<<<<<
@@ -2236,7 +2236,7 @@ static PyObject *__pyx_pf_7relaxed_9subhaloes_10cy_binning_bin_ints(CYTHON_UNUSE
   for (__pyx_t_5 = 0; __pyx_t_5 < __pyx_t_4; __pyx_t_5+=1) {
     __pyx_v_i = __pyx_t_5;
 
-    /* "relaxed/subhaloes/cy_binning.pyx":18
+    /* "multicam/subhaloes/cy_binning.pyx":18
  *     cdef long bin
  *     for i in range(n):
  *         bin = x[i]             # <<<<<<<<<<<<<<
@@ -2246,7 +2246,7 @@ static PyObject *__pyx_pf_7relaxed_9subhaloes_10cy_binning_bin_ints(CYTHON_UNUSE
     __pyx_t_7 = __pyx_v_i;
     __pyx_v_bin = (*((long *) ( /* dim=0 */ (__pyx_v_x.data + __pyx_t_7 * __pyx_v_x.strides[0]) )));
 
-    /* "relaxed/subhaloes/cy_binning.pyx":19
+    /* "multicam/subhaloes/cy_binning.pyx":19
  *     for i in range(n):
  *         bin = x[i]
  *         if bin < 0 or bin >= n_bins - 1: continue             # <<<<<<<<<<<<<<
@@ -2266,7 +2266,7 @@ static PyObject *__pyx_pf_7relaxed_9subhaloes_10cy_binning_bin_ints(CYTHON_UNUSE
       goto __pyx_L5_continue;
     }
 
-    /* "relaxed/subhaloes/cy_binning.pyx":20
+    /* "multicam/subhaloes/cy_binning.pyx":20
  *         bin = x[i]
  *         if bin < 0 or bin >= n_bins - 1: continue
  *         out_bin_edges[bin + 2] += 1             # <<<<<<<<<<<<<<
@@ -2278,7 +2278,7 @@ static PyObject *__pyx_pf_7relaxed_9subhaloes_10cy_binning_bin_ints(CYTHON_UNUSE
     __pyx_L5_continue:;
   }
 
-  /* "relaxed/subhaloes/cy_binning.pyx":22
+  /* "multicam/subhaloes/cy_binning.pyx":22
  *         out_bin_edges[bin + 2] += 1
  * 
  *     for i in range(2, n_bins + 1):             # <<<<<<<<<<<<<<
@@ -2290,7 +2290,7 @@ static PyObject *__pyx_pf_7relaxed_9subhaloes_10cy_binning_bin_ints(CYTHON_UNUSE
   for (__pyx_t_5 = 2; __pyx_t_5 < __pyx_t_4; __pyx_t_5+=1) {
     __pyx_v_i = __pyx_t_5;
 
-    /* "relaxed/subhaloes/cy_binning.pyx":23
+    /* "multicam/subhaloes/cy_binning.pyx":23
  * 
  *     for i in range(2, n_bins + 1):
  *         out_bin_edges[i] += out_bin_edges[i - 1]             # <<<<<<<<<<<<<<
@@ -2302,7 +2302,7 @@ static PyObject *__pyx_pf_7relaxed_9subhaloes_10cy_binning_bin_ints(CYTHON_UNUSE
     *((long *) ( /* dim=0 */ (__pyx_v_out_bin_edges.data + __pyx_t_11 * __pyx_v_out_bin_edges.strides[0]) )) += (*((long *) ( /* dim=0 */ (__pyx_v_out_bin_edges.data + __pyx_t_10 * __pyx_v_out_bin_edges.strides[0]) )));
   }
 
-  /* "relaxed/subhaloes/cy_binning.pyx":26
+  /* "multicam/subhaloes/cy_binning.pyx":26
  * 
  *     cdef long idx
  *     for i in range(n):             # <<<<<<<<<<<<<<
@@ -2314,7 +2314,7 @@ static PyObject *__pyx_pf_7relaxed_9subhaloes_10cy_binning_bin_ints(CYTHON_UNUSE
   for (__pyx_t_5 = 0; __pyx_t_5 < __pyx_t_4; __pyx_t_5+=1) {
     __pyx_v_i = __pyx_t_5;
 
-    /* "relaxed/subhaloes/cy_binning.pyx":27
+    /* "multicam/subhaloes/cy_binning.pyx":27
  *     cdef long idx
  *     for i in range(n):
  *         bin = x[i]             # <<<<<<<<<<<<<<
@@ -2324,7 +2324,7 @@ static PyObject *__pyx_pf_7relaxed_9subhaloes_10cy_binning_bin_ints(CYTHON_UNUSE
     __pyx_t_10 = __pyx_v_i;
     __pyx_v_bin = (*((long *) ( /* dim=0 */ (__pyx_v_x.data + __pyx_t_10 * __pyx_v_x.strides[0]) )));
 
-    /* "relaxed/subhaloes/cy_binning.pyx":28
+    /* "multicam/subhaloes/cy_binning.pyx":28
  *     for i in range(n):
  *         bin = x[i]
  *         if bin < 0 or bin >= n_bins: continue             # <<<<<<<<<<<<<<
@@ -2344,7 +2344,7 @@ static PyObject *__pyx_pf_7relaxed_9subhaloes_10cy_binning_bin_ints(CYTHON_UNUSE
       goto __pyx_L12_continue;
     }
 
-    /* "relaxed/subhaloes/cy_binning.pyx":29
+    /* "multicam/subhaloes/cy_binning.pyx":29
  *         bin = x[i]
  *         if bin < 0 or bin >= n_bins: continue
  *         idx = out_bin_edges[bin+1]             # <<<<<<<<<<<<<<
@@ -2354,7 +2354,7 @@ static PyObject *__pyx_pf_7relaxed_9subhaloes_10cy_binning_bin_ints(CYTHON_UNUSE
     __pyx_t_10 = (__pyx_v_bin + 1);
     __pyx_v_idx = (*((long *) ( /* dim=0 */ (__pyx_v_out_bin_edges.data + __pyx_t_10 * __pyx_v_out_bin_edges.strides[0]) )));
 
-    /* "relaxed/subhaloes/cy_binning.pyx":30
+    /* "multicam/subhaloes/cy_binning.pyx":30
  *         if bin < 0 or bin >= n_bins: continue
  *         idx = out_bin_edges[bin+1]
  *         out_bin_edges[bin+1] += 1             # <<<<<<<<<<<<<<
@@ -2364,7 +2364,7 @@ static PyObject *__pyx_pf_7relaxed_9subhaloes_10cy_binning_bin_ints(CYTHON_UNUSE
     __pyx_t_10 = (__pyx_v_bin + 1);
     *((long *) ( /* dim=0 */ (__pyx_v_out_bin_edges.data + __pyx_t_10 * __pyx_v_out_bin_edges.strides[0]) )) += 1;
 
-    /* "relaxed/subhaloes/cy_binning.pyx":31
+    /* "multicam/subhaloes/cy_binning.pyx":31
  *         idx = out_bin_edges[bin+1]
  *         out_bin_edges[bin+1] += 1
  *         out_bins[idx] = i             # <<<<<<<<<<<<<<
@@ -2376,7 +2376,7 @@ static PyObject *__pyx_pf_7relaxed_9subhaloes_10cy_binning_bin_ints(CYTHON_UNUSE
     __pyx_L12_continue:;
   }
 
-  /* "relaxed/subhaloes/cy_binning.pyx":33
+  /* "multicam/subhaloes/cy_binning.pyx":33
  *         out_bins[idx] = i
  * 
  *     return out_bins, out_bin_edges             # <<<<<<<<<<<<<<
@@ -2400,7 +2400,7 @@ static PyObject *__pyx_pf_7relaxed_9subhaloes_10cy_binning_bin_ints(CYTHON_UNUSE
   __pyx_t_15 = 0;
   goto __pyx_L0;
 
-  /* "relaxed/subhaloes/cy_binning.pyx":6
+  /* "multicam/subhaloes/cy_binning.pyx":6
  * @cython.wraparound(False)
  * @cython.cdivision(True)
  * def bin_ints(long[:] x, long[:] out_bins, long[:] out_bin_edges):             # <<<<<<<<<<<<<<
@@ -2413,7 +2413,7 @@ static PyObject *__pyx_pf_7relaxed_9subhaloes_10cy_binning_bin_ints(CYTHON_UNUSE
   __Pyx_XDECREF(__pyx_t_13);
   __Pyx_XDECREF(__pyx_t_14);
   __Pyx_XDECREF(__pyx_t_15);
-  __Pyx_AddTraceback("relaxed.subhaloes.cy_binning.bin_ints", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("multicam.subhaloes.cy_binning.bin_ints", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
   __PYX_XDEC_MEMVIEW(&__pyx_v_x, 1);
@@ -2424,7 +2424,7 @@ static PyObject *__pyx_pf_7relaxed_9subhaloes_10cy_binning_bin_ints(CYTHON_UNUSE
   return __pyx_r;
 }
 
-/* "relaxed/subhaloes/cy_binning.pyx":38
+/* "multicam/subhaloes/cy_binning.pyx":38
  * @cython.wraparound(False)
  * @cython.cdivision(True)
  * def bin_2d(double[:,:] points, long n_bins, double L,             # <<<<<<<<<<<<<<
@@ -2530,7 +2530,7 @@ static PyObject *__pyx_pw_7relaxed_9subhaloes_10cy_binning_3bin_2d(PyObject *__p
   __pyx_L5_argtuple_error:;
   __Pyx_RaiseArgtupleInvalid("bin_2d", 1, 6, 6, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 38, __pyx_L3_error)
   __pyx_L3_error:;
-  __Pyx_AddTraceback("relaxed.subhaloes.cy_binning.bin_2d", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("multicam.subhaloes.cy_binning.bin_2d", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
@@ -2572,7 +2572,7 @@ static PyObject *__pyx_pf_7relaxed_9subhaloes_10cy_binning_2bin_2d(CYTHON_UNUSED
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("bin_2d", 0);
 
-  /* "relaxed/subhaloes/cy_binning.pyx":41
+  /* "multicam/subhaloes/cy_binning.pyx":41
  *            long[:] idx, long[:] out_bins, long[:] out_bin_edges):
  * 
  *     cdef double[:] x = points[0]             # <<<<<<<<<<<<<<
@@ -2596,7 +2596,7 @@ __pyx_v_x = __pyx_t_1;
   __pyx_t_1.memview = NULL;
   __pyx_t_1.data = NULL;
 
-  /* "relaxed/subhaloes/cy_binning.pyx":42
+  /* "multicam/subhaloes/cy_binning.pyx":42
  * 
  *     cdef double[:] x = points[0]
  *     cdef double[:] y = points[1]             # <<<<<<<<<<<<<<
@@ -2620,7 +2620,7 @@ __pyx_v_y = __pyx_t_1;
   __pyx_t_1.memview = NULL;
   __pyx_t_1.data = NULL;
 
-  /* "relaxed/subhaloes/cy_binning.pyx":43
+  /* "multicam/subhaloes/cy_binning.pyx":43
  *     cdef double[:] x = points[0]
  *     cdef double[:] y = points[1]
  *     cdef long n = len(x)             # <<<<<<<<<<<<<<
@@ -2630,7 +2630,7 @@ __pyx_v_y = __pyx_t_1;
   __pyx_t_2 = __Pyx_MemoryView_Len(__pyx_v_x); 
   __pyx_v_n = __pyx_t_2;
 
-  /* "relaxed/subhaloes/cy_binning.pyx":45
+  /* "multicam/subhaloes/cy_binning.pyx":45
  *     cdef long n = len(x)
  * 
  *     assert(n == len(out_bins))             # <<<<<<<<<<<<<<
@@ -2647,7 +2647,7 @@ __pyx_v_y = __pyx_t_1;
   }
   #endif
 
-  /* "relaxed/subhaloes/cy_binning.pyx":46
+  /* "multicam/subhaloes/cy_binning.pyx":46
  * 
  *     assert(n == len(out_bins))
  *     assert(n == len(idx))             # <<<<<<<<<<<<<<
@@ -2664,7 +2664,7 @@ __pyx_v_y = __pyx_t_1;
   }
   #endif
 
-  /* "relaxed/subhaloes/cy_binning.pyx":47
+  /* "multicam/subhaloes/cy_binning.pyx":47
  *     assert(n == len(out_bins))
  *     assert(n == len(idx))
  *     assert(n_bins*n_bins + 1 == len(out_bin_edges))             # <<<<<<<<<<<<<<
@@ -2681,7 +2681,7 @@ __pyx_v_y = __pyx_t_1;
   }
   #endif
 
-  /* "relaxed/subhaloes/cy_binning.pyx":49
+  /* "multicam/subhaloes/cy_binning.pyx":49
  *     assert(n_bins*n_bins + 1 == len(out_bin_edges))
  * 
  *     cdef double dx = L / n_bins             # <<<<<<<<<<<<<<
@@ -2690,7 +2690,7 @@ __pyx_v_y = __pyx_t_1;
  */
   __pyx_v_dx = (__pyx_v_L / __pyx_v_n_bins);
 
-  /* "relaxed/subhaloes/cy_binning.pyx":52
+  /* "multicam/subhaloes/cy_binning.pyx":52
  *     cdef long ix, iy
  * 
  *     for i in range(n):             # <<<<<<<<<<<<<<
@@ -2702,7 +2702,7 @@ __pyx_v_y = __pyx_t_1;
   for (__pyx_t_5 = 0; __pyx_t_5 < __pyx_t_4; __pyx_t_5+=1) {
     __pyx_v_i = __pyx_t_5;
 
-    /* "relaxed/subhaloes/cy_binning.pyx":53
+    /* "multicam/subhaloes/cy_binning.pyx":53
  * 
  *     for i in range(n):
  *         ix = <long>(x[i] / dx)             # <<<<<<<<<<<<<<
@@ -2712,7 +2712,7 @@ __pyx_v_y = __pyx_t_1;
     __pyx_t_6 = __pyx_v_i;
     __pyx_v_ix = ((long)((*((double *) ( /* dim=0 */ (__pyx_v_x.data + __pyx_t_6 * __pyx_v_x.strides[0]) ))) / __pyx_v_dx));
 
-    /* "relaxed/subhaloes/cy_binning.pyx":54
+    /* "multicam/subhaloes/cy_binning.pyx":54
  *     for i in range(n):
  *         ix = <long>(x[i] / dx)
  *         iy = <long>(y[i] / dx)             # <<<<<<<<<<<<<<
@@ -2722,7 +2722,7 @@ __pyx_v_y = __pyx_t_1;
     __pyx_t_6 = __pyx_v_i;
     __pyx_v_iy = ((long)((*((double *) ( /* dim=0 */ (__pyx_v_y.data + __pyx_t_6 * __pyx_v_y.strides[0]) ))) / __pyx_v_dx));
 
-    /* "relaxed/subhaloes/cy_binning.pyx":55
+    /* "multicam/subhaloes/cy_binning.pyx":55
  *         ix = <long>(x[i] / dx)
  *         iy = <long>(y[i] / dx)
  *         if ix < 0 or ix >= n_bins or iy < 0 or iy >= n_bins: continue             # <<<<<<<<<<<<<<
@@ -2754,7 +2754,7 @@ __pyx_v_y = __pyx_t_1;
       goto __pyx_L3_continue;
     }
 
-    /* "relaxed/subhaloes/cy_binning.pyx":57
+    /* "multicam/subhaloes/cy_binning.pyx":57
  *         if ix < 0 or ix >= n_bins or iy < 0 or iy >= n_bins: continue
  * 
  *         idx[i] = ix + iy*n_bins             # <<<<<<<<<<<<<<
@@ -2766,7 +2766,7 @@ __pyx_v_y = __pyx_t_1;
     __pyx_L3_continue:;
   }
 
-  /* "relaxed/subhaloes/cy_binning.pyx":59
+  /* "multicam/subhaloes/cy_binning.pyx":59
  *         idx[i] = ix + iy*n_bins
  * 
  *     return bin_ints(idx, out_bins, out_bin_edges)             # <<<<<<<<<<<<<<
@@ -2840,7 +2840,7 @@ __pyx_v_y = __pyx_t_1;
   __pyx_t_9 = 0;
   goto __pyx_L0;
 
-  /* "relaxed/subhaloes/cy_binning.pyx":38
+  /* "multicam/subhaloes/cy_binning.pyx":38
  * @cython.wraparound(False)
  * @cython.cdivision(True)
  * def bin_2d(double[:,:] points, long n_bins, double L,             # <<<<<<<<<<<<<<
@@ -2858,7 +2858,7 @@ __pyx_v_y = __pyx_t_1;
   __Pyx_XDECREF(__pyx_t_13);
   __Pyx_XDECREF(__pyx_t_14);
   __Pyx_XDECREF(__pyx_t_16);
-  __Pyx_AddTraceback("relaxed.subhaloes.cy_binning.bin_2d", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("multicam.subhaloes.cy_binning.bin_2d", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
   __PYX_XDEC_MEMVIEW(&__pyx_v_x, 1);
@@ -2872,7 +2872,7 @@ __pyx_v_y = __pyx_t_1;
   return __pyx_r;
 }
 
-/* "relaxed/subhaloes/cy_binning.pyx":64
+/* "multicam/subhaloes/cy_binning.pyx":64
  * @cython.wraparound(False)
  * @cython.cdivision(True)
  * def bin_3d(double[:,:] points, long n_bins, double L,             # <<<<<<<<<<<<<<
@@ -2978,7 +2978,7 @@ static PyObject *__pyx_pw_7relaxed_9subhaloes_10cy_binning_5bin_3d(PyObject *__p
   __pyx_L5_argtuple_error:;
   __Pyx_RaiseArgtupleInvalid("bin_3d", 1, 6, 6, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 64, __pyx_L3_error)
   __pyx_L3_error:;
-  __Pyx_AddTraceback("relaxed.subhaloes.cy_binning.bin_3d", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("multicam.subhaloes.cy_binning.bin_3d", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
@@ -3022,7 +3022,7 @@ static PyObject *__pyx_pf_7relaxed_9subhaloes_10cy_binning_4bin_3d(CYTHON_UNUSED
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("bin_3d", 0);
 
-  /* "relaxed/subhaloes/cy_binning.pyx":67
+  /* "multicam/subhaloes/cy_binning.pyx":67
  *            long[:] idx, long[:] out_bins, long[:] out_bin_edges):
  * 
  *     cdef double[:] x = points[0]             # <<<<<<<<<<<<<<
@@ -3046,7 +3046,7 @@ __pyx_v_x = __pyx_t_1;
   __pyx_t_1.memview = NULL;
   __pyx_t_1.data = NULL;
 
-  /* "relaxed/subhaloes/cy_binning.pyx":68
+  /* "multicam/subhaloes/cy_binning.pyx":68
  * 
  *     cdef double[:] x = points[0]
  *     cdef double[:] y = points[1]             # <<<<<<<<<<<<<<
@@ -3070,7 +3070,7 @@ __pyx_v_y = __pyx_t_1;
   __pyx_t_1.memview = NULL;
   __pyx_t_1.data = NULL;
 
-  /* "relaxed/subhaloes/cy_binning.pyx":69
+  /* "multicam/subhaloes/cy_binning.pyx":69
  *     cdef double[:] x = points[0]
  *     cdef double[:] y = points[1]
  *     cdef double[:] z = points[2]             # <<<<<<<<<<<<<<
@@ -3094,7 +3094,7 @@ __pyx_v_z = __pyx_t_1;
   __pyx_t_1.memview = NULL;
   __pyx_t_1.data = NULL;
 
-  /* "relaxed/subhaloes/cy_binning.pyx":70
+  /* "multicam/subhaloes/cy_binning.pyx":70
  *     cdef double[:] y = points[1]
  *     cdef double[:] z = points[2]
  *     cdef long n = len(x)             # <<<<<<<<<<<<<<
@@ -3104,7 +3104,7 @@ __pyx_v_z = __pyx_t_1;
   __pyx_t_2 = __Pyx_MemoryView_Len(__pyx_v_x); 
   __pyx_v_n = __pyx_t_2;
 
-  /* "relaxed/subhaloes/cy_binning.pyx":72
+  /* "multicam/subhaloes/cy_binning.pyx":72
  *     cdef long n = len(x)
  * 
  *     assert(n == len(out_bins))             # <<<<<<<<<<<<<<
@@ -3121,7 +3121,7 @@ __pyx_v_z = __pyx_t_1;
   }
   #endif
 
-  /* "relaxed/subhaloes/cy_binning.pyx":73
+  /* "multicam/subhaloes/cy_binning.pyx":73
  * 
  *     assert(n == len(out_bins))
  *     assert(n == len(idx))             # <<<<<<<<<<<<<<
@@ -3138,7 +3138,7 @@ __pyx_v_z = __pyx_t_1;
   }
   #endif
 
-  /* "relaxed/subhaloes/cy_binning.pyx":74
+  /* "multicam/subhaloes/cy_binning.pyx":74
  *     assert(n == len(out_bins))
  *     assert(n == len(idx))
  *     assert(n_bins*n_bins*n_bins + 1 == len(out_bin_edges))             # <<<<<<<<<<<<<<
@@ -3155,7 +3155,7 @@ __pyx_v_z = __pyx_t_1;
   }
   #endif
 
-  /* "relaxed/subhaloes/cy_binning.pyx":76
+  /* "multicam/subhaloes/cy_binning.pyx":76
  *     assert(n_bins*n_bins*n_bins + 1 == len(out_bin_edges))
  * 
  *     cdef double dx = L / n_bins             # <<<<<<<<<<<<<<
@@ -3164,7 +3164,7 @@ __pyx_v_z = __pyx_t_1;
  */
   __pyx_v_dx = (__pyx_v_L / __pyx_v_n_bins);
 
-  /* "relaxed/subhaloes/cy_binning.pyx":79
+  /* "multicam/subhaloes/cy_binning.pyx":79
  *     cdef long ix, iy, iz
  * 
  *     for i in range(n):             # <<<<<<<<<<<<<<
@@ -3176,7 +3176,7 @@ __pyx_v_z = __pyx_t_1;
   for (__pyx_t_5 = 0; __pyx_t_5 < __pyx_t_4; __pyx_t_5+=1) {
     __pyx_v_i = __pyx_t_5;
 
-    /* "relaxed/subhaloes/cy_binning.pyx":80
+    /* "multicam/subhaloes/cy_binning.pyx":80
  * 
  *     for i in range(n):
  *         ix = <long>(x[i] / dx)             # <<<<<<<<<<<<<<
@@ -3186,7 +3186,7 @@ __pyx_v_z = __pyx_t_1;
     __pyx_t_6 = __pyx_v_i;
     __pyx_v_ix = ((long)((*((double *) ( /* dim=0 */ (__pyx_v_x.data + __pyx_t_6 * __pyx_v_x.strides[0]) ))) / __pyx_v_dx));
 
-    /* "relaxed/subhaloes/cy_binning.pyx":81
+    /* "multicam/subhaloes/cy_binning.pyx":81
  *     for i in range(n):
  *         ix = <long>(x[i] / dx)
  *         iy = <long>(y[i] / dx)             # <<<<<<<<<<<<<<
@@ -3196,7 +3196,7 @@ __pyx_v_z = __pyx_t_1;
     __pyx_t_6 = __pyx_v_i;
     __pyx_v_iy = ((long)((*((double *) ( /* dim=0 */ (__pyx_v_y.data + __pyx_t_6 * __pyx_v_y.strides[0]) ))) / __pyx_v_dx));
 
-    /* "relaxed/subhaloes/cy_binning.pyx":82
+    /* "multicam/subhaloes/cy_binning.pyx":82
  *         ix = <long>(x[i] / dx)
  *         iy = <long>(y[i] / dx)
  *         iz = <long>(z[i] / dx)             # <<<<<<<<<<<<<<
@@ -3206,7 +3206,7 @@ __pyx_v_z = __pyx_t_1;
     __pyx_t_6 = __pyx_v_i;
     __pyx_v_iz = ((long)((*((double *) ( /* dim=0 */ (__pyx_v_z.data + __pyx_t_6 * __pyx_v_z.strides[0]) ))) / __pyx_v_dx));
 
-    /* "relaxed/subhaloes/cy_binning.pyx":83
+    /* "multicam/subhaloes/cy_binning.pyx":83
  *         iy = <long>(y[i] / dx)
  *         iz = <long>(z[i] / dx)
  *         if ((ix < 0 or ix >= n_bins) or             # <<<<<<<<<<<<<<
@@ -3226,7 +3226,7 @@ __pyx_v_z = __pyx_t_1;
       goto __pyx_L6_bool_binop_done;
     }
 
-    /* "relaxed/subhaloes/cy_binning.pyx":84
+    /* "multicam/subhaloes/cy_binning.pyx":84
  *         iz = <long>(z[i] / dx)
  *         if ((ix < 0 or ix >= n_bins) or
  *             (iy < 0 or iy >= n_bins) or             # <<<<<<<<<<<<<<
@@ -3246,7 +3246,7 @@ __pyx_v_z = __pyx_t_1;
       goto __pyx_L6_bool_binop_done;
     }
 
-    /* "relaxed/subhaloes/cy_binning.pyx":85
+    /* "multicam/subhaloes/cy_binning.pyx":85
  *         if ((ix < 0 or ix >= n_bins) or
  *             (iy < 0 or iy >= n_bins) or
  *             (iz < 0 or iz >= n_bins)): continue             # <<<<<<<<<<<<<<
@@ -3263,7 +3263,7 @@ __pyx_v_z = __pyx_t_1;
     __pyx_t_7 = __pyx_t_8;
     __pyx_L6_bool_binop_done:;
 
-    /* "relaxed/subhaloes/cy_binning.pyx":83
+    /* "multicam/subhaloes/cy_binning.pyx":83
  *         iy = <long>(y[i] / dx)
  *         iz = <long>(z[i] / dx)
  *         if ((ix < 0 or ix >= n_bins) or             # <<<<<<<<<<<<<<
@@ -3272,7 +3272,7 @@ __pyx_v_z = __pyx_t_1;
  */
     if (__pyx_t_7) {
 
-      /* "relaxed/subhaloes/cy_binning.pyx":85
+      /* "multicam/subhaloes/cy_binning.pyx":85
  *         if ((ix < 0 or ix >= n_bins) or
  *             (iy < 0 or iy >= n_bins) or
  *             (iz < 0 or iz >= n_bins)): continue             # <<<<<<<<<<<<<<
@@ -3281,7 +3281,7 @@ __pyx_v_z = __pyx_t_1;
  */
       goto __pyx_L3_continue;
 
-      /* "relaxed/subhaloes/cy_binning.pyx":83
+      /* "multicam/subhaloes/cy_binning.pyx":83
  *         iy = <long>(y[i] / dx)
  *         iz = <long>(z[i] / dx)
  *         if ((ix < 0 or ix >= n_bins) or             # <<<<<<<<<<<<<<
@@ -3290,7 +3290,7 @@ __pyx_v_z = __pyx_t_1;
  */
     }
 
-    /* "relaxed/subhaloes/cy_binning.pyx":87
+    /* "multicam/subhaloes/cy_binning.pyx":87
  *             (iz < 0 or iz >= n_bins)): continue
  * 
  *         idx[i] = ix + iy*n_bins + iz*n_bins*n_bins             # <<<<<<<<<<<<<<
@@ -3302,7 +3302,7 @@ __pyx_v_z = __pyx_t_1;
     __pyx_L3_continue:;
   }
 
-  /* "relaxed/subhaloes/cy_binning.pyx":89
+  /* "multicam/subhaloes/cy_binning.pyx":89
  *         idx[i] = ix + iy*n_bins + iz*n_bins*n_bins
  * 
  *     return bin_ints(idx, out_bins, out_bin_edges)             # <<<<<<<<<<<<<<
@@ -3374,7 +3374,7 @@ __pyx_v_z = __pyx_t_1;
   __pyx_t_9 = 0;
   goto __pyx_L0;
 
-  /* "relaxed/subhaloes/cy_binning.pyx":64
+  /* "multicam/subhaloes/cy_binning.pyx":64
  * @cython.wraparound(False)
  * @cython.cdivision(True)
  * def bin_3d(double[:,:] points, long n_bins, double L,             # <<<<<<<<<<<<<<
@@ -3392,7 +3392,7 @@ __pyx_v_z = __pyx_t_1;
   __Pyx_XDECREF(__pyx_t_13);
   __Pyx_XDECREF(__pyx_t_14);
   __Pyx_XDECREF(__pyx_t_16);
-  __Pyx_AddTraceback("relaxed.subhaloes.cy_binning.bin_3d", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("multicam.subhaloes.cy_binning.bin_3d", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
   __PYX_XDEC_MEMVIEW(&__pyx_v_x, 1);
@@ -16547,7 +16547,7 @@ static PyBufferProcs __pyx_tp_as_buffer_array = {
 
 static PyTypeObject __pyx_type___pyx_array = {
   PyVarObject_HEAD_INIT(0, 0)
-  "relaxed.subhaloes.cy_binning.array", /*tp_name*/
+  "multicam.subhaloes.cy_binning.array", /*tp_name*/
   sizeof(struct __pyx_array_obj), /*tp_basicsize*/
   0, /*tp_itemsize*/
   __pyx_tp_dealloc_array, /*tp_dealloc*/
@@ -16666,7 +16666,7 @@ static PyMethodDef __pyx_methods_Enum[] = {
 
 static PyTypeObject __pyx_type___pyx_MemviewEnum = {
   PyVarObject_HEAD_INIT(0, 0)
-  "relaxed.subhaloes.cy_binning.Enum", /*tp_name*/
+  "multicam.subhaloes.cy_binning.Enum", /*tp_name*/
   sizeof(struct __pyx_MemviewEnum_obj), /*tp_basicsize*/
   0, /*tp_itemsize*/
   __pyx_tp_dealloc_Enum, /*tp_dealloc*/
@@ -16927,7 +16927,7 @@ static PyBufferProcs __pyx_tp_as_buffer_memoryview = {
 
 static PyTypeObject __pyx_type___pyx_memoryview = {
   PyVarObject_HEAD_INIT(0, 0)
-  "relaxed.subhaloes.cy_binning.memoryview", /*tp_name*/
+  "multicam.subhaloes.cy_binning.memoryview", /*tp_name*/
   sizeof(struct __pyx_memoryview_obj), /*tp_basicsize*/
   0, /*tp_itemsize*/
   __pyx_tp_dealloc_memoryview, /*tp_dealloc*/
@@ -17065,7 +17065,7 @@ static struct PyGetSetDef __pyx_getsets__memoryviewslice[] = {
 
 static PyTypeObject __pyx_type___pyx_memoryviewslice = {
   PyVarObject_HEAD_INIT(0, 0)
-  "relaxed.subhaloes.cy_binning._memoryviewslice", /*tp_name*/
+  "multicam.subhaloes.cy_binning._memoryviewslice", /*tp_name*/
   sizeof(struct __pyx_memoryviewslice_obj), /*tp_basicsize*/
   0, /*tp_itemsize*/
   __pyx_tp_dealloc__memoryviewslice, /*tp_dealloc*/
@@ -17505,7 +17505,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __Pyx_GOTREF(__pyx_tuple__18);
   __Pyx_GIVEREF(__pyx_tuple__18);
 
-  /* "relaxed/subhaloes/cy_binning.pyx":6
+  /* "multicam/subhaloes/cy_binning.pyx":6
  * @cython.wraparound(False)
  * @cython.cdivision(True)
  * def bin_ints(long[:] x, long[:] out_bins, long[:] out_bin_edges):             # <<<<<<<<<<<<<<
@@ -17517,7 +17517,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __Pyx_GIVEREF(__pyx_tuple__19);
   __pyx_codeobj__20 = (PyObject*)__Pyx_PyCode_New(3, 0, 8, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__19, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_relaxed_subhaloes_cy_binning_pyx, __pyx_n_s_bin_ints, 6, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__20)) __PYX_ERR(0, 6, __pyx_L1_error)
 
-  /* "relaxed/subhaloes/cy_binning.pyx":38
+  /* "multicam/subhaloes/cy_binning.pyx":38
  * @cython.wraparound(False)
  * @cython.cdivision(True)
  * def bin_2d(double[:,:] points, long n_bins, double L,             # <<<<<<<<<<<<<<
@@ -17529,7 +17529,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __Pyx_GIVEREF(__pyx_tuple__21);
   __pyx_codeobj__22 = (PyObject*)__Pyx_PyCode_New(6, 0, 13, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__21, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_relaxed_subhaloes_cy_binning_pyx, __pyx_n_s_bin_2d, 38, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__22)) __PYX_ERR(0, 38, __pyx_L1_error)
 
-  /* "relaxed/subhaloes/cy_binning.pyx":64
+  /* "multicam/subhaloes/cy_binning.pyx":64
  * @cython.wraparound(False)
  * @cython.cdivision(True)
  * def bin_3d(double[:,:] points, long n_bins, double L,             # <<<<<<<<<<<<<<
@@ -17930,8 +17930,8 @@ if (!__Pyx_RefNanny) {
   #if PY_MAJOR_VERSION >= 3
   {
     PyObject *modules = PyImport_GetModuleDict(); if (unlikely(!modules)) __PYX_ERR(0, 1, __pyx_L1_error)
-    if (!PyDict_GetItemString(modules, "relaxed.subhaloes.cy_binning")) {
-      if (unlikely(PyDict_SetItemString(modules, "relaxed.subhaloes.cy_binning", __pyx_m) < 0)) __PYX_ERR(0, 1, __pyx_L1_error)
+    if (!PyDict_GetItemString(modules, "multicam.subhaloes.cy_binning")) {
+      if (unlikely(PyDict_SetItemString(modules, "multicam.subhaloes.cy_binning", __pyx_m) < 0)) __PYX_ERR(0, 1, __pyx_L1_error)
     }
   }
   #endif
@@ -17952,7 +17952,7 @@ if (!__Pyx_RefNanny) {
   if (__Pyx_patch_abc() < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   #endif
 
-  /* "relaxed/subhaloes/cy_binning.pyx":6
+  /* "multicam/subhaloes/cy_binning.pyx":6
  * @cython.wraparound(False)
  * @cython.cdivision(True)
  * def bin_ints(long[:] x, long[:] out_bins, long[:] out_bin_edges):             # <<<<<<<<<<<<<<
@@ -17964,7 +17964,7 @@ if (!__Pyx_RefNanny) {
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_bin_ints, __pyx_t_1) < 0) __PYX_ERR(0, 6, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "relaxed/subhaloes/cy_binning.pyx":38
+  /* "multicam/subhaloes/cy_binning.pyx":38
  * @cython.wraparound(False)
  * @cython.cdivision(True)
  * def bin_2d(double[:,:] points, long n_bins, double L,             # <<<<<<<<<<<<<<
@@ -17976,7 +17976,7 @@ if (!__Pyx_RefNanny) {
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_bin_2d, __pyx_t_1) < 0) __PYX_ERR(0, 38, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "relaxed/subhaloes/cy_binning.pyx":64
+  /* "multicam/subhaloes/cy_binning.pyx":64
  * @cython.wraparound(False)
  * @cython.cdivision(True)
  * def bin_3d(double[:,:] points, long n_bins, double L,             # <<<<<<<<<<<<<<
@@ -17988,7 +17988,7 @@ if (!__Pyx_RefNanny) {
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_bin_3d, __pyx_t_1) < 0) __PYX_ERR(0, 64, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "relaxed/subhaloes/cy_binning.pyx":1
+  /* "multicam/subhaloes/cy_binning.pyx":1
  * cimport cython             # <<<<<<<<<<<<<<
  * 
  * @cython.boundscheck(False)
@@ -18158,11 +18158,11 @@ if (!__Pyx_RefNanny) {
   __Pyx_XDECREF(__pyx_t_1);
   if (__pyx_m) {
     if (__pyx_d) {
-      __Pyx_AddTraceback("init relaxed.subhaloes.cy_binning", __pyx_clineno, __pyx_lineno, __pyx_filename);
+      __Pyx_AddTraceback("init multicam.subhaloes.cy_binning", __pyx_clineno, __pyx_lineno, __pyx_filename);
     }
     Py_CLEAR(__pyx_m);
   } else if (!PyErr_Occurred()) {
-    PyErr_SetString(PyExc_ImportError, "init relaxed.subhaloes.cy_binning");
+    PyErr_SetString(PyExc_ImportError, "init multicam.subhaloes.cy_binning");
   }
   __pyx_L0:;
   __Pyx_RefNannyFinishContext();

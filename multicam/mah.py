@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 from scipy.interpolate import interp1d
 
-from relaxed import catalogs
+from multicam import catalogs
 
 
 def get_mah(
@@ -23,7 +23,7 @@ def get_mah(
     z_map_file = outdir.joinpath("z_map.json")
 
     # load all available scales and indices.
-    with open(z_map_file, "r") as fp:
+    with open(z_map_file, "r", encoding="utf-8") as fp:
         scale_map = json.load(fp)  # map from i -> scale
     indices = np.array(list(scale_map.keys()))
     scales = np.array(list(scale_map.values()))
@@ -35,7 +35,7 @@ def get_mah(
     cat = catalogs.load_cat_csv(cat_file)
 
     # extract m(a) information.
-    ma_info = get_ma_info(cat, indices)
+    ma_info = _get_ma_info(cat, indices)
     ma = ma_info["ma_vir"]
     ma_peak = ma_info["ma_peak"]
 
@@ -82,7 +82,7 @@ def get_mah(
     }
 
 
-def get_ma_info(cat, indices):
+def _get_ma_info(cat, indices):
     assert "mvir_a0" in cat.colnames
     assert "mvir_a160" in cat.colnames
     Mvir = np.zeros((len(cat), len(indices)))
@@ -136,7 +136,7 @@ def get_am(ma, scales, min_mass_bin, n_bins=100, log_spacing=True):
 
     # 4. + 5.
     fs = []
-    for i in range(len(m_peak)):
+    for i in range(len(m_peak)):  # pylint: disable=consider-using-enumerate
         pairs = [(scales[0], m_peak[i][0])]
         count = 0
         for j in range(1, len(m_peak[i])):
@@ -145,7 +145,7 @@ def get_am(ma, scales, min_mass_bin, n_bins=100, log_spacing=True):
                 pairs.append((scales[j], m_peak[i][j]))
                 count += 1
 
-        assert not len(pairs) == 1, "Only 1 pair added, so max reached at a -> 0, impossible."
+        assert len(pairs) != 1, "Only 1 pair added, so max reached at a -> 0, impossible."
 
         _scales = np.array([pair[0] for pair in pairs])
         _m_peaks = np.array([pair[1] for pair in pairs])
@@ -159,8 +159,7 @@ def get_am(ma, scales, min_mass_bin, n_bins=100, log_spacing=True):
 
 
 def get_an_from_am(am, mass_bins, mbin=0.498):
-    # `mbin` is the bin you want to get from am, returns first bin bigger than `mbin`
-    # default is `a_{n} = a_{1/2}`
+    """Return scale corresponding to first mass bin bigger than `mbin`."""
     idx = np.where(mass_bins > mbin)[0][0]
     return am[:, idx]
 

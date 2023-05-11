@@ -4,7 +4,7 @@ import subprocess
 from pathlib import Path
 
 # NOTE: Need to check that *.config file has correct path to `name_index` and `type_index`
-repo = Path("/home/imendoza/nbody-relaxed/")
+repo = Path("/home/imendoza/multicam/")
 executable = "/home/imendoza/minnow/scripts/text_to_minh"
 config = repo.joinpath("data/Bolshoi.config")
 all_vars = repo.joinpath("data/all_vars.txt")

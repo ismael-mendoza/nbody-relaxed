@@ -10,10 +10,10 @@ classifiers = [
 description = "Studies of relationship between dark matter halo present-day properties and their growth."
 keywords = ["cosmology", "haloes", "dark-matter", "nbody", "simulation"]
 license = "MIT"
-name = "nbody_relaxed"
-packages = [{include = "relaxed"}]
+name = "multicam"
+packages = [{include = "multicam"}]
 readme = "README.md"
-repository = "https://github.com/ismael-mendoza/nbody-relaxed"
+repository = "https://github.com/ismael-mendoza/multicam"
 version = "0.0.1"
 
 [tool.poetry.dependencies]
@@ -27,7 +27,7 @@ lmfit = ">=1.0.3"
 matplotlib = ">=3.5.1, !=3.6.0"
 numpy = ">=1.22.0"
 pminh = {git = "https://github.com/ismael-mendoza/minnow", branch = "master", markers = "sys_platform == 'linux'"}
-python = ">=3.8,<3.11"
+python = ">=3.8,<3.12"
 scikit-learn = ">=1.0.0"
 scipy = ">=1.7.3"
 tqdm = ">=4.63.0"
@@ -44,7 +44,7 @@ pytest = ">=6.2.5"
 pytest-cov = ">=2.12.1"
 
 [tool.poetry.urls]
-"Bug Tracker" = "https://github.com/ismael-mendoza/nbody-relaxed/issues"
+"Bug Tracker" = "https://github.com/ismael-mendoza/multicam/issues"
 
 [build-system]
 build-backend = "poetry.core.masonry.api"
@@ -56,7 +56,7 @@ target-version = ['py38']
 
 [tool.isort]
 profile = "black"
-src_paths = ["relaxed", "bin", "tests"]
+src_paths = ["multicam", "bin", "tests"]
 
 [tool.pytest.ini_options]
 filterwarnings = [
@@ -64,3 +64,18 @@ filterwarnings = [
 ]
 minversion = "6.0"
 testpaths = ['tests']
+
+[tool.pylint."MESSAGES CONTROL"]
+
+# Disable the message, report, category or checker with the given id(s). You
+# can either give multiple identifiers separated by comma (,) or put this
+# option multiple times (only on the command line, not in the configuration
+# file where it should appear only once). You can also use "--disable=all" to
+# disable everything first and then reenable specific checks. For example, if
+# you want to run only the similarities checker, you can use "--disable=all
+# --enable=similarities". If you want to run only the classes checker, but have
+# no Warning level messages displayed, use "--disable=all --enable=classes
+# --disable=W".
+disable = '''invalid-name,
+             unbalanced-tuple-unpacking,
+'''
