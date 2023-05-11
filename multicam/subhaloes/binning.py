@@ -7,7 +7,7 @@ import time
 
 import numpy as np
 
-from relaxed.subhaloes import cy_binning
+from multicam.subhaloes import cy_binning
 
 """ binning.py contains wrappers for Cython routines which bin data almost a
 hundred times faster than any native Python routine can.

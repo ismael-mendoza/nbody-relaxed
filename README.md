@@ -1,9 +1,9 @@
-# nbody-relaxed
+# MultiCAM
 
 ## Instalation
 
 ```bash
-conda create -n relaxed python=3.7
+conda create -n multicam python=3.7
 conda install -c conda-forge poetry 
 poetry install
 ```

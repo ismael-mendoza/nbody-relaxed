@@ -10,10 +10,10 @@ classifiers = [
 description = "Studies of relationship between dark matter halo present-day properties and their growth."
 keywords = ["cosmology", "haloes", "dark-matter", "nbody", "simulation"]
 license = "MIT"
-name = "nbody_relaxed"
-packages = [{include = "relaxed"}]
+name = "multicam"
+packages = [{include = "multicam"}]
 readme = "README.md"
-repository = "https://github.com/ismael-mendoza/nbody-relaxed"
+repository = "https://github.com/ismael-mendoza/multicam"
 version = "0.0.1"
 
 [tool.poetry.dependencies]
@@ -44,7 +44,7 @@ pytest = ">=6.2.5"
 pytest-cov = ">=2.12.1"
 
 [tool.poetry.urls]
-"Bug Tracker" = "https://github.com/ismael-mendoza/nbody-relaxed/issues"
+"Bug Tracker" = "https://github.com/ismael-mendoza/multicam/issues"
 
 [build-system]
 build-backend = "poetry.core.masonry.api"
@@ -56,7 +56,7 @@ target-version = ['py38']
 
 [tool.isort]
 profile = "black"
-src_paths = ["relaxed", "bin", "tests"]
+src_paths = ["multicam", "bin", "tests"]
 
 [tool.pytest.ini_options]
 filterwarnings = [

@@ -9,8 +9,8 @@ N=10000
 # M_LOW,M_HIGH = (12.0,12.2), (13, 14)
 
 ################# run pipeline #########################
-./relaxed/pipeline.py --outdir $OUTPUT make-ids --m-low $M_LOW --m-high $M_HIGH --n-haloes $N
-./relaxed/pipeline.py --outdir $OUTPUT make-dmcat
-./relaxed/pipeline.py --outdir $OUTPUT make-progenitors
-./relaxed/pipeline.py --outdir $OUTPUT make-subhaloes
-./relaxed/pipeline.py --outdir $OUTPUT combine-all
+./multicam/pipeline.py --outdir $OUTPUT make-ids --m-low $M_LOW --m-high $M_HIGH --n-haloes $N
+./multicam/pipeline.py --outdir $OUTPUT make-dmcat
+./multicam/pipeline.py --outdir $OUTPUT make-progenitors
+./multicam/pipeline.py --outdir $OUTPUT make-subhaloes
+./multicam/pipeline.py --outdir $OUTPUT combine-all

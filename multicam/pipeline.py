@@ -12,12 +12,12 @@ from astropy.io import ascii as astro_ascii
 from pminh import minh
 from tqdm import tqdm
 
-from relaxed.catalogs import get_id_filter, intersect, save_cat_csv
-from relaxed.minh import load_cat_minh
-from relaxed.parameters import default_params
-from relaxed.progenitors.progenitor_lines import get_next_progenitor
-from relaxed.sims import all_sims
-from relaxed.subhaloes import quantities as sub_quantities
+from multicam.catalogs import get_id_filter, intersect, save_cat_csv
+from multicam.minh import load_cat_minh
+from multicam.parameters import default_params
+from multicam.progenitors.progenitor_lines import get_next_progenitor
+from multicam.sims import all_sims
+from multicam.subhaloes import quantities as sub_quantities
 
 the_root = Path(__file__).absolute().parent.parent
 raw_catalogs = the_root.joinpath("catalogs")

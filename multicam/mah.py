@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 from scipy.interpolate import interp1d
 
-from relaxed import catalogs
+from multicam import catalogs
 
 
 def get_mah(

@@ -8,7 +8,7 @@ from sklearn import linear_model
 from sklearn.feature_selection import SelectFromModel
 from sklearn.preprocessing import QuantileTransformer
 
-from relaxed.mah import get_an_from_am
+from multicam.mah import get_an_from_am
 
 # dictionary of max correlations mass bin of present-day halo properties with a(m).
 opcam_dict = {
@@ -396,7 +396,6 @@ class CAM(PredictionModel):
         self.mark_to_Y = None
 
     def _fit(self, am, y):
-
         y = y.reshape(-1)
         an_train = get_an_from_am(am, self.mass_bins, mbin=self.opt_mbin).reshape(-1)
         assert an_train.shape[0] == am.shape[0]
