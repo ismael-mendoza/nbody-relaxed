@@ -568,7 +568,7 @@ class PredictMAH(Figure):
             "tu_only": {"x": ("t/|u|",), "y": am_names + ma_names},
             "all": {"x": self.params, "y": am_names + ma_names},
         }
-        datasets, _, cat_test = prepare_datasets(cat, info, self.rng)
+        datasets, _, test_idx = prepare_datasets(cat, info, self.rng)
 
         # train models
         data = {
@@ -609,7 +609,7 @@ class PredictMAH(Figure):
         errs_ma = defaultdict(lambda: np.zeros(n_scales))
         dataset_names = ["cvir_only", "x0_only", "tu_only", "all"]
         mdl_names = ["linear_cvir", "linear_x0", "linear_tu", "linear_all"]
-        ibox = cat_test["ibox"]  # need it for errors.
+        ibox = cat[test_idx]["ibox"]  # need it for errors.
         for dataset_names, mdl_name in zip(dataset_names, mdl_names):
             model = models[mdl_name]
             x_test, y_test = datasets[dataset_names]["test"]
@@ -746,7 +746,7 @@ class InvPredMetrics(Figure):
                 "y": self.params,
             },
         }
-        datasets, _, cat_test = prepare_datasets(cat, info, self.rng)
+        datasets, _, test_idx = prepare_datasets(cat, info, self.rng)
 
         data = {
             "linear_cvir": {
@@ -790,7 +790,7 @@ class InvPredMetrics(Figure):
         ]
 
         output = {}
-        ibox = cat_test["ibox"]
+        ibox = cat[test_idx]["ibox"]
         for ds, mdl in zip(ds_names, mdl_names):
             d = defaultdict(lambda: np.zeros(n_params))
             x_test, y_test = datasets[ds]["test"]
@@ -895,7 +895,7 @@ class ForwardPredMetrics(Figure):
                 "y": self.params,
             },
         }
-        datasets, _, cat_test = prepare_datasets(cat, info, self.rng)
+        datasets, _, test_idx = prepare_datasets(cat, info, self.rng)
         n_params = len(self.params)
 
         data = {
@@ -939,7 +939,7 @@ class ForwardPredMetrics(Figure):
         ds_names = ("ma", "ma_diffmah", "params_diffmah", "am")
 
         output = {}
-        ibox = cat_test["ibox"]
+        ibox = cat[test_idx]["ibox"]
         for ds, mdl in zip(ds_names, mdl_names):
             d = defaultdict(lambda: np.zeros(n_params))
             x_test, y_test = datasets[ds]["test"]
