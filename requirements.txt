@@ -1,0 +1,11 @@
+astropy
+click
+colossus
+corner
+findiff
+lmfit
+matplotlib
+numpy
+scikit-learn
+scipy
+tqdm
