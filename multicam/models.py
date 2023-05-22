@@ -512,7 +512,7 @@ def tbl_to_arr(table, names=None):
     return np.hstack([table[param].reshape(-1, 1) for param in names])
 
 
-def get_tt_indices(n_points, rng, test_ratio=0.2):
+def get_tt_indices(n_points, rng=np.random.default_rng(0), test_ratio=0.2):
     test_size = int(np.ceil(test_ratio * n_points))
     test_idx = rng.choice(range(n_points), replace=False, size=test_size)
     assert len(test_idx) == len(set(test_idx))
