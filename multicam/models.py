@@ -502,7 +502,7 @@ def prepare_datasets(cat, datasets: dict, rng, test_ratio=0.3):
         x_train, x_test = tbl_to_arr(cat_train, x_params), tbl_to_arr(cat_test, x_params)
         y_train, y_test = tbl_to_arr(cat_train, y_params), tbl_to_arr(cat_test, y_params)
         output[name] = {"train": (x_train, y_train), "test": (x_test, y_test)}
-    return output, cat_train, cat_test
+    return output, train_idx, test_idx
 
 
 def tbl_to_arr(table, names=None):
