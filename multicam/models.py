@@ -1,4 +1,4 @@
-import warnings
+"""Implements statistical models used to predict MAH from halo properties or vice-versa."""
 from abc import ABC, abstractmethod
 
 import numpy as np
