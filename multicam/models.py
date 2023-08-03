@@ -137,9 +137,14 @@ class PredictionModelTransform(PredictionModel, ABC):
             # predict on transformed ranks.
             yr_trans = super().predict(xr_trans)
 
-            # get quantile transformer of prediction to (marginal) normal.
-            qt_pred = QuantileTransformer(n_quantiles=len(yr_trans), output_distribution="normal")
-            qt_pred.fit(yr_trans)
+            # get quantile transformer of prediction to (marginal) normal using training data.
+            xr_train = rankdata(self.x_train, axis=0, method="ordinal")
+            xr_train_trans = self.qt_xr.transform(xr_train)
+            yr_train_trans = super().predict(xr_train_trans)
+            qt_pred = QuantileTransformer(
+                n_quantiles=len(yr_train_trans), output_distribution="normal"
+            )
+            qt_pred.fit(yr_train_trans)
 
             # inverse transform prediction to get ranks of target.
             yr = self.qt_yr.inverse_transform(qt_pred.transform(yr_trans)).astype(int) - 1
