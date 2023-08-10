@@ -78,6 +78,7 @@ class PredictionModelTransform(PredictionModel, ABC):
         self.qt_y = None
         self.y_train = None
         self.x_train = None
+        self.qt_pred = None
 
     def fit(self, x, y):
         assert len(x.shape) == len(y.shape) == 2
@@ -113,6 +114,16 @@ class PredictionModelTransform(PredictionModel, ABC):
 
         super().fit(x_trans, y_trans)
 
+        if self.use_multicam:
+            # get quantile transformer of prediction to (marginal) normal using training data.
+            xr_train = rankdata(self.x_train, axis=0, method="ordinal")
+            xr_train_trans = self.qt_xr.transform(xr_train)
+            yr_train_trans = super().predict(xr_train_trans)
+            self.qt_pred = QuantileTransformer(
+                n_quantiles=len(yr_train_trans), output_distribution="normal"
+            )
+            self.qt_pred.fit(yr_train_trans)
+
     @staticmethod
     def value_at_rank(x, ranks):
         """Get value at ranks of multidimensional array."""
@@ -137,17 +148,8 @@ class PredictionModelTransform(PredictionModel, ABC):
             # predict on transformed ranks.
             yr_trans = super().predict(xr_trans)
 
-            # get quantile transformer of prediction to (marginal) normal using training data.
-            xr_train = rankdata(self.x_train, axis=0, method="ordinal")
-            xr_train_trans = self.qt_xr.transform(xr_train)
-            yr_train_trans = super().predict(xr_train_trans)
-            qt_pred = QuantileTransformer(
-                n_quantiles=len(yr_train_trans), output_distribution="normal"
-            )
-            qt_pred.fit(yr_train_trans)
-
             # inverse transform prediction to get ranks of target.
-            yr = self.qt_yr.inverse_transform(qt_pred.transform(yr_trans)).astype(int) - 1
+            yr = self.qt_yr.inverse_transform(self.qt_pred.transform(yr_trans)).astype(int) - 1
 
             # predictions are points in train data corresponding to ranks predicted
             y_train_sorted = np.sort(self.y_train, axis=0)
