@@ -139,9 +139,17 @@ class PredictionModelTransform(PredictionModel, ABC):
         assert len(x.shape) == 2
 
         if self.use_multicam:
-            # get ranks of test data.
-            xr = rankdata(x, axis=0, method="ordinal")
-            xr = (xr - 1) * (len(self.x_train) - 1) / (len(x) - 1) + 1
+            # get ranks of test data (based on training data)
+            # NOTE: still depends on input as ranks might change, do one at a time?
+            xr = rankdata(np.concatenate((x, self.x_train), axis=0), axis=0, method="ordinal")
+
+            # scale to be between [1, len(x_train)]
+            a, b, c = 1, len(self.x_train) + len(x), len(self.x_train)
+            xr = (xr[: len(x), :] - a) / (b - a) * (c - a) + a
+
+            # xr = rankdata(np.conc, axis=0, method="ordinal")
+            # xr = (xr - 1) * (len(self.x_train) - 1) / (len(x) - 1) + 1
+
             # transform ranks to be (marginally) gaussian.
             xr_trans = self.qt_xr.transform(xr)
 
@@ -149,7 +157,8 @@ class PredictionModelTransform(PredictionModel, ABC):
             yr_trans = super().predict(xr_trans)
 
             # inverse transform prediction to get ranks of target.
-            yr = self.qt_yr.inverse_transform(self.qt_pred.transform(yr_trans)).astype(int) - 1
+            yr = self.qt_yr.inverse_transform(self.qt_pred.transform(yr_trans)).astype(int)
+            yr -= 1  # ranks are 1-indexed, so subtract 1 to get 0-indexed.
 
             # predictions are points in train data corresponding to ranks predicted
             y_train_sorted = np.sort(self.y_train, axis=0)
