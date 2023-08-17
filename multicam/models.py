@@ -141,14 +141,13 @@ class PredictionModelTransform(PredictionModel, ABC):
         if self.use_multicam:
             # get ranks of test data (based on training data)
             xr = np.zeros_like(x) * np.nan
-            for ii in range(x.shape[0]):
-                x_ii = x[ii, :].reshape(1, -1)
-                x_train_ii = np.concatenate((x_ii, self.x_train), axis=0)
-                xr_ii = rankdata(x_train_ii, axis=0, method="ordinal")
+            for jj in range(x.shape[1]):
+                x_jj = x[:, jj]
+                x_train_jj = np.sort(self.x_train[:, jj])
+                xr_jj = np.searchsorted(x_train_jj, x_jj) + 1  # indices to ranks
                 a, b, c = 1, len(self.x_train) + 1, len(self.x_train)
-                xr_ii = (xr_ii[:1, :] - a) / (b - a) * (c - a) + a
-                assert xr_ii.shape == x_ii.shape
-                xr[ii, :] = xr_ii[0]
+                xr_jj = (xr_jj - a) / (b - a) * (c - a) + a
+                xr[:, jj] = xr_jj
             assert np.sum(np.isnan(xr)) == 0
 
             # transform ranks to be (marginally) gaussian.
