@@ -145,8 +145,8 @@ class PredictionModelTransform(PredictionModel, ABC):
                 x_jj = x[:, jj]
                 x_train_jj = np.sort(self.x_train[:, jj])
                 xr_jj = np.searchsorted(x_train_jj, x_jj) + 1  # indices to ranks
-                a, b, c = 1, len(self.x_train) + 1, len(self.x_train)
-                xr_jj = (xr_jj - a) / (b - a) * (c - a) + a
+                xr_jj = np.minimum(xr_jj, len(x_train_jj))  # clip to max ranks
+                xr_jj = np.maximum(xr_jj, 1)  # clip to min ranks (1-indexed)
                 xr[:, jj] = xr_jj
             assert np.sum(np.isnan(xr)) == 0
 
