@@ -147,7 +147,16 @@ class PredictionModelTransform(PredictionModel, ABC):
                 xr_jj = np.searchsorted(x_train_jj, x_jj) + 1  # indices to ranks
                 xr_jj = np.minimum(xr_jj, len(x_train_jj))  # clip to max ranks
                 xr_jj = np.maximum(xr_jj, 1)  # clip to min ranks (1-indexed)
+
+                # break ties only of duplicated elements
+                u, c = np.unique(xr_jj, return_counts=True)
+                dup = u[c > 1]
+                mask = np.isin(xr_jj, dup)
+                xr_jj_spread = rankdata(xr_jj, method="ordinal")
+                xr_jj[mask] = xr_jj_spread[mask]
+
                 xr[:, jj] = xr_jj
+
             assert np.sum(np.isnan(xr)) == 0
 
             # transform ranks to be (marginally) gaussian.
