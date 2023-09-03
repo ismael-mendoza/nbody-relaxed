@@ -79,6 +79,7 @@ class PredictionModelTransform(PredictionModel, ABC):
         self.y_train = None
         self.x_train = None
         self.qt_pred = None
+        self.rank_lookup = {}
 
     def fit(self, x, y):
         assert len(x.shape) == len(y.shape) == 2
@@ -124,6 +125,14 @@ class PredictionModelTransform(PredictionModel, ABC):
             )
             self.qt_pred.fit(yr_train_trans)
 
+            # lookup table of ranks
+            for jj in range(self.x_train.shape[1]):
+                x_train_jj = np.sort(self.x_train[:, jj])
+                u, c = np.unique(x_train_jj, return_counts=True)
+                lranks = np.cumsum(c) - c + 1
+                hranks = np.cumsum(c) - 1
+                self.rank_lookup[jj] = (u, lranks, hranks)
+
     @staticmethod
     def value_at_rank(x, ranks):
         """Get value at ranks of multidimensional array."""
@@ -144,18 +153,14 @@ class PredictionModelTransform(PredictionModel, ABC):
             for jj in range(x.shape[1]):
                 x_jj = x[:, jj]
                 x_train_jj = np.sort(self.x_train[:, jj])
-                xr_jj = np.searchsorted(x_train_jj, x_jj) + 1  # indices to ranks
-                xr_jj = np.minimum(xr_jj, len(x_train_jj))  # clip to max ranks
-                xr_jj = np.maximum(xr_jj, 1)  # clip to min ranks (1-indexed)
+                uniq, lranks, hranks = self.rank_lookup[jj]
+                xr[:, jj] = np.searchsorted(x_train_jj, x_jj)
 
-                # break ties only of duplicated elements
-                u, c = np.unique(xr_jj, return_counts=True)
-                dup = u[c > 1]
-                mask = np.isin(xr_jj, dup)
-                xr_jj_spread = rankdata(xr_jj, method="ordinal")
-                xr_jj[mask] = xr_jj_spread[mask]
-
-                xr[:, jj] = xr_jj
+                # if value is in training data, get uniform rank between low and high ranks.
+                in_train = np.isin(x_jj, uniq)
+                u_indices = np.searchsorted(uniq, x_jj[in_train])
+                lr, hr = lranks[u_indices], hranks[u_indices]  # repeat appropriately
+                xr[in_train, jj] = np.random.randint(lr, hr + 1)
 
             assert np.sum(np.isnan(xr)) == 0
 
