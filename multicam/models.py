@@ -130,7 +130,7 @@ class PredictionModelTransform(PredictionModel, ABC):
                 x_train_jj = np.sort(self.x_train[:, jj])
                 u, c = np.unique(x_train_jj, return_counts=True)
                 lranks = np.cumsum(c) - c + 1
-                hranks = np.cumsum(c) - 1
+                hranks = np.cumsum(c)
                 self.rank_lookup[jj] = (u, lranks, hranks)
 
     @staticmethod
@@ -154,7 +154,7 @@ class PredictionModelTransform(PredictionModel, ABC):
                 x_jj = x[:, jj]
                 x_train_jj = np.sort(self.x_train[:, jj])
                 uniq, lranks, hranks = self.rank_lookup[jj]
-                xr[:, jj] = np.searchsorted(x_train_jj, x_jj)
+                xr[:, jj] = np.searchsorted(x_train_jj, x_jj) + 1  # indices to ranks
 
                 # if value is in training data, get uniform rank between low and high ranks.
                 in_train = np.isin(x_jj, uniq)
