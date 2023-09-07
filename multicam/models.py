@@ -7,6 +7,7 @@ from scipy.stats import rankdata
 from sklearn import linear_model
 from sklearn.feature_selection import SelectFromModel
 from sklearn.preprocessing import QuantileTransformer
+from xgboost import XGBRegressor
 
 from multicam.mah import get_an_from_am
 
@@ -271,6 +272,37 @@ class LinearRegression(PredictionModelTransform):
 
     def _fit(self, x, y):
         self.reg = linear_model.LinearRegression().fit(x, y)
+
+    def _predict(self, x):
+        return self.reg.predict(x)
+
+
+class XGB(PredictionModelTransform):
+    def __init__(
+        self,
+        n_features: int,
+        n_targets: int,
+        xgb_init_kwargs: dict = {},
+        xgb_fit_kwargs: dict = {},
+        **transform_kwargs,
+    ) -> None:
+        super().__init__(n_features, n_targets, **transform_kwargs)
+
+        assert "n_estimators" in xgb_init_kwargs
+        assert "max_depth" in xgb_init_kwargs
+        assert "eta" in xgb_init_kwargs or "learning_rate" in xgb_init_kwargs
+        assert "eval_metric" in xgb_init_kwargs
+        assert "early_stopping_rounds" in xgb_init_kwargs
+        assert "eval_set" in xgb_fit_kwargs
+
+        self.reg = None
+        self.xgb_init_kwargs = xgb_init_kwargs
+        self.xgb_fit_kwargs = xgb_fit_kwargs
+
+    def _fit(self, x, y):
+        xgb = XGBRegressor(**self.xgb_init_kwargs)
+        xgb.fit(x, y, **self.xgb_fit_kwargs)
+        self.reg = xgb
 
     def _predict(self, x):
         return self.reg.predict(x)
