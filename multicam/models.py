@@ -119,12 +119,12 @@ class PredictionModelTransform(PredictionModel, ABC):
         if self.use_multicam:
             # get quantile transformer of prediction to (marginal) normal using training data.
             xr_train = rankdata(self.x_train, axis=0, method="ordinal")
-            xr_train_trans = self.qt_xr.transform(xr_train)
-            yr_train_trans = super().predict(xr_train_trans)
+            x_train_gauss = self.qt_xr.transform(xr_train)
+            y_pred_gauss = super().predict(x_train_gauss)
             self.qt_pred = QuantileTransformer(
-                n_quantiles=len(yr_train_trans), output_distribution="normal"
+                n_quantiles=len(y_pred_gauss), output_distribution="normal"
             )
-            self.qt_pred.fit(yr_train_trans)
+            self.qt_pred.fit(y_pred_gauss)
 
             # lookup table of ranks
             for jj in range(self.x_train.shape[1]):
@@ -161,7 +161,7 @@ class PredictionModelTransform(PredictionModel, ABC):
                 in_train = np.isin(x_jj, uniq)
                 u_indices = np.searchsorted(uniq, x_jj[in_train])
                 lr, hr = lranks[u_indices], hranks[u_indices]  # repeat appropriately
-                xr[in_train, jj] = np.random.randint(lr, hr + 1)
+                xr[in_train, jj] = (lr + hr) / 2
 
             assert np.sum(np.isnan(xr)) == 0
 
