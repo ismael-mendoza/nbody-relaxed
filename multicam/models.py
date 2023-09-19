@@ -77,6 +77,23 @@ class PredictionModel(ABC):
     def _predict(self, x):
         pass
 
+        assert np.sum(np.isnan(xr)) == 0
+        print("xr", xr[0, 0])
+
+        # predict on transformed ranks.
+        y_not_gauss = self.reg.predict(x_gauss)
+
+        # inverse transform prediction to get ranks of target.
+        y_gauss = self.qt_pred.transform(y_not_gauss)
+        yr = self.qt_yr.inverse_transform(y_gauss).astype(int)
+        yr -= 1  # ranks are 1-indexed, so subtract 1 to get 0-indexed.
+
+        # predictions are points in train data corresponding to ranks predicted
+        y_train_sorted = np.sort(self.y_train, axis=0)
+        y_pred = _value_at_rank(y_train_sorted, yr)
+
+        return y_pred
+
 
 class MultiCAM(PredictionModel):
     """MultiCAM model described in our first paper."""
@@ -87,8 +104,10 @@ class MultiCAM(PredictionModel):
         # additional metadata that needs to be saved for prediction.
         self.qt_xr = None
         self.qt_yr = None
-        self.y_train = None
+        self.qt_pred = None
+        self.rank_lookup = {}
         self.x_train = None
+        self.y_train = None
 
         # setup linear regression model
         self.reg = linear_model.LinearRegression()
@@ -114,28 +133,51 @@ class MultiCAM(PredictionModel):
         # then fit a linear regression model to the transformed data.
         self.reg.fit(x_gauss, y_gauss)
 
+        # get quantile transformer of prediction to (marginal) normal using training data.
+        y_pred = self.reg.predict(x_gauss)
+        self.qt_pred = QuantileTransformer(n_quantiles=len(y_pred), output_distribution="normal")
+        self.qt_pred.fit(y_pred)
+
+        # finally, create lookup table for low and high ranks of each feature.
+        for jj in range(self.n_features):
+            x_train_jj = np.sort(self.x_train[:, jj])
+            u, c = np.unique(x_train_jj, return_counts=True)
+            lranks = np.cumsum(c) - c + 1
+            hranks = np.cumsum(c)
+            self.rank_lookup[jj] = (u, lranks, hranks)
+
     def _predict(self, x):
         assert len(x.shape) == 2
         assert x.shape[1] == self.n_features
         assert np.sum(np.isnan(x)) == 0
         assert self.trained
 
-        # get ranks of test data.
-        xr = rankdata(x, axis=0, method="ordinal")
-        xr = (xr - 1) * (len(self.x_train) - 1) / (len(x) - 1) + 1
+        # get ranks of test data (based on training data)
+        xr = np.zeros_like(x) * np.nan
+        for jj in range(self.n_features):
+            x_jj = x[:, jj]
+            x_train_jj = np.sort(self.x_train[:, jj])
+            uniq, lranks, hranks = self.rank_lookup[jj]
+            xr[:, jj] = np.searchsorted(x_train_jj, x_jj) + 1  # indices to ranks
+
+            # if value is in training data, get median rank
+            in_train = np.isin(x_jj, uniq)
+            u_indices = np.searchsorted(uniq, x_jj[in_train])
+            lr, hr = lranks[u_indices], hranks[u_indices]  # repeat appropriately
+            xr[in_train, jj] = (lr + hr) / 2
+
+        assert np.sum(np.isnan(xr)) == 0
 
         # transform ranks to be (marginally) gaussian.
-        xr_trans = self.qt_xr.transform(xr)
+        x_gauss = self.qt_xr.transform(xr)
 
         # predict on transformed ranks.
-        yr_trans = self.reg.predict(xr_trans)
+        y_not_gauss = self.reg.predict(x_gauss)
 
         # get quantile transformer of prediction to (marginal) normal.
-        qt_pred = QuantileTransformer(n_quantiles=len(yr_trans), output_distribution="normal")
-        qt_pred.fit(yr_trans)
-
-        # inverse transform prediction to get ranks of target.
-        yr = self.qt_yr.inverse_transform(qt_pred.transform(yr_trans)).astype(int) - 1
+        y_gauss = self.qt_pred.transform(y_not_gauss)
+        yr = self.qt_yr.inverse_transform(y_gauss).astype(int)
+        yr -= 1  # ranks are 1-indexed, so subtract 1 to get 0-indexed.
 
         # predictions are points in train data corresponding to ranks predicted
         y_train_sorted = np.sort(self.y_train, axis=0)
