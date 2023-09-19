@@ -87,8 +87,6 @@ class MultiCAM(PredictionModel):
         # additional metadata that needs to be saved for prediction.
         self.qt_xr = None
         self.qt_yr = None
-        self.qt_x = None
-        self.qt_y = None
         self.y_train = None
         self.x_train = None
 
@@ -110,8 +108,8 @@ class MultiCAM(PredictionModel):
         yr = rankdata(y, axis=0, method="ordinal")
 
         # transform ranks to be (marginally) gaussian.
-        x_gauss, self.qt_x = _gauss_transform(xr)
-        y_gauss, self.qt_y = _gauss_transform(yr)
+        x_gauss, self.qt_xr = _gauss_transform(xr)
+        y_gauss, self.qt_yr = _gauss_transform(yr)
 
         # then fit a linear regression model to the transformed data.
         self.reg.fit(x_gauss, y_gauss)
