@@ -1,11 +1,10 @@
-import warnings
+"""Implementation of statistical models."""
 from abc import ABC, abstractmethod
 
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.stats import rankdata
 from sklearn import linear_model
-from sklearn.feature_selection import SelectFromModel
 from sklearn.preprocessing import QuantileTransformer
 
 from multicam.mah import get_an_from_am
@@ -24,15 +23,38 @@ opcam_dict = {
 }
 
 
+def _value_at_rank(x, ranks):
+    """Get value at ranks of multidimensional array."""
+    assert x.shape[1] == ranks.shape[1]
+    assert ranks.dtype == int
+    n, m = ranks.shape
+    y = np.zeros((n, m), dtype=float)
+    for ii in range(m):
+        y[:, ii] = np.take(x[:, ii], ranks[:, ii])
+    return y
+
+
+def _gauss_transform(x: np.ndarray):
+    """Transform x to be (marginally) gaussian."""
+    assert x.ndim == 2
+    qt = QuantileTransformer(n_quantiles=len(x), output_distribution="normal")
+    qt.fit(x)
+    return qt.transform(x), qt
+
+
 class PredictionModel(ABC):
+    """Abstract base class for prediction models."""
+
     def __init__(self, n_features: int, n_targets: int) -> None:
         assert isinstance(n_features, int) and n_features > 0
+        assert isinstance(n_targets, int) and n_targets > 0
+
         self.n_features = n_features
         self.n_targets = n_targets
         self.trained = False  # whether model has been trained yet.
 
     def fit(self, x, y):
-        # change internal state such that predict and/or sampling are possible.
+        """Fit model using training data."""
         assert np.sum(np.isnan(x)) == np.sum(np.isnan(y)) == 0
         assert x.shape == (y.shape[0], self.n_features)
         assert y.shape == (x.shape[0], self.n_targets)
@@ -40,6 +62,7 @@ class PredictionModel(ABC):
         self.trained = True
 
     def predict(self, x):
+        """Predict y given x."""
         assert len(x.shape) == 2
         assert x.shape[1] == self.n_features
         assert np.sum(np.isnan(x)) == 0
@@ -55,23 +78,13 @@ class PredictionModel(ABC):
         pass
 
 
-class PredictionModelTransform(PredictionModel, ABC):
-    """Enable possibility of transforming variables at fitting/prediction time."""
+class MultiCAM(PredictionModel):
+    """MultiCAM model described in our first paper."""
 
-    def __init__(
-        self,
-        n_features: int,
-        n_targets: int,
-        use_multicam_no_ranks: bool = False,
-        use_multicam: bool = True,
-    ) -> None:
+    def __init__(self, n_features: int, n_targets: int) -> None:
         super().__init__(n_features, n_targets)
-        assert use_multicam + use_multicam_no_ranks <= 1, "Only 1 multicam option allowed."
 
-        self.use_multicam_no_ranks = use_multicam_no_ranks
-        self.use_multicam = use_multicam
-
-        # quantile transformers.
+        # additional metadata that needs to be saved for prediction.
         self.qt_xr = None
         self.qt_yr = None
         self.qt_x = None
@@ -79,211 +92,79 @@ class PredictionModelTransform(PredictionModel, ABC):
         self.y_train = None
         self.x_train = None
 
-    def fit(self, x, y):
-        assert len(x.shape) == len(y.shape) == 2
+        # setup linear regression model
+        self.reg = linear_model.LinearRegression()
 
-        if self.use_multicam:
-            # need to save training data to predict from ranks later.
-            self.x_train = x.copy()
-            self.y_train = y.copy()
+    def _fit(self, x, y):
+        """Fit model using training data"""
+        assert np.sum(np.isnan(x)) == np.sum(np.isnan(y)) == 0
+        assert x.shape == (y.shape[0], self.n_features)
+        assert y.shape == (x.shape[0], self.n_targets)
 
-            # first get ranks of features and targets.
-            xr = rankdata(x, axis=0, method="ordinal")
-            yr = rankdata(y, axis=0, method="ordinal")
+        # need to save training data to predict from ranks later.
+        self.x_train = x.copy()
+        self.y_train = y.copy()
 
-            # then get a quantile transformer for the ranks to a normal distribution.
-            self.qt_xr = QuantileTransformer(n_quantiles=len(xr), output_distribution="normal")
-            self.qt_xr = self.qt_xr.fit(xr)
-            self.qt_yr = QuantileTransformer(n_quantiles=len(yr), output_distribution="normal")
-            self.qt_yr = self.qt_yr.fit(yr)
+        # first get ranks of features and targets.
+        xr = rankdata(x, axis=0, method="ordinal")
+        yr = rankdata(y, axis=0, method="ordinal")
 
-            x_trans, y_trans = self.qt_xr.transform(xr), self.qt_yr.transform(yr)
+        # transform ranks to be (marginally) gaussian.
+        x_gauss, self.qt_x = _gauss_transform(xr)
+        y_gauss, self.qt_y = _gauss_transform(yr)
 
-        elif self.use_multicam_no_ranks:
-            # then get a quantile transformer for the ranks to a normal distribution.
-            self.qt_x = QuantileTransformer(n_quantiles=len(x), output_distribution="normal")
-            self.qt_x = self.qt_x.fit(x)
-            self.qt_y = QuantileTransformer(n_quantiles=len(y), output_distribution="normal")
-            self.qt_y = self.qt_y.fit(y)
+        # then fit a linear regression model to the transformed data.
+        self.reg.fit(x_gauss, y_gauss)
 
-            x_trans, y_trans = self.qt_x.transform(x), self.qt_y.transform(y)
-
-        else:
-            x_trans, y_trans = x, y
-
-        super().fit(x_trans, y_trans)
-
-    @staticmethod
-    def value_at_rank(x, ranks):
-        """Get value at ranks of multidimensional array."""
-        assert x.shape[1] == ranks.shape[1]
-        assert ranks.dtype == int
-        n, m = ranks.shape
-        y = np.zeros((n, m), dtype=float)
-        for ii in range(m):
-            y[:, ii] = np.take(x[:, ii], ranks[:, ii])
-        return y
-
-    def predict(self, x):
-        assert len(x.shape) == 2
-
-        if self.use_multicam:
-            # get ranks of test data.
-            xr = rankdata(x, axis=0, method="ordinal")
-            xr = (xr - 1) * (len(self.x_train) - 1) / (len(x) - 1) + 1
-            # transform ranks to be (marginally) gaussian.
-            xr_trans = self.qt_xr.transform(xr)
-
-            # predict on transformed ranks.
-            yr_trans = super().predict(xr_trans)
-
-            # get quantile transformer of prediction to (marginal) normal.
-            qt_pred = QuantileTransformer(n_quantiles=len(yr_trans), output_distribution="normal")
-            qt_pred.fit(yr_trans)
-
-            # inverse transform prediction to get ranks of target.
-            yr = self.qt_yr.inverse_transform(qt_pred.transform(yr_trans)).astype(int) - 1
-
-            # predictions are points in train data corresponding to ranks predicted
-            y_train_sorted = np.sort(self.y_train, axis=0)
-            y_pred = self.value_at_rank(y_train_sorted, yr)
-
-        elif self.use_multicam_no_ranks:
-            x_trans = self.qt_x.transform(x)
-            y_trans = super().predict(x_trans)
-
-            # get quantile transformer of prediction to (marginal) normal.
-            qt_pred = QuantileTransformer(n_quantiles=len(y_trans), output_distribution="normal")
-            qt_pred.fit(y_trans)
-
-            y_pred = self.qt_y.inverse_transform(qt_pred.transform(y_trans))
-
-        else:
-            y_pred = super().predict(x)
-
-        return y_pred
-
-
-class SamplingModel(PredictionModelTransform):
-    def sample(self, x, n_samples):
+    def _predict(self, x):
         assert len(x.shape) == 2
         assert x.shape[1] == self.n_features
         assert np.sum(np.isnan(x)) == 0
         assert self.trained
-        n_points = x.shape[0]
 
-        if self.use_multicam_no_ranks:
-            x_trans = self.qt_x.transform(x)
-            y_pred = self._sample(x_trans, n_samples).reshape(n_points, n_samples, self.n_targets)
-            for i in range(n_samples):
-                y_pred_i = y_pred[:, i, :]
-                qt_pred = QuantileTransformer(
-                    n_quantiles=len(y_pred_i), output_distribution="normal"
-                ).fit(y_pred_i)
-                y_pred[:, i, :] = self.qt_y.inverse_transform(qt_pred.transform(y_pred_i))
+        # get ranks of test data.
+        xr = rankdata(x, axis=0, method="ordinal")
+        xr = (xr - 1) * (len(self.x_train) - 1) / (len(x) - 1) + 1
 
-        elif self.use_multicam:
-            raise NotImplementedError()
+        # transform ranks to be (marginally) gaussian.
+        xr_trans = self.qt_xr.transform(xr)
 
-        else:
-            x_trans = x
-            y_pred = self._sample(x_trans, n_samples).reshape(n_points, n_samples, self.n_targets)
+        # predict on transformed ranks.
+        yr_trans = self.reg.predict(xr_trans)
+
+        # get quantile transformer of prediction to (marginal) normal.
+        qt_pred = QuantileTransformer(n_quantiles=len(yr_trans), output_distribution="normal")
+        qt_pred.fit(yr_trans)
+
+        # inverse transform prediction to get ranks of target.
+        yr = self.qt_yr.inverse_transform(qt_pred.transform(yr_trans)).astype(int) - 1
+
+        # predictions are points in train data corresponding to ranks predicted
+        y_train_sorted = np.sort(self.y_train, axis=0)
+        y_pred = _value_at_rank(y_train_sorted, yr)
 
         return y_pred
 
-    @abstractmethod
-    def _sample(self, x, n_samples):
-        pass
 
-
-class LogNormalRandomSample(PredictionModel):
-    """Lognormal random samples."""
-
-    def __init__(self, n_features: int, n_targets: int, rng) -> None:
-        super().__init__(n_features, n_targets)
-
-        self.rng = rng
-        self.mu = None
-        self.sigma = None
-
-    def _fit(self, x, y):
-        assert np.all(y > 0)
-        mu, sigma = np.mean(np.log(y), axis=0), np.std(np.log(y), axis=0)
-        self.mu = mu
-        self.sigma = sigma
-
-    def _predict(self, x):
-        n_test = len(x)
-        return np.exp(self.rng.normal(self.mu, self.sigma, (n_test, self.n_targets)))
-
-
-class InverseCDFRandomSamples(PredictionModel):
-    """Use Quantile Transformer to get random samples from a 1D Distribution."""
-
-    def __init__(self, n_features: int, n_targets: int, rng) -> None:
-        super().__init__(n_features, n_targets)
-        self.rng = rng
-        assert self.n_targets == 1
-
-    def _fit(self, x, y):
-        self.qt_y = QuantileTransformer(n_quantiles=len(y), output_distribution="uniform")
-        self.qt_y = self.qt_y.fit(y)
-
-    def _predict(self, x):
-        u = self.rng.random(size=(len(x), self.n_targets))
-        return self.qt_y.inverse_transform(u)
-
-
-class LinearRegression(PredictionModelTransform):
-    def __init__(self, n_features: int, n_targets: int, **transform_kwargs) -> None:
-        super().__init__(n_features, n_targets, **transform_kwargs)
-        self.reg = None
-
-    def _fit(self, x, y):
-        self.reg = linear_model.LinearRegression().fit(x, y)
-
-    def _predict(self, x):
-        return self.reg.predict(x)
-
-
-class LASSO(PredictionModelTransform):
-    name = "lasso"
-
-    def __init__(
-        self, n_features: int, n_targets: int, alpha: float = 0.1, **transform_kwargs
-    ) -> None:
-        # alpha is the regularization parameter.
-        super().__init__(n_features, n_targets, **transform_kwargs)
-        self.alpha = alpha
-
-        # attributes of fit
-        self.lasso = None
-        self.importance = None
-
-    def _fit(self, x, y):
-        # use lasso linear regression.
-        _lasso = linear_model.Lasso(alpha=self.alpha)
-        selector = SelectFromModel(estimator=_lasso).fit(x, y)
-        self.lasso = _lasso.fit(x, y)
-        self.importance = selector.estimator.coef_
-
-    def _predict(self, x):
-        return self.lasso.predict(x)
-
-
-class MultiVariateGaussian(SamplingModel):
+class MultiCamSampling(PredictionModel):
     """Multi-Variate Gaussian using full covariance matrix (returns conditional mean)."""
 
-    def __init__(self, n_features: int, n_targets: int, rng, **transform_kwargs) -> None:
-        # do_sample: wheter to sample from x1|x2 or return E[x1 | x2] for predictions
-        super().__init__(n_features, n_targets, **transform_kwargs)
+    def __init__(self, n_features: int, n_targets: int, rng=None) -> None:
+        super().__init__(n_features, n_targets)
 
-        self.rng = rng
+        self.rng = np.random.default_rng(42) if rng is None else rng
         self.mu1 = None
         self.mu2 = None
         self.Sigma = None
         self.rho = None
         self.sigma_cond = None
+        self.Sigma11 = None
+        self.Sigma12 = None
+        self.Sigma22 = None
+        self.sigma_bar = None
+
+        self.qt_x = None
+        self.qt_y = None
 
     def _fit(self, x, y):
         """
@@ -298,7 +179,10 @@ class MultiVariateGaussian(SamplingModel):
         n_features = self.n_features
         n_targets = self.n_targets
 
-        # calculate sigma/correlation matrix bewteen all quantities
+        # transform x and y to be (marginally) gaussian.
+        x, self.qt_x = _gauss_transform(x)
+        y, self.qt_y = _gauss_transform(y)
+
         z = np.hstack([y.reshape(-1, n_targets), x])
 
         # some sanity checks
@@ -356,16 +240,37 @@ class MultiVariateGaussian(SamplingModel):
         return mu_cond.T.reshape(n_points, self.n_targets)
 
     def _predict(self, x):
-        return self._get_mu_cond(x)
+        """Predict mean y given x."""
+        x_gauss = self.qt_x.transform(x)
+        y_pred = self._get_mu_cond(x_gauss)
+        qt_pred = QuantileTransformer(n_quantiles=len(y_pred), output_distribution="normal")
+        qt_pred = qt_pred.fit(y_pred)
+        y_gauss = self.qt_y.inverse_transform(qt_pred.transform(y_pred))
+        return y_gauss
 
-    def _sample(self, x, n_samples):
+    def sample(self, x, n_samples):
+        """Sample from conditional distribution P(y | x)"""
+        assert len(x.shape) == 2
+        assert x.shape[1] == self.n_features
+        assert np.sum(np.isnan(x)) == 0
+        assert self.trained
         n_points = x.shape[0]
+
+        x_gauss = self.qt_x.transform(x)
+
         _zero = np.zeros((self.n_targets,))
-        mu_cond = self._get_mu_cond(x)
+        mu_cond = self._get_mu_cond(x_gauss)
         size = (n_points, n_samples)
         y_samples = self.rng.multivariate_normal(mean=_zero, cov=self.sigma_bar, size=size)
         assert y_samples.shape == (n_points, n_samples, self.n_targets)
         y_samples += mu_cond.reshape(-1, 1, self.n_targets)
+
+        for i in range(n_samples):
+            y_i = y_samples[:, i, :]
+            qt_pred = QuantileTransformer(n_quantiles=len(y_i), output_distribution="normal")
+            qt_pred = qt_pred.fit(y_i)
+            y_samples[:, i, :] = self.qt_y.inverse_transform(qt_pred.transform(y_i))
+
         return y_samples
 
 
@@ -395,7 +300,8 @@ class CAM(PredictionModel):
         self.an_to_mark = None
         self.mark_to_Y = None
 
-    def _fit(self, am, y):
+    def _fit(self, x, y):
+        am = x
         y = y.reshape(-1)
         an_train = get_an_from_am(am, self.mass_bins, mbin=self.opt_mbin).reshape(-1)
         assert an_train.shape[0] == am.shape[0]
@@ -408,7 +314,8 @@ class CAM(PredictionModel):
             marks, y_sort, fill_value=(y_sort[0], y_sort[-1]), bounds_error=False
         )
 
-    def _predict(self, am):
+    def _predict(self, x):
+        am = x
         an = get_an_from_am(am, self.mass_bins, mbin=self.opt_mbin)
         return self.mark_to_Y(self.an_to_mark(an))
 
@@ -443,16 +350,6 @@ class MixedCAM(PredictionModel):
             y = self.cams[jj].predict(x)
             y_pred.append(y)
         return np.hstack(y_pred)
-
-
-available_models = {
-    "gaussian": MultiVariateGaussian,
-    "cam": CAM,
-    "linear": LinearRegression,
-    "lasso": LASSO,
-    "lognormal": LogNormalRandomSample,
-    "mixed_cam": MixedCAM,
-}
 
 
 def training_suite(info: dict):
@@ -490,34 +387,42 @@ def training_suite(info: dict):
     return trained_models
 
 
-def prepare_datasets(cat, datasets: dict, rng, test_ratio=0.3):
-    """Prepare datasets for training and testing."""
-
-    # train/test split
-    train_idx, test_idx = get_tt_indices(len(cat), rng, test_ratio=test_ratio)
-    cat_train, cat_test = cat[train_idx], cat[test_idx]
-    output = {}
-    for name in datasets:
-        x_params, y_params = datasets[name]["x"], datasets[name]["y"]
-        x_train, x_test = tbl_to_arr(cat_train, x_params), tbl_to_arr(cat_test, x_params)
-        y_train, y_test = tbl_to_arr(cat_train, y_params), tbl_to_arr(cat_test, y_params)
-        output[name] = {"train": (x_train, y_train), "test": (x_test, y_test)}
-    return output, train_idx, test_idx
-
-
-def tbl_to_arr(table, names=None):
+def _tbl_to_arr(table, names=None):
     if not names:
         names = table.colnames
 
     return np.hstack([table[param].reshape(-1, 1) for param in names])
 
 
-def get_tt_indices(n_points, rng=np.random.default_rng(0), test_ratio=0.2):
+def _get_tt_indices(n_points, rng=np.random.default_rng(0), test_ratio=0.2):
     test_size = int(np.ceil(test_ratio * n_points))
     test_idx = rng.choice(range(n_points), replace=False, size=test_size)
     assert len(test_idx) == len(set(test_idx))
     train_idx = np.array(list(set(range(n_points)) - set(test_idx)))
     assert set(train_idx).intersection(set(test_idx)) == set()
-    assert max(max(test_idx), max(train_idx)) == n_points - 1
-    assert min(min(test_idx), min(train_idx)) == 0
+    assert max(test_idx.max(), train_idx.max()) == n_points - 1
+    assert min(test_idx.min(), train_idx.min()) == 0
     return train_idx, test_idx
+
+
+def prepare_datasets(cat, datasets: dict, rng, test_ratio=0.3):
+    """Prepare datasets for training and testing."""
+
+    # train/test split
+    train_idx, test_idx = _get_tt_indices(len(cat), rng, test_ratio=test_ratio)
+    cat_train, cat_test = cat[train_idx], cat[test_idx]
+    output = {}
+    for name in datasets:
+        x_params, y_params = datasets[name]["x"], datasets[name]["y"]
+        x_train, x_test = _tbl_to_arr(cat_train, x_params), _tbl_to_arr(cat_test, x_params)
+        y_train, y_test = _tbl_to_arr(cat_train, y_params), _tbl_to_arr(cat_test, y_params)
+        output[name] = {"train": (x_train, y_train), "test": (x_test, y_test)}
+    return output, train_idx, test_idx
+
+
+available_models = {
+    "linear": MultiCAM,
+    "gaussian": MultiCamSampling,
+    "cam": CAM,
+    "mixed_cam": MixedCAM,
+}
