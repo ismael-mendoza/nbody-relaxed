@@ -77,23 +77,6 @@ class PredictionModel(ABC):
     def _predict(self, x):
         pass
 
-        assert np.sum(np.isnan(xr)) == 0
-        print("xr", xr[0, 0])
-
-        # predict on transformed ranks.
-        y_not_gauss = self.reg.predict(x_gauss)
-
-        # inverse transform prediction to get ranks of target.
-        y_gauss = self.qt_pred.transform(y_not_gauss)
-        yr = self.qt_yr.inverse_transform(y_gauss).astype(int)
-        yr -= 1  # ranks are 1-indexed, so subtract 1 to get 0-indexed.
-
-        # predictions are points in train data corresponding to ranks predicted
-        y_train_sorted = np.sort(self.y_train, axis=0)
-        y_pred = _value_at_rank(y_train_sorted, yr)
-
-        return y_pred
-
 
 class MultiCAM(PredictionModel):
     """MultiCAM model described in our first paper."""
