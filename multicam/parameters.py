@@ -46,6 +46,19 @@ def derive_vvir(mcat, b):
     return vvir
 
 
+def get_vvir(rvir, mvir):
+    """Get vvir from rvir and mvir.
+
+    Args:
+        rvir: virial radius in kpc/h
+        mvir: virial mass in Msun/h
+    """
+    C = 6.674e-11 * 1.988435e30 / 3.086e19
+    vvir_mks = np.sqrt(C * mvir / rvir)
+    vvir = vvir_mks / 1e3
+    return vvir
+
+
 def derive(pname: str, mcat, b):
     """Derive additional useful halo properties that are not in .minh catalog."""
 
