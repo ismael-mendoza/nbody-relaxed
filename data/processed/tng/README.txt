@@ -147,7 +147,7 @@ Ngas, Nstars:
 	if there are less than 30 bound cells/particles in the halo.
 
 
-M{gas, stars}_{vir, 200c, 500c, 2500c, 30cpkc, 100cpkc}:
+M{gas, star}_{vir, 200c, 500c, 2500c, 30cpkc, 100cpkc}:
 	The integrated gas/stellar mass within different apertures. The comoving aperture quantities act as BCG-related
 	quantities. In units of log10(Msun).
 
