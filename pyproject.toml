@@ -31,7 +31,7 @@ scipy = ">=1.7.3"
 tqdm = ">=4.63.0"
 h5py = "^3.9.0"
 pandas = "^2.1.1"
-tables = { git = "https://github.com/PyTables/PyTables" }
+tables = "^3.9.1"
 
 [tool.poetry.dev-dependencies]
 Cython = ">=0.29.24"
