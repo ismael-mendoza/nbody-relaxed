@@ -110,9 +110,65 @@ def get_color(color_file: str, cat: pd.DataFrame):
     return df_color
 
 
-def setup_mah_and_cat(
+def match_dm_and_hydro_cat(cat: pd.DataFrame, dcat: pd.DataFrame):
+    """Matching using KD tree on halo positions.
+
+    We match based the distance between haloes divided by the virial radius of the candidate halo.
+
+    """
+
+    # get positions
+    pos = np.array(cat[["pos_x", "pos_y", "pos_z"]])
+    dpos = np.array(dcat[["pos_x", "pos_y", "pos_z"]])
+
+    # construct kdtree
+    tree = spatial.KDTree(pos)
+    dtree = spatial.KDTree(dpos)
+
+    # # kdtrees are fast but do not like other metrics than euclidean
+    # # we can query multiple nearest neighbors at once and brute force among them with the correct metric
+    # dist, indices = tree.query(dpos, k=10)
+    # for d, idx in zip(dist, indices):
+    #     # d is the distance to the 10 nearest neighbors
+    #     # idx is the index of the 10 nearest neighbors
+    #     # we want to keep the one with the smallest distance divided by the virial radius
+    #     d = d / cat["Rvir"].values[idx]
+    #     idx = idx[np.argmin(d)]
+    #     keep.append(idx)
+
+    # find the nearest neighbor in the other catalog
+    _, indx = tree.query(dpos)  # for each DM halo, indx is the index of the nearest hydro halo
+    _, dindx = dtree.query(pos)  # for each hydro halo, dindx is the index of the nearest DM halo
+
+    # keep only bijectively matched haloes
+    dmo_match = []
+    hydro_match = []
+    for ii in range(len(cat)):
+        if ii == indx[dindx[ii]]:
+            dmo_match.append(dindx[ii])
+        else:
+            dmo_match.append(np.nan)
+
+    for ii in range(len(dcat)):
+        if ii == dindx[indx[ii]]:
+            hydro_match.append(indx[ii])
+        else:
+            hydro_match.append(np.nan)
+
+    dmo_match = np.array(dmo_match)
+    hydro_match = np.array(hydro_match)
+
+    cat["dmo_match"] = dmo_match
+    dcat["hydro_match"] = hydro_match
+
+    cat["hydro_id"] = np.arange(len(cat))
+    cat["dmo_id"] = np.arange(len(dcat))
+
+    return cat, dcat
+
+
+def setup_mah_from_trees(
     trees_file: str,
-    present_snapfile: str,
     metadata_file: str,
     snaps: np.array,
     mass_bin=(12.8, 13.1),
@@ -129,7 +185,6 @@ def setup_mah_and_cat(
 
     # read trees and present-day catalog
     trees = read_trees(trees_file)
-    cat = pd.read_hdf(present_snapfile)
 
     # select trees in mass bin that have a snapshot at z=0
     trees = [
@@ -159,9 +214,9 @@ def setup_mah_and_cat(
     mah = mah[:, idx:]
 
     # remove haloes with nans and hope not too many
+    assert sum(np.isnan(mah.mean(axis=1))) < 10
     kp_idx = np.where(np.isnan(mah).sum(axis=1) == 0)[0]
     mah = mah[kp_idx]
-    assert np.isnan(mah).sum() < 5
 
     # turn mah in m_peak
     # which is the normalized cumulative maximum
@@ -169,57 +224,53 @@ def setup_mah_and_cat(
     m_peak = Mpeak / Mpeak[:, -1][:, None]
 
     halo_idx = np.array([t["IndexInHaloTable"][-1] for t in trees])[kp_idx]
-    cat = cat.iloc[halo_idx]
-
-    # sort everything by 'SubhaloID' for good measure
-    subhalo_id = cat["SubhaloID"].values
-    sort_idx = np.argsort(subhalo_id)
-    mah = mah[sort_idx]
-    m_peak = m_peak[sort_idx]
-    halo_idx = halo_idx[sort_idx]
-    cat = cat.sort_values(by="SubhaloID")
-
-    # post processing quantities
-    cat["Vmax_DM/V_vir_DM"] = get_vmax_over_vvir(cat)
 
     return {
-        "present_cat": cat,
         "halo_idx": halo_idx,
         "mah": mah,
         "m_peak": m_peak,
-        "gmass": mah[:, -1],
         "z": zs,
         "snaps": snaps,
         "scales": scales,
     }
 
 
-def match_dm_and_hydro_cat(dcat: pd.DataFrame, cat: pd.DataFrame):
-    """Matching using KD tree on halo positions."""
+def match_mah_and_cat(halo_idx: np.ndarray, cat: pd.DataFrame):
+    """Match mah and catalog by halo index."""
+    # halo_indx is original cat
 
-    # get positions
-    pos = np.array(cat[["pos_x", "pos_y", "pos_z"]])
-    dpos = np.array(dcat[["pos_x", "pos_y", "pos_z"]])
+    return cat.iloc[halo_idx]
 
-    # kdtree
-    tree = spatial.KDTree(pos)
-    dtree = spatial.KDTree(dpos)
 
-    # find the nearest neighbor in the other catalog
-    d, indx = tree.query(dpos)
-    _, dindx = dtree.query(pos)
+def rematch_dm_and_hydro_cat(
+    cat: pd.DataFrame, dcat: pd.DataFrame, mah: np.ndarray, dmah: np.ndarray
+):
+    """Match after matching by trees' halo index."""
+    new_cat = pd.DataFrame()
+    new_mah = []
+    dmah_new_cat = pd.DataFrame()
+    new_dmah = []
 
-    # keep only bijectively matched haloes
-    keep = []
     for ii in range(len(cat)):
-        if ii == indx[dindx[ii]]:
-            keep.append(ii)
-    keep = np.array(keep)
+        dmo_match_ii = cat["dmo_match"].values[ii]
+        dmo_ids = dcat["dmo_id"].values
+        is_in = np.isin(dmo_ids, dmo_match_ii)
+        if sum(is_in) == 1 and not np.isnan(dmo_match_ii):
+            jj = len(new_cat)
+            new_cat.loc[jj] = cat.iloc[ii]
+            new_mah.append(mah[ii])
+            dmah_new_cat.loc[jj] = dcat.iloc[is_in]
+            new_dmah.append(dmah[is_in])
 
-    dkeep = []
-    for ii in range(len(dcat)):
-        if ii == dindx[indx[ii]]:
-            dkeep.append(ii)
-    dkeep = np.array(dkeep)
+    new_mah = np.array(new_mah)
+    new_dmah = np.array(new_dmah)
 
-    return cat.iloc[keep], dcat.iloc[dkeep], d[keep], keep
+    # sort by "SubhaloID" for colors later
+    subhalo_id = new_cat["SubhaloID"].values
+    sort_idx = np.argsort(subhalo_id)
+    new_mah = new_mah[sort_idx]
+    new_dmah = new_dmah[sort_idx]
+    new_cat = new_cat.sort_values(by="SubhaloID")
+    dmah_new_cat = dmah_new_cat.iloc[sort_idx]
+
+    return new_cat, dmah_new_cat, new_mah, new_dmah
