@@ -1,5 +1,4 @@
 import matplotlib as mpl
-import matplotlib.pyplot as plt
 import numpy as np
 
 cb_colors_dict = {
@@ -36,6 +35,12 @@ LATEX_PARAMS = {
     "tau_c": r"$\tau_{c}$",
     "alpha_early": r"$\alpha_{\rm early}$",
     "alpha_late": r"$\alpha_{\rm late}$",
+    "msmhmr": r"$\Delta \log (M_{\star})$",
+    "g-r": r"$g-r$",
+    "sfr": r"$\log ({\rm SFR})$",
+    "mgas": r"$\log (M_{\rm gas})$",
+    "zgas": r"$\log (Z_{\rm gas})$",
+    "zstar": r"$\log (Z_{\star})$",
 }
 
 LATEX_METRICS = {
