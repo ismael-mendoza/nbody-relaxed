@@ -5,11 +5,14 @@ import h5py
 import numpy as np
 import pandas as pd
 from scipy import spatial
+from tqdm import tqdm
 
 from multicam.parameters import get_vvir
 
 SNAPS = np.arange(0, 100, 1)
 TNG_H = 0.6774  # from website
+
+MISSING = 999999999
 
 
 def convert_tng_mass(gmass):
@@ -18,6 +21,13 @@ def convert_tng_mass(gmass):
     # return in units of log10(Msun)
     # robust to 0 mass
     return np.where(gmass > 0, np.log10(gmass * 1e10 / TNG_H), 0)
+
+
+def get_mpeak_from_mah(mah: np.ndarray):
+    """Compute m_peak from mah."""
+    Mpeak = np.fmax.accumulate(10**mah, axis=1)
+    m_peak = Mpeak / Mpeak[:, -1][:, None]
+    return m_peak
 
 
 def get_vmax_over_vvir(cat: pd.DataFrame):
@@ -113,7 +123,8 @@ def get_color(color_file: str, cat: pd.DataFrame):
 def match_dm_and_hydro_cat(cat: pd.DataFrame, dcat: pd.DataFrame):
     """Matching using KD tree on halo positions.
 
-    We match based the distance between haloes divided by the virial radius of the candidate halo.
+    We match based the distance between haloes divided by the virial radius
+    of the candidate halo.
 
     """
 
@@ -125,20 +136,11 @@ def match_dm_and_hydro_cat(cat: pd.DataFrame, dcat: pd.DataFrame):
     tree = spatial.KDTree(pos)
     dtree = spatial.KDTree(dpos)
 
-    # # kdtrees are fast but do not like other metrics than euclidean
-    # # we can query multiple nearest neighbors at once and brute force among them with the correct metric
-    # dist, indices = tree.query(dpos, k=10)
-    # for d, idx in zip(dist, indices):
-    #     # d is the distance to the 10 nearest neighbors
-    #     # idx is the index of the 10 nearest neighbors
-    #     # we want to keep the one with the smallest distance divided by the virial radius
-    #     d = d / cat["Rvir"].values[idx]
-    #     idx = idx[np.argmin(d)]
-    #     keep.append(idx)
+    # for each DM halo, indx is the index of the nearest hydro halo
+    _, indx = tree.query(dpos)
 
-    # find the nearest neighbor in the other catalog
-    _, indx = tree.query(dpos)  # for each DM halo, indx is the index of the nearest hydro halo
-    _, dindx = dtree.query(pos)  # for each hydro halo, dindx is the index of the nearest DM halo
+    # for each hydro halo, dindx is the index of the nearest DM halo
+    _, dindx = dtree.query(pos)
 
     # keep only bijectively matched haloes
     dmo_match = []
@@ -147,22 +149,22 @@ def match_dm_and_hydro_cat(cat: pd.DataFrame, dcat: pd.DataFrame):
         if ii == indx[dindx[ii]]:
             dmo_match.append(dindx[ii])
         else:
-            dmo_match.append(np.nan)
+            dmo_match.append(MISSING)
 
     for ii in range(len(dcat)):
         if ii == dindx[indx[ii]]:
             hydro_match.append(indx[ii])
         else:
-            hydro_match.append(np.nan)
+            hydro_match.append(MISSING)
 
     dmo_match = np.array(dmo_match)
     hydro_match = np.array(hydro_match)
 
-    cat["dmo_match"] = dmo_match
-    dcat["hydro_match"] = hydro_match
+    cat["dmo_match"] = dmo_match.astype(int)
+    dcat["hydro_match"] = hydro_match.astype(int)
 
     cat["hydro_id"] = np.arange(len(cat))
-    cat["dmo_id"] = np.arange(len(dcat))
+    dcat["dmo_id"] = np.arange(len(dcat))
 
     return cat, dcat
 
@@ -218,17 +220,11 @@ def setup_mah_from_trees(
     kp_idx = np.where(np.isnan(mah).sum(axis=1) == 0)[0]
     mah = mah[kp_idx]
 
-    # turn mah in m_peak
-    # which is the normalized cumulative maximum
-    Mpeak = np.fmax.accumulate(10**mah, axis=1)
-    m_peak = Mpeak / Mpeak[:, -1][:, None]
-
     halo_idx = np.array([t["IndexInHaloTable"][-1] for t in trees])[kp_idx]
 
     return {
         "halo_idx": halo_idx,
         "mah": mah,
-        "m_peak": m_peak,
         "z": zs,
         "snaps": snaps,
         "scales": scales,
@@ -246,21 +242,22 @@ def rematch_dm_and_hydro_cat(
     cat: pd.DataFrame, dcat: pd.DataFrame, mah: np.ndarray, dmah: np.ndarray
 ):
     """Match after matching by trees' halo index."""
-    new_cat = pd.DataFrame()
+    new_cat = pd.DataFrame(columns=cat.columns)
     new_mah = []
-    dmah_new_cat = pd.DataFrame()
+    new_dcat = pd.DataFrame(columns=dcat.columns)
     new_dmah = []
 
-    for ii in range(len(cat)):
+    for ii in tqdm(range(len(cat))):
         dmo_match_ii = cat["dmo_match"].values[ii]
         dmo_ids = dcat["dmo_id"].values
         is_in = np.isin(dmo_ids, dmo_match_ii)
-        if sum(is_in) == 1 and not np.isnan(dmo_match_ii):
+        if sum(is_in) == 1 and dmo_match_ii != MISSING:
+            dmo_idx = np.where(is_in)[0][0]
             jj = len(new_cat)
-            new_cat.loc[jj] = cat.iloc[ii]
+            new_cat.loc[jj] = dict(cat.iloc[ii])
             new_mah.append(mah[ii])
-            dmah_new_cat.loc[jj] = dcat.iloc[is_in]
-            new_dmah.append(dmah[is_in])
+            new_dcat.loc[jj] = dict(dcat.iloc[dmo_idx])
+            new_dmah.append(dmah[dmo_idx])
 
     new_mah = np.array(new_mah)
     new_dmah = np.array(new_dmah)
@@ -271,6 +268,24 @@ def rematch_dm_and_hydro_cat(
     new_mah = new_mah[sort_idx]
     new_dmah = new_dmah[sort_idx]
     new_cat = new_cat.sort_values(by="SubhaloID")
-    dmah_new_cat = dmah_new_cat.iloc[sort_idx]
+    new_dcat = new_dcat.iloc[sort_idx]
 
-    return new_cat, dmah_new_cat, new_mah, new_dmah
+    # last few checks
+    flen = len(new_cat)
+    assert flen == new_mah.shape[0] == new_dmah.shape[0] == len(new_dcat)
+    assert sum(new_cat["dmo_match"].values == MISSING) == 0
+    assert sum(new_dcat["hydro_match"].values == MISSING) == 0
+    assert np.all(new_cat["dmo_match"].values == new_dcat["dmo_id"].values)
+    assert np.all(new_cat["hydro_id"].values == new_dcat["hydro_match"].values)
+
+    return new_cat, new_dcat, new_mah, new_dmah
+
+    # dist, indices = tree.query(dpos, k=10)
+    # for d, idx in zip(dist, indices):
+    #     # d is the distance to the 10 nearest neighbors
+    #     # idx is the index of the 10 nearest neighbors
+    #     # we want to keep the one with the smallest distance divided by
+    #       the virial radius
+    #     d = d / cat["Rvir"].values[idx]
+    #     idx = idx[np.argmin(d)]
+    #     keep.append(idx)
