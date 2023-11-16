@@ -170,7 +170,7 @@ class MultiCAM(PredictionModel):
 
 
 class MultiCamSampling(PredictionModel):
-    """Multi-Variate Gaussian using full covariance matrix (returns conditional mean)."""
+    """Multi-Variate Gaussian w/ full covariance matrix (returns conditional mean)."""
 
     def __init__(self, n_features: int, n_targets: int, rng=None) -> None:
         super().__init__(n_features, n_targets)
