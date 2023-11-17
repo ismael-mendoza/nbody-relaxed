@@ -280,12 +280,42 @@ def rematch_dm_and_hydro_cat(
 
     return new_cat, new_dcat, new_mah, new_dmah
 
-    # dist, indices = tree.query(dpos, k=10)
-    # for d, idx in zip(dist, indices):
-    #     # d is the distance to the 10 nearest neighbors
-    #     # idx is the index of the 10 nearest neighbors
-    #     # we want to keep the one with the smallest distance divided by
-    #       the virial radius
-    #     d = d / cat["Rvir"].values[idx]
-    #     idx = idx[np.argmin(d)]
-    #     keep.append(idx)
+
+def hydro_dm_match_pipeline(
+    present_snapfile: str,
+    present_dark_snapfile: str,
+    trees_file: str,
+    dark_trees_file: str,
+    metadata_file: str,
+    mass_bin=(12.8, 13.1),
+    mbin_fudge=0.3,
+):
+    """Full pipeline that matches hydro and DMO catalogs, along with their corresponding MAHs."""
+    cat = pd.read_hdf(present_snapfile)
+    dcat = pd.read_hdf(present_dark_snapfile)
+
+    cat, dcat = match_dm_and_hydro_cat(cat, dcat)
+
+    assert sum(cat["dmo_match"] != MISSING) == sum(dcat["hydro_match"] != MISSING)
+
+    mah_info = setup_mah_from_trees(trees_file, metadata_file, SNAPS, mass_bin=mass_bin)
+
+    dmass_bin = (mass_bin[0] - mbin_fudge, mass_bin[1] + mbin_fudge)  # wider, to avoid edge effects
+    dmah_info = setup_mah_from_trees(dark_trees_file, metadata_file, SNAPS, mass_bin=dmass_bin)
+
+    mah, dmah = mah_info["mah"], dmah_info["mah"]
+
+    halo_idx = mah_info["halo_idx"]
+    dhalo_idx = dmah_info["halo_idx"]
+
+    snaps, zs, scales = mah_info["snaps"], mah_info["z"], mah_info["scales"]
+    dsnaps, dzs, dscales = dmah_info["snaps"], dmah_info["z"], dmah_info["scales"]
+
+    assert np.all(snaps == dsnaps)
+    assert np.all(zs == dzs)
+    assert np.all(scales == dscales)
+
+    cat = match_mah_and_cat(halo_idx, cat)
+    dcat = match_mah_and_cat(dhalo_idx, dcat)
+
+    pass
