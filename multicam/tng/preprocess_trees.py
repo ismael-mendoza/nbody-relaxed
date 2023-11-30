@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Add `IndexInHaloTable` to trees for convenience."""
 import pickle
 import warnings
