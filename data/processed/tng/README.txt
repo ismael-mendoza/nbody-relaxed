@@ -147,36 +147,36 @@ Ngas, Nstars:
 	if there are less than 30 bound cells/particles in the halo.
 
 
-M{gas, star}_{vir, 200c, 500c, 2500c, 30cpkc, 100cpkc}:
+M{gas, star}_{vir, 200c, 500c, 2500c, 30pkpc, 100pkpc}:
 	The integrated gas/stellar mass within different apertures. The comoving aperture quantities act as BCG-related
 	quantities. In units of log10(Msun).
 
 
-Z{gas, stars}_{vir, 200c, 500c, 2500c, 30cpkc, 100cpkc}:
+Z{gas, stars}_{vir, 200c, 500c, 2500c, 30pkpc, 100pkpc}:
 	The integrated gas/stellar metallicity within different apertures. The comoving aperture quantities act as BCG-related
 	quantities. This is computed as the mass-weighted sum of the metallicities of individual gas cells or star particles.
 	In units of log10(Metallicity).
 
-SFR_{vir, 200c, 500c, 2500c, 30cpkc, 100cpkc}:
+SFR_{vir, 200c, 500c, 2500c, 30pkpc, 100pkpc}:
 	The total star formation rate of gas cells within different apertures. The comoving aperture quantities act as BCG-related
 	quantities. In units of log10(Msun/yr).
 
 
-Y_{vir, 200c, 500c, 2500c, 30cpkc, 100cpkc}:
+Y_{vir, 200c, 500c, 2500c, 30pkpc, 100pkpc}:
 	The compton-y parameter (a proxy for pressure) within different apertures. Units of
 	1/Mpc^2 (physical distance). Computed using ALL gas cells.
 
 
-Tm_{vir, 200c, 500c, 2500c, 30cpkc, 100cpkc}:
+Tm_{vir, 200c, 500c, 2500c, 30pkpc, 100pkpc}:
 	The mass-weighted temperature in different apertures. Units of keV. Computed using ALL gas cells.
 
 
-K_{vir, 200c, 500c, 2500c, 30cpkc, 100cpkc}:
+K_{vir, 200c, 500c, 2500c, 30pkpc, 100pkpc}:
 	The gas entropy within different apertures. Computed as K = n_e**(-2/3)*T.
 	Units of keV/cm^2. Computed using ALL gas cells.
 
 
-tstar_{vir, 200c, 500c, 2500c, 30cpkc, 100cpkc}:
+tstar_{vir, 200c, 500c, 2500c, 30pkpc, 100pkpc}:
 	The mass-weighted average age of stars within different apertures.
 	In units of Gyr.
 
