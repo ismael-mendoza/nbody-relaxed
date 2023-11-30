@@ -12,7 +12,7 @@ from multicam.parameters import get_vvir
 SNAPS = np.arange(0, 100, 1)
 TNG_H = 0.6774  # from website
 
-MISSING = 999999999
+MISSING = -999999999
 
 
 def convert_tng_mass(gmass):
@@ -69,6 +69,8 @@ def get_msmhmr(cat, gmass, mass_bin=(12.8, 13.1), n_bins=11):
 
     ratio = np.log10(10 ** cat["Mstar_30pkpc"] / 10**mvir)
     ratio = ratio.values
+
+    assert np.all(mvir > mass_bin[0]) and np.all(mvir < mass_bin[1])
 
     # compute mean ratio in bins of mvir
     bins = np.linspace(mass_bin[0], mass_bin[1], n_bins)
@@ -216,7 +218,7 @@ def setup_mah_from_trees(
     mah = mah[:, idx:]
 
     # remove haloes with nans and hope not too many
-    assert sum(np.isnan(mah.mean(axis=1))) < 10
+    assert sum(np.isnan(mah.mean(axis=1))) < 100
     kp_idx = np.where(np.isnan(mah).sum(axis=1) == 0)[0]
     mah = mah[kp_idx]
 
@@ -287,6 +289,7 @@ def hydro_dm_match_pipeline(
     trees_file: str,
     dark_trees_file: str,
     metadata_file: str,
+    color_file: str,
     mass_bin=(12.8, 13.1),
     mbin_fudge=0.3,
 ):
@@ -318,4 +321,39 @@ def hydro_dm_match_pipeline(
     cat = match_mah_and_cat(halo_idx, cat)
     dcat = match_mah_and_cat(dhalo_idx, dcat)
 
-    pass
+    # finally rematch the hydro and dm catalogs from the columns we created.
+    cat, dcat, mah, dmah = rematch_dm_and_hydro_cat(cat, dcat, mah, dmah)
+
+    # get additional properties we need for analysis
+    m_peak, dm_peak = get_mpeak_from_mah(mah), get_mpeak_from_mah(dmah)
+
+    cat["vmax/vvir"] = get_vmax_over_vvir(cat)
+    dcat["vmax/vvir"] = get_vmax_over_vvir(dcat)
+
+    # get defragmented frames
+    cat = cat.copy()
+    dcat = dcat.copy()
+
+    # final group mass
+    gmass = mah[:, -1]
+    dgmass = dmah[:, -1]
+
+    # get other interesting hydro properties
+    msmhmr, _ = get_msmhmr(cat, gmass)
+    df_color = get_color(color_file, cat)
+    gr = (df_color["sdss_g"] - df_color["sdss_r"]).values
+    cat["msmhmr"] = msmhmr
+    cat["g-r"] = gr
+
+    return {
+        "cat": cat,
+        "dcat": dcat,
+        "mah": mah,
+        "dmah": dmah,
+        "m_peak": m_peak,
+        "dm_peak": dm_peak,
+        "gmass": gmass,
+        "dgmass": dgmass,
+        "snaps": snaps,
+        "scales": scales,
+    }
