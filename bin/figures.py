@@ -25,7 +25,7 @@ from multicam.cosmo import get_a_from_t, get_fractional_tdyn, get_t_from_a
 from multicam.fits import alpha_analysis, get_early_late
 from multicam.mah import get_an_from_am, get_mah
 from multicam.models import opcam_dict, prepare_datasets, training_suite
-from multicam.plotting import CB_COLORS, MARKS, set_rc
+from multicam.plotting import CB_COLORS, LATEX_PARAMS, MARKS, set_rc
 
 plt.ioff()
 
@@ -814,7 +814,8 @@ class InvPredMetrics(Figure):
         for ii, (mdl, label) in enumerate(zip(mdl_names, nice_names)):
             m, c = MARKS[ii], CB_COLORS[ii]
             mval, merr = output[mdl]["val"], output[mdl]["err"]
-            rxplots.metrics_plot(ax, mval, merr, self.params, label, x_bias, m, c)
+            plot_params = [LATEX_PARAMS[param] for param in self.params]
+            rxplots.metrics_plot(ax, mval, merr, plot_params, label, x_bias, m, c)
             x_bias += 0.1
         ax.set_ylim(-0.05, 0.80)
         ax.set_xlim(-0.5, len(self.params) - 0.5)
@@ -968,7 +969,8 @@ class ForwardPredMetrics(Figure):
         for ii, (mdl, label) in enumerate(zip(mdl_names, nice_names)):
             m, c = MARKS[ii], CB_COLORS[ii]
             mval, merr = output[mdl]["val"], output[mdl]["err"]
-            rxplots.metrics_plot(ax, mval, merr, self.params, label, x_bias, m, c)
+            plot_params = [LATEX_PARAMS[param] for param in self.params]
+            rxplots.metrics_plot(ax, mval, merr, plot_params, label, x_bias, m, c)
             x_bias += 0.1
         ax.set_ylim(0.3, 0.8)
         ax.axvline(len(self.params) - 0.5 - 0.02, ymin=0.0, ymax=1.0, color="k", lw=1.3)
