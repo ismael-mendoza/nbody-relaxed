@@ -35,12 +35,27 @@ LATEX_PARAMS = {
     "tau_c": r"$\tau_{c}$",
     "alpha_early": r"$\alpha_{\rm early}$",
     "alpha_late": r"$\alpha_{\rm late}$",
+}
+
+LATEX_PARAMS_TNG = {
+    "cvir": r"$c_{\rm vir}$",
+    "X_off_DM": r"$x_{\rm off}$",
+    "Spin_Bullock_DM": r"$\lambda_{\rm bullock}$",
+    "q_DM": r"$q$",
+    "vmax/vvir": r"$V_{\rm max} / V_{\rm vir}$",
     "msmhmr": r"$\Delta \log (M_{\star})$",
     "g-r": r"$g-r$",
-    "sfr": r"$\log ({\rm SFR})$",
-    "mgas": r"$\log (M_{\rm gas})$",
-    "zgas": r"$\log (Z_{\rm gas})$",
-    "zstar": r"$\log (Z_{\star})$",
+    "SFR_vir": r"$\rm SFR$",
+    "Mgas_vir": r"$M_{\rm gas}$",
+    "Zgas_vir": r"$Z_{\rm gas}$",
+    "Zstar_vir": r"$Z_{\star}$",
+    "Mstar_vir": r"$M_{\star}$",
+    "tstar_vir": r"$t_{\star}$",
+    "tstar_200c": r"$t_{\star, \rm 200c}$",
+    "tstar_500c": r"$t_{\star, \rm 500c}$",
+    "tstar_2500c": r"$t_{\star, \rm 2500c}$",
+    "tstar_30pkpc": r"$t_{\star, \rm 30pkpc}$",
+    "tstar_100pkpc": r"$t_{\star, \rm 100pkpc}$",
 }
 
 LATEX_METRICS = {
@@ -157,16 +172,16 @@ def draw_histogram(
         )
 
 
-def metrics_plot(ax, mval, merr, params, label="", x_bias=0.0, m="o", c="r"):
+def metrics_plot(ax, mval, merr, plot_params, label="", x_bias=0.0, m="o", c="r"):
     """Obtain plots of metrics function given prediction and truth"""
-    n_params = len(params)
+
+    n_params = len(plot_params)
     assert mval.shape[0] == merr.shape[0] == n_params
-    params_latex = [LATEX_PARAMS[par] for par in params]
 
     # set up axes
     ax.set_xlim(-0.25, n_params)
     ax.set_xticks(np.array(list(range(n_params))))
-    ax.set_xticklabels(params_latex)
+    ax.set_xticklabels(plot_params)
     for jj in range(n_params):
         label = label if jj == 0 else None
         ax.errorbar(jj + x_bias, mval[jj], yerr=merr[jj], label=label, fmt=m, color=c)
