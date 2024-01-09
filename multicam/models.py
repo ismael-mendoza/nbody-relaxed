@@ -263,7 +263,7 @@ class MultiCamSampling(MultiCAM):
         return mu_cond.T.reshape(n_points, self.n_targets)
 
     def sample(self, x):
-        """Sample (once) from the conditional distribution P(y | x)"""
+        """Sample (once) from conditional distribution P(y | x)"""
         assert len(x.shape) == 2
         assert x.shape[1] == self.n_features
         assert np.sum(np.isnan(x)) == 0
