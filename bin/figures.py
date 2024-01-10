@@ -351,7 +351,7 @@ class TriangleSamples(Figure):
         joint_models = training_suite(data)
 
         x_test = datasets["all"]["test"][0]
-        samples_multigauss = joint_models["multicam"].sample(x_test, 1).reshape(-1, n_targets)
+        samples_multigauss = joint_models["multicam"].sample(x_test).reshape(-1, n_targets)
         samples_linear = joint_models["multicam"].predict(x_test).reshape(-1, n_targets)
         samples_cam = joint_models["optcam"].predict(x_test).reshape(-1, n_targets)
 

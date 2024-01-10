@@ -129,11 +129,10 @@ class MultiCAM(PredictionModel):
             hranks = np.cumsum(c)
             self.rank_lookup[jj] = (u, lranks, hranks)
 
-    def _predict(self, x):
-        assert len(x.shape) == 2
-        assert x.shape[1] == self.n_features
-        assert np.sum(np.isnan(x)) == 0
-        assert self.trained
+        return x_gauss, y_gauss
+
+    def _get_ranks(self, x, mode="middle"):
+        assert mode in {"middle", "random"}
 
         # get ranks of test data (based on training data)
         xr = np.zeros_like(x) * np.nan
@@ -143,13 +142,23 @@ class MultiCAM(PredictionModel):
             uniq, lranks, hranks = self.rank_lookup[jj]
             xr[:, jj] = np.searchsorted(x_train_jj, x_jj) + 1  # indices to ranks
 
-            # if value is in training data, get median rank
+            # if value is in training data, get middle or random rank
             in_train = np.isin(x_jj, uniq)
             u_indices = np.searchsorted(uniq, x_jj[in_train])
             lr, hr = lranks[u_indices], hranks[u_indices]  # repeat appropriately
-            xr[in_train, jj] = (lr + hr) / 2
+            xr[in_train, jj] = np.random.randint(lr, hr + 1) if mode == "random" else (lr + hr) / 2
 
         assert np.sum(np.isnan(xr)) == 0
+
+        return xr
+
+    def _predict(self, x):
+        assert len(x.shape) == 2
+        assert x.shape[1] == self.n_features
+        assert np.sum(np.isnan(x)) == 0
+        assert self.trained
+
+        xr = self._get_ranks(x, mode="middle")
 
         # transform ranks to be (marginally) gaussian.
         x_gauss = self.qt_xr.transform(xr)
@@ -169,7 +178,7 @@ class MultiCAM(PredictionModel):
         return y_pred
 
 
-class MultiCamSampling(PredictionModel):
+class MultiCamSampling(MultiCAM):
     """Multi-Variate Gaussian w/ full covariance matrix (returns conditional mean)."""
 
     def __init__(self, n_features: int, n_targets: int, rng=None) -> None:
@@ -186,33 +195,24 @@ class MultiCamSampling(PredictionModel):
         self.Sigma22 = None
         self.sigma_bar = None
 
-        self.qt_x = None
-        self.qt_y = None
-
     def _fit(self, x, y):
         """
-        We assume a multivariate-gaussian distribution P(X, a(m1), a(m2), ...) with
-        conditional distribution P(X | {a(m_i)}) uses the rule here:
+        We assume a multivariate-gaussian distribution P(X, Y) with conditional distribution
+        P(Y | X) = uses the rules here:
         https://stats.stackexchange.com/questions/30588/deriving-the-conditional-distributions-of-a-multivariate-normal-distribution
-        we return the mean/std deviation of the conditional gaussian.
-
-        * y (usually) represents one of the dark matter halo properties at z=0.
-        * x are the features used for prediction, should have shape (y.shape[0], n_features)
         """
+        xg, yg = super()._fit(x, y)  # gaussianized x and y
+
         n_features = self.n_features
         n_targets = self.n_targets
 
-        # transform x and y to be (marginally) gaussian.
-        x, self.qt_x = _gauss_transform(x)
-        y, self.qt_y = _gauss_transform(y)
-
-        z = np.hstack([y.reshape(-1, n_targets), x])
+        z = np.hstack([yg.reshape(-1, n_targets), xg])
 
         # some sanity checks
-        assert z.shape == (y.shape[0], n_targets + n_features)
-        np.testing.assert_equal(y, z[:, :n_targets])
-        np.testing.assert_equal(x[:, 0], z[:, n_targets])  # ignore mutual nan's
-        np.testing.assert_equal(x[:, -1], z[:, -1])
+        assert z.shape == (yg.shape[0], n_targets + n_features)
+        np.testing.assert_equal(yg, z[:, :n_targets])
+        np.testing.assert_equal(xg[:, 0], z[:, n_targets])  # ignore mutual nan's
+        np.testing.assert_equal(xg[:, -1], z[:, -1])
 
         # calculate covariances
         total_features = n_targets + n_features
@@ -236,8 +236,8 @@ class MultiCamSampling(PredictionModel):
         assert np.all(~np.isnan(Sigma))
         assert np.all(~np.isnan(rho))
 
-        mu1 = np.nanmean(y, axis=0).reshape(n_targets, 1)
-        mu2 = np.nanmean(x, axis=0).reshape(n_features, 1)
+        mu1 = np.nanmean(yg, axis=0).reshape(n_targets, 1)
+        mu2 = np.nanmean(xg, axis=0).reshape(n_features, 1)
         Sigma11 = Sigma[:n_targets, :n_targets].reshape(n_targets, n_targets)
         Sigma12 = Sigma[:n_targets, n_targets:].reshape(n_targets, n_features)
         Sigma22 = Sigma[n_targets:, n_targets:].reshape(n_features, n_features)
@@ -254,7 +254,7 @@ class MultiCamSampling(PredictionModel):
         self.sigma_bar = sigma_bar.reshape(n_targets, n_targets)
 
     def _get_mu_cond(self, x):
-        # returns mu_cond evaluated at given x.
+        # returns mu_cond evaluated at given x (gaussianized).
         assert self.trained
         assert np.sum(np.isnan(x)) == 0
         n_points = x.shape[0]
@@ -262,37 +262,36 @@ class MultiCamSampling(PredictionModel):
         mu_cond = self.mu1 + self.Sigma12.dot(np.linalg.inv(self.Sigma22)).dot(x - self.mu2)
         return mu_cond.T.reshape(n_points, self.n_targets)
 
-    def _predict(self, x):
-        """Predict mean y given x."""
-        x_gauss = self.qt_x.transform(x)
-        y_pred = self._get_mu_cond(x_gauss)
-        qt_pred = QuantileTransformer(n_quantiles=len(y_pred), output_distribution="normal")
-        qt_pred = qt_pred.fit(y_pred)
-        y_gauss = self.qt_y.inverse_transform(qt_pred.transform(y_pred))
-        return y_gauss
-
-    def sample(self, x, n_samples):
-        """Sample from conditional distribution P(y | x)"""
+    def sample(self, x):
+        """Sample (once) from the conditional distribution P(y | x)"""
         assert len(x.shape) == 2
         assert x.shape[1] == self.n_features
         assert np.sum(np.isnan(x)) == 0
         assert self.trained
+
         n_points = x.shape[0]
 
-        x_gauss = self.qt_x.transform(x)
+        # get ranks of test data (based on training data)
+        # use 'random' mode to account for uncertainty in ranks for each test point's features.
+        xr = self._get_ranks(x, mode="random")
 
+        # transform ranks to be (marginally) gaussian.
+        x_gauss = self.qt_xr.transform(xr)
+
+        # sample on gaussianized ranks.
         _zero = np.zeros((self.n_targets,))
         mu_cond = self._get_mu_cond(x_gauss)
-        size = (n_points, n_samples)
-        y_samples = self.rng.multivariate_normal(mean=_zero, cov=self.sigma_bar, size=size)
-        assert y_samples.shape == (n_points, n_samples, self.n_targets)
-        y_samples += mu_cond.reshape(-1, 1, self.n_targets)
+        y_gauss = self.rng.multivariate_normal(mean=_zero, cov=self.sigma_bar, size=(n_points,))
+        assert y_gauss.shape == (n_points, self.n_targets)
+        y_gauss += mu_cond
 
-        for i in range(n_samples):
-            y_i = y_samples[:, i, :]
-            qt_pred = QuantileTransformer(n_quantiles=len(y_i), output_distribution="normal")
-            qt_pred = qt_pred.fit(y_i)
-            y_samples[:, i, :] = self.qt_y.inverse_transform(qt_pred.transform(y_i))
+        # transform y_gauss to be ranks
+        yr = self.qt_yr.inverse_transform(y_gauss).astype(int)
+        yr -= 1  # ranks are 1-indexed, so subtract 1 to get 0-indexed.
+
+        # predictions are points in train data corresponding to ranks predicted
+        y_train_sorted = np.sort(self.y_train, axis=0)
+        y_samples = _value_at_rank(y_train_sorted, yr)
 
         return y_samples
 
