@@ -8,9 +8,9 @@ Model & $x_{\rm off}$,\,$\lambda_{\rm bullock}$ & $x_{\rm off}$,\,$c/a$ & $\lamb
 \hline
 \rm CAM $a(m_{\rm opt})$ & 0.61 & -0.78 & -0.88 \\
 \hline
-\rm MultiCAM (no scatter) & 0.92 & -0.96 & -0.96 \\
+\rm MultiCAM (no scatter) & 0.93 & -0.96 & -0.95 \\
 \hline
-\rm MultiCAM (with scatter) & 0.52 & -0.42 & -0.31 \\
+\rm MultiCAM (with scatter) & 0.52 & -0.42 & -0.30 \\
 \hline
 \end{tabular}
 \caption{}
