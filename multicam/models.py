@@ -281,12 +281,11 @@ class MultiCamSampling(MultiCAM):
         # sample on gaussianized ranks.
         _zero = np.zeros((self.n_targets,))
         mu_cond = self._get_mu_cond(x_gauss)
-        y_samples = self.rng.multivariate_normal(mean=_zero, cov=self.sigma_bar, size=(n_points,))
-        assert y_samples.shape == (n_points, self.n_targets)
-        y_samples += mu_cond
+        y_gauss = self.rng.multivariate_normal(mean=_zero, cov=self.sigma_bar, size=(n_points,))
+        assert y_gauss.shape == (n_points, self.n_targets)
+        y_gauss += mu_cond
 
-        # transform y_samples to be (marginally) gaussian.
-        y_gauss = self.qt_pred.transform(y_samples)
+        # transform y_gauss to be ranks
         yr = self.qt_yr.inverse_transform(y_gauss).astype(int)
         yr -= 1  # ranks are 1-indexed, so subtract 1 to get 0-indexed.
 
