@@ -1,4 +1,5 @@
 """Several utility functions to read data from TNG catalogs."""
+
 import pickle
 
 import h5py
@@ -25,6 +26,7 @@ def convert_tng_mass(gmass):
 
 def get_mpeak_from_mah(mah: np.ndarray):
     """Compute m_peak from mah."""
+    assert mah.ndim == 2
     Mpeak = np.fmax.accumulate(10**mah, axis=1)
     m_peak = Mpeak / Mpeak[:, -1][:, None]
     return m_peak
@@ -93,6 +95,12 @@ def get_msmhmr(cat, gmass, mass_bin=(12.8, 13.1), n_bins=11):
 
 def get_color(color_file: str, cat: pd.DataFrame):
     """Read in color file and return dataframe with colors (in order of catalog)."""
+    df_color = get_color_and_match(color_file, cat["SubhaloID"].values)
+    return df_color
+
+
+def get_color_and_match(color_file: str, subfind_ids: np.ndarray):
+    assert np.all(sorted(subfind_ids) == subfind_ids)  # needs to be sorted
     f = h5py.File(color_file, "r")
 
     colnames = (
@@ -115,9 +123,8 @@ def get_color(color_file: str, cat: pd.DataFrame):
 
     f.close()
 
-    df_color = df_color.iloc[np.where(np.isin(color_ids, cat["SubhaloID"].values))[0]]
-
-    assert all(df_color.index.values == cat["SubhaloID"].values)
+    df_color = df_color.iloc[np.where(np.isin(color_ids, subfind_ids))[0]]
+    assert all(df_color.index.values == subfind_ids)
 
     return df_color
 
