@@ -71,7 +71,6 @@ def get_msmhmr(mstar, mvir, mass_bin=(11.5, 12.0), n_bins=11):
     # both masses are assumed to be in log units
 
     ratio = np.log10(10**mstar / 10**mvir)
-    ratio = ratio.values
 
     assert np.all(mvir > mass_bin[0]) and np.all(mvir < mass_bin[1])
 
@@ -89,7 +88,6 @@ def get_msmhmr(mstar, mvir, mass_bin=(11.5, 12.0), n_bins=11):
     # finally, calculate deviation from mean log ratio
     #  want \Delta Log ( M_star )
     m_star_dev = mstar - np.log10(10 ** (m * mvir + b) * 10**mvir)
-    m_star_dev = m_star_dev.values
 
     return m_star_dev, (m, b)
 
