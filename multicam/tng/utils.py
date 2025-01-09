@@ -99,7 +99,7 @@ def get_color(color_file: str, cat: pd.DataFrame):
 
 
 def get_color_and_match(color_file: str, subfind_ids: np.ndarray):
-    assert np.all(sorted(subfind_ids) == subfind_ids)  # needs to be sorted
+    assert np.all(np.sort(subfind_ids) == subfind_ids)  # needs to be sorted
     f = h5py.File(color_file, "r")
 
     colnames = (
